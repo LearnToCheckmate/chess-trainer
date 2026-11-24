@@ -1,0 +1,13 @@
+diff --git a/chess.jsx b/chess.jsx
+index 93e27bb8..99775909 100644
+--- a/chess.jsx
++++ b/chess.jsx
+@@ -8952,7 +8952,7 @@ function AppMain(){
+     // 'months' would be written over a recorded 'all' and the next good launch would say older games aren't loaded.
+     const _caps=(stored,gone)=>{const C={};const _p={...(acctCapRef.current||{})};if(!ACCT_UNREAD)_p[id]=bound||'all';
+       Object.keys(_p).forEach(k=>{if(k in stored||(ACCT_UNREAD&&gone.indexOf(k)<0))C[k]=_p[k];});
+-      acctCapRef.current=C; try{localStorage.setItem(ACCT_C,JSON.stringify(C));}catch(e){}};
++      acctCapRef.current=C; try{localStorage.setItem(ACCT_C,JSON.stringify(Object.fromEntries(Object.entries(C).map(([k,v])=>[k,String(v)+'+gap']))));}catch(e){}};
+     _caps(M,evicted);
+     const next=order.filter(x=>M[x]||(ACCT_UNREAD&&evicted.indexOf(x)<0));
+     setCcAccts(next);

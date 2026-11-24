@@ -1,0 +1,43 @@
+{
+ "job": "fork-reading-fires-on-a-move-that-is-mated-2026-11-13",
+ "about": "Gate 203 (node, no browser) runs the shipped concreteRead over 150 library puzzle positions and the job's fixtures, every legal move of each, against a mate-in-one fact computed in the gate: a move that allows mate in one must read null, the real fork Nc7 still reads its sentence, and unmated moves still carry readings (so the guard is not a blanket null). NOT COVERED: the sentences other functions build on top of concreteRead (gates 132/133 pin those), the browser box.",
+ "gate": "gates/regress/203-no-reading-for-a-mated-move.js",
+ "env": {},
+ "checks": [
+  "^TC-R30[67] "
+ ],
+ "build": "never",
+ "situations": [
+  {
+   "name": "node (concreteRead scan)",
+   "match": "^TC-R30[67] "
+  }
+ ],
+ "breaks": [
+  {
+   "name": "guard-removed",
+   "patch": "breaks/203-guard-removed.diff",
+   "why": "the mate-in-one guard at the top of concreteRead is deleted, so Nc6 (Rb1 mates) reads a fork again (the job's defect)",
+   "mustFailIn": [
+    "node (concreteRead scan)"
+   ]
+  },
+  {
+   "name": "guard-skips-captures",
+   "patch": "breaks/203-guard-skips-captures.diff",
+   "why": "the guard is kept for quiet moves only, so a capture that allows mate still reads 'take it' / 'wins the X'",
+   "mustFailIn": [
+    "node (concreteRead scan)"
+   ]
+  },
+  {
+   "name": "guard-nulls-every-move",
+   "patch": "breaks/203-guard-nulls-every-move.diff",
+   "why": "the guard fires on every move (over-correction): no mated move reads anything, and neither does the real fork Nc7",
+   "mustFailIn": [
+    "node (concreteRead scan)"
+   ]
+  }
+ ],
+ "timeoutSec": 900
+}

@@ -1,0 +1,13 @@
+diff --git a/chess.jsx b/chess.jsx
+index 93e27bb8..bf1b567c 100644
+--- a/chess.jsx
++++ b/chess.jsx
+@@ -2266,7 +2266,7 @@ function concreteRead(pos,mv){
+        a fork of the queen and the rook while Rb1 mates. A move that lets them mate in one sets up nothing, so NO reading is said for it - not
+        the fork, mate-threat and pin readings the job names, and not the older ones either: with the fork silenced the same Nc6 fell through
+        to 'Their rook on b8 is short of defenders. Attack it.', the same advice on the same mated move. null keeps the caller's general line. */
+-    if(_mateInOne(g2))return null;
++    if(_mateInOne(g2)&&!pos.board[mv.tr][mv.tc])return null;
+     let _m2=false;try{const rs=getLegal(g2);_m2=rs.length>0&&rs.length<=40&&rs.every(r=>{const g3=makeMove(g2,r);return g3&&!!_mateInOne(g3);});}catch(e){_m2=false;}
+     if(_m2)return {k:'mate2',hint:'There is mate in two'+(st2==='check'?', and it starts with a check.':'.'),say:san+' forces mate in two.'};
+     const _ft=(()=>{if(st2!=='check')return null;let ft=[];try{ft=forkTargets(pos,mv)||[];}catch(e){ft=[];}const a=ft.filter(t=>t!=='k'&&t!=='king')[0];if(!a)return null;const t=PNAME[a]?a:(Object.keys(PNAME).find(k=>PNAME[k]===a)||null);if(!t)return null;
