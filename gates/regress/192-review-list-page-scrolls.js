@@ -26,6 +26,11 @@
 //          with the back icon scrolled off; gate 182 TC-R258l found it).
 //  TC-R316 zero app errors.
 // CT_G192_GEOS=kunal761,se,844x390 narrows a run (a subset is never the whole gate).
+// CONTROL-RECORD: bc7f285c 2026-11-24 total=24 red=10 scope=trial:4bd00a97d8f9 how=#553 B1, THE SUBJECT REMOVED: the tree before this job (bc7f285c, the fitted games box, chips inside it on a short phone, no place kept) - TC-R311, TC-R313 and TC-R315 red at all three sizes (the box its own scroller; #root 761 in 761 at 375x761), TC-R317 red at 375x761 (scrolled to 0: the fixed page cannot scroll); R310, R312, R314, R316 green
+// CONTROL-RECORD: 800686b5 2026-11-24 total=24 red=9 scope=trial:5c93b1657c7f how=#553 pairs break the-games-box-scrolls-again (192-the-games-box-scrolls-again.diff): TC-R311, TC-R313 and TC-R315 red at all three sizes
+// CONTROL-RECORD: 800686b5 2026-11-24 total=24 red=1 scope=trial:12f56828b9bf how=#553 pairs break short-phone-chips-inside-the-box (192-short-phone-chips-inside-the-box.diff): TC-R315 red at 320x568 only
+// CONTROL-RECORD: 800686b5 2026-11-24 total=24 red=3 scope=trial:449146aa618b how=#553 pairs break the-list-forgets-its-place (192-the-list-forgets-its-place.diff): TC-R317 red at all three sizes
+// The grading machine on 800686b5: CHECKED, real 8/8 at kunal761, 320x568 and 844x390 (bundle 9dd8fa07928d), the three breaks CAUGHT.
 const L=require('../lib');
 const PGN='[Event "Live Chess"]\n[Site "Chess.com"]\n[Date "2025.10.01"]\n[White "Kunal2023"]\n[Black "Opp"]\n[Result "1-0"]\n[TimeControl "180"]\n\n1. e4 e5 2. Nf3 d6 3. d4 Bg4 4. dxe5 Bxf3 5. Qxf3 dxe5 6. Bc4 Nf6 7. Qb3 Qe7 8. Nc3 c6 9. Bg5 b5 10. Nxb5 cxb5 11. Bxb5+ Nbd7 12. O-O-O Rd8 13. Rxd7 Rxd7 14. Rd1 Qe6 15. Bxd7+ Nxd7 16. Qb8+ Nxb8 17. Rd8# 1-0';
 const games=[],stats={};const t0=1760000000000;
