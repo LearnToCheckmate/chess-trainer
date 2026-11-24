@@ -17,8 +17,8 @@
 // ([data-ct="eval-graph-hit"]) against the svg's box, horizontally, and (2) the PAINTED SHAPE (the dot's other child) against the svg's box,
 // both axes. The box is the svg's own rect, which is what clips: the svg is overflow:hidden by default for an inline svg.
 // TC-R300a PRECONDITION the graph is on screen with at least 2 marks, among them the last ply's 'move 4 (White)'. TC-R300b every hit circle
-// is inside the box (x). TC-R300c every painted shape is inside the box (x and y). TC-R300d a real tap on the LAST mark's centre jumps to
-// that ply (the inset must not break the tap-to-ply mapping) - read from the ply shown by the move strip before and after.
+// is inside the box (x). TC-R300c every painted shape is inside the box (x and y). TC-R300d the LAST mark's centre hit-tests to that mark.
+// TC-R300e the hit circles are still 24px (a fix that shrinks the drawing to fit would pass b and c and fail gate 144's 24px).
 // NOT THE SAME OBJECT TWICE: the box is the svg's rect and the marks' rects are read off their own elements; no number from EvalGraph's code
 // is used. The tap is a real mouse click at the mark's centre.
 // KNOW ITS LIMIT: headless Chromium and the single-thread engine; the grades on Scholar's Mate may differ run to run, so the gate pins the
@@ -56,6 +56,8 @@ L.run(async()=>{
       const B=r.box,e=0.5;
       const hitBad=r.dots.filter(d=>!d.hit||d.hit.l<B.l-e||d.hit.r>B.r+e).map(d=>d.name+' hit '+JSON.stringify(d.hit)+' vs box '+B.l+'..'+B.r);
       L.say(hitBad.length===0,G+'TC-R300b every mark\'s 24px hit circle lies inside the graph\'s box horizontally ('+r.dots.length+' marks, box x '+B.l+'..'+B.r+'; outside: '+hitBad.length+')',{hitBad});
+      const small=r.dots.filter(d=>d.hit&&(d.hit.r-d.hit.l<23.9||d.hit.b-d.hit.t<23.9)).map(d=>d.name+' '+(d.hit.r-d.hit.l).toFixed(1)+'px');
+      L.say(small.length===0,G+'TC-R300e the marks keep their 24px hit circle - the graph was made to fit its box by moving the marks in, not by shrinking them (smaller: '+small.length+')',{small});
       const shBad=r.dots.filter(d=>!d.shape||d.shape.l<B.l-e||d.shape.r>B.r+e||d.shape.t<B.t-e||d.shape.b>B.b+e).map(d=>d.name+' shape '+JSON.stringify(d.shape)+' vs box '+JSON.stringify(B));
       L.say(shBad.length===0,G+'TC-R300c every mark\'s painted shape lies wholly inside the graph\'s box, both axes (outside: '+shBad.length+')',{shBad});
       const last=r.dots.find(d=>/move 4 \(White\)/.test(d.name||''));

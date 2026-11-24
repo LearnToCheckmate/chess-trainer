@@ -1,0 +1,13 @@
+diff --git a/chess.jsx b/chess.jsx
+index d89e35bf..edfc538d 100644
+--- a/chess.jsx
++++ b/chess.jsx
+@@ -4686,7 +4686,7 @@ function EvalGraph({analysis,plies,ply,onJump,width:askW,height,missed,bookN}){
+   const svgRef=useRef(null);const [bw,setBw]=useState(0);
+   /* #553, jobs/the-review-graphs-last-ply-marker-is-clipped-to-a-sliver-by-the-svg-edge-2026-11-19: the box this svg is LAID OUT in can be narrower than the width it was asked for (375x761: 369 for 375; 320x568: 290 for 320; the more sheet 8% under), and an svg with no viewBox does not shrink its drawing, it clips it - the last ply, drawn at x = width, lost 18 of its 24px. So the drawing is made at the width the svg actually gets (read after layout, kept up to date by a ResizeObserver), and its plies span [GX, W-GX], GX = the 24px hit circle's radius, so every mark lies wholly inside the box at its true 24px size. The line, area, cursor and tap-to-ply mapping all use that one x. */
+   useLayoutEffect(()=>{const el=svgRef.current;if(!el)return;const m=()=>{const w=el.getBoundingClientRect().width;setBw(w>1?Math.round(w*100)/100:0);};m();let ro=null;try{ro=new ResizeObserver(m);ro.observe(el);}catch(e){}return()=>{try{ro&&ro.disconnect();}catch(e){}};},[askW,height]);
+-  const width=bw>0?Math.min(askW,bw):askW;
++  const width=askW;
+   const H=height||72,n=analysis.length;if(!n)return null;
+   const GX=Math.min(12,width/8),pad=Math.min(7,H/4);   /* the vertical pad keeps the painted shape (radius up to 4.8 and a 1px stroke) off the top and bottom edges too */
+   const xAt=(i)=>GX+(i/(n-1||1))*(width-2*GX);
