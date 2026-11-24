@@ -1,11 +1,12 @@
 diff --git a/chess.jsx b/chess.jsx
-index d6dcefdb..15879c06 100644
 --- a/chess.jsx
 +++ b/chess.jsx
-@@ -13258,5 +13258,5 @@ function AppMain(){
+@@ -14282,7 +14282,7 @@ function AppMain(){
+             {_bb('land-newgame',<span style={{fontSize:17,lineHeight:1}}>{'\u265f'}</span>,'New game',()=>{setOpenIdx(null);setSetupFromFEN(null);setPlaySetup(true);})}
              {_bb('land-more',<span style={{fontSize:18,lineHeight:1}}>{'\u22ef'}</span>,'More',()=>setMoreOpen(true))}
            </div>);})():(<div data-ct="play-ctlrow" style={{display:'flex',gap:landGraph?4:6,width:'100%',alignItems:'center',minHeight:landGraph?44:51 /* batch 13: the icons-only buttons are 44 tall; the row keeps the 51 the labelled buttons took, so the board neither grows nor moves */}}>
--            {/* batch 13, jobs/every-button-row-is-icons-only-in-one-style-with-two-kinds-of-arrows-2026-11-18: the game's row is RowBtn, icons only (names in aria-label); Back and Forward step through the moves, so they are the white StepArrow */}<RowBtn ct="play-moves" label="Moves" hot={movesOpen} onClick={()=>setMovesOpen(o=>!o)}><RowIcon name="moves"/></RowBtn>
-+            {/* batch 13, jobs/every-button-row-is-icons-only-in-one-style-with-two-kinds-of-arrows-2026-11-18: the game's row is RowBtn, icons only (names in aria-label); Back and Forward step through the moves, so they are the white StepArrow */}<RowBtn ct="play-moves" label="Moves" hot={movesOpen} onClick={()=>setMovesOpen(o=>!o)}><RowIcon name="moves"/><span style={{fontSize:9.5,fontWeight:800}}>Moves</span></RowBtn>
+-            {/* batch 13, jobs/every-button-row-is-icons-only-in-one-style-with-two-kinds-of-arrows-2026-11-18: the game's row is RowBtn, icons only (names in aria-label); Back and Forward step through the moves, so they are the white StepArrow */}<RowBtn ct="play-moves" label="Moves" hot={playFit.noMoves?playMovesSheet:movesOpen} onClick={()=>{if(playFit.noMoves){setPlayMovesSheet(o=>!o);return;}setMovesOpen(o=>!o);}}><RowIcon name="moves"/></RowBtn>
++            {/* batch 13, jobs/every-button-row-is-icons-only-in-one-style-with-two-kinds-of-arrows-2026-11-18: the game's row is RowBtn, icons only (names in aria-label); Back and Forward step through the moves, so they are the white StepArrow */}<RowBtn ct="play-moves" label="Moves" hot={playFit.noMoves?playMovesSheet:movesOpen} onClick={()=>{if(playFit.noMoves){setPlayMovesSheet(o=>!o);return;}setMovesOpen(o=>!o);}}><RowIcon name="moves"/><span style={{fontSize:9.5,fontWeight:800}}>Moves</span></RowBtn>
              <RowBtn ct="play-back" label="Back" dis={playHist.length===0||pvIdx===0} onClick={()=>{const n=playHist.length;const cur=pvIdx==null?n:pvIdx;setPvIdx(Math.max(0,cur-1));}}><StepArrow dir="left"/></RowBtn>
              <RowBtn ct="play-forward" label="Forward" dis={playHist.length===0||pvIdx==null} onClick={()=>{const n=playHist.length;const cur=pvIdx==null?n:pvIdx;const nv=Math.min(n,cur+1);setPvIdx(nv>=n?null:nv);}}><StepArrow dir="right"/></RowBtn>
+             {/* #371: when the game is over on a phone, Hint and Flip give their two slots to Review and New game -

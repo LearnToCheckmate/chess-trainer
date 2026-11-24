@@ -1,18 +1,21 @@
 diff --git a/chess.jsx b/chess.jsx
-index 1aef92c0..3f234777 100644
 --- a/chess.jsx
 +++ b/chess.jsx
-@@ -7895,5 +7895,5 @@ function AppMain(){
+@@ -8502,7 +8502,7 @@ function AppMain(){
+        scored differently - the same game reviewed twice gave Black 84.6% one run and 58.4% the next, with the
         verdicts to match. A fixed DEPTH makes a review reproducible, correct on the Opera Game's famous moves,
         and about 7 s faster. `fresh` clears the table for the handful of positions that need a clean look. */
 -    try{slot.w.postMessage('setoption name UCI_LimitStrength value false');if(fresh)slot.w.postMessage('ucinewgame');slot.w.postMessage('position fen '+fen);slot.w.postMessage('go depth '+(DCAP+(dx>0?dx:0)));slot.S.go.current++;}catch(e){finish(null,false);}};
 +    try{slot.w.postMessage('setoption name UCI_LimitStrength value false');if(fresh)slot.w.postMessage('ucinewgame');slot.w.postMessage('position fen '+fen);slot.w.postMessage('go depth '+DCAP);slot.S.go.current++;}catch(e){finish(null,false);}};
      if(!slot.S.go.current&&!slot.S.owed.current)run();
      else stopIdle(slot.w,slot.S,(idle)=>{if(done)return;if(!idle){finish(null,false);return;}run();});
-@@ -7937,5 +7937,5 @@ function AppMain(){
-     let _lv=_lvAsk;{const _all0=evalCacheAll();for(let l=REV_DEPTHS.length-1;l>_lvAsk;l--){const c=_all0[_ckOf(l)];if(c&&c.evW&&c.evW.length===res.plies.length+1){_lv=l;break;}}}
+   });
+@@ -8554,7 +8554,7 @@ function AppMain(){
      const _dx=REV_DEPTHS[_lv].dx;
+     if(_deep)setDeepRun({lv:_lv,n:res.plies.length,f:0});
+     if(_main)setAnaView({positions:res.positions,plies:res.plies,lv:_lv,flip:!!(meta&&meta.userColor==='b')});   /* #553: the waiting screen's board and its real time */
 -    const _ev1=(fen,mt,d,f)=>sfEval1(fen,mt,d+_dx,f);   // the single-worker search at this review's depth: Quick's 16 plus the level's extra plies, the pool's own sum
 +    const _ev1=(fen,mt,d,f)=>sfEval1(fen,mt,d,f);   // the single-worker search at this review's depth: Quick's 16 plus the level's extra plies, the pool's own sum
      const _ckEarly=_ckOf(_lv);
      const _c0=evalCacheAll()[_ckEarly];
+     const useSF=(_c0&&_c0.evW&&_c0.evW.length===res.plies.length+1)?true:await (async()=>{/* #550 item (90): the wait for Stockfish (up to REVIEW_ENGINE_WAIT, 120s at rest) is SHOWN, not silent */const _ready=!!(sfAnaRef.current&&sfAnaReadyRef.current);if(!_ready)setAnaLoadAt(Date.now());try{return await ensureAna(REVIEW_ENGINE_WAIT);}finally{setAnaLoadAt(0);}})();
