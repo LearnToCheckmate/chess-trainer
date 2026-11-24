@@ -1271,6 +1271,20 @@ function effCls(cls,i,bookN){
   return cls;
 }
 function effLabel(cls,i,bookN){const c=effCls(cls,i,bookN);return c&&c.label;}
+/* #553, jobs/a-lesson-library-book-move-that-allows-mate-is-graded-book-and-praised-2026-11-19: THE BOOK ENDS AT THE FIRST MOVE THE
+   ENGINE CALLS A MISTAKE, A BLUNDER OR A MISS. The Book prefix is how far a game follows a lesson line or a named opening position, and
+   the lesson library teaches TRAPS: the Scholar's Mate lesson's 3...Nf6 allows 4.Qxf7#, and the Review badged it Book, praised it as "An
+   opening move (Scholar's Mate)", counted it under Book and left Black 'not scored'. A move that loses the game is not theory because a
+   lesson shows it being punished. So the prefix is cut at the first such ply: that ply shows the grade the engine gave it, and every ply
+   after it is graded as an ordinary move (the trap's punishment, 4.Qxf7#, is the engine's Best). A move that allows a forced mate is
+   always one of these three (mateLadder), unless its side was already lost by ten pawns, when it allowed nothing. Inaccuracies stay Book,
+   as on chess.com. No grade, band or threshold changes: this reads the grade classify already gave. Every consumer of the prefix (the
+   summary counts, the jump, the badge, the strip, the eval graphs, the skills panel, the games-list split, the regrade preview) reads the
+   cut number, so they agree by construction as they did before. */
+const BOOK_BREAKS=['Mistake','Blunder','Miss'];
+function bookBreaks(label){return BOOK_BREAKS.indexOf(label)>=0;}
+// The Book prefix with the cut applied: bookN plies of book, labelAt(i) the engine's grade of ply i.
+function bookSound(bookN,labelAt){const n=bookN||0;for(let i=0;i<n;i++){let L=null;try{L=labelAt(i);}catch(e){L=null;}if(bookBreaks(L))return i;}return n;}
 let SFX_ON=true; let _ctxSfx=null;
 function _sfxCtx(){try{const A=window.AudioContext||window.webkitAudioContext;if(!A)return null;if(!_ctxSfx)_ctxSfx=new A();if(_ctxSfx.state==='suspended')_ctxSfx.resume();return _ctxSfx;}catch(e){return null;}}
 function _sfxTone(ctx,type,f,t0,dur,vol,f2){try{const o=ctx.createOscillator(),g=ctx.createGain();o.type=type;o.frequency.setValueAtTime(f,t0);if(f2!=null)o.frequency.exponentialRampToValueAtTime(Math.max(1,f2),t0+dur);g.gain.setValueAtTime(0.0001,t0);g.gain.linearRampToValueAtTime(vol,t0+0.008);g.gain.exponentialRampToValueAtTime(0.0006,t0+dur);o.connect(g);g.connect(ctx.destination);o.start(t0);o.stop(t0+dur+0.03);}catch(e){}}
@@ -3586,15 +3600,16 @@ function regradeGame(res,cache,userColor,rule,oldVer){   // oldVer: the stored t
   /* #550 antagonist A round 2 (P2): the Best/Great split is the summary's (effLabel over the game's own book plies), so a book-range ply that a regrade moves
      between Brilliant and Best/Great moves the split only where the summary would have counted it */
   let _bk=0;try{_bk=(res.positions&&res.positions[0]&&toFEN(res.positions[0]).split(' ')[0]===START_PLACEMENT)?(openingBookPlies(res.plies.map(p=>p.san),res.positions)||0):0;}catch(e){_bk=0;}
+  let _bkO=_bk,_bkN=_bk;   // #553: each run's own book, cut at its own first Mistake, Blunder or Miss (bookSound, applied as the plies are graded)
   for(let i=0;i<N;i++){
     const pos=res.positions[i],pl=res.plies[i].move,ev2=cache.ev2W?cache.ev2W[i]:null,bu=cache.bU?cache.bU[i]:null,au=cache.aU?cache.aU[i]:null;
     const _h=gradeHist(res,evW,cache.bU,i),_oR=(oldVer||1)%10,_hO={..._h,grades2:(oldVer||1)>=10};   // the stored review's own rule and grades
     const nw=sfGradePly(pos,pl,evW[i],evW[i+1],ev2,bu,au,null,rule,false,_h);   // rule: the app's own (BRIL_RULE) unless a caller names one
     const ol=_oR===1?sfGradePly(pos,pl,evW[i],evW[i+1],ev2,bu,au,brilliantV1ok,1,false,_hO):sfGradePly(pos,pl,evW[i],evW[i+1],ev2,bu,au,null,_oR,false,_hO);
     rows.push(nw);
-    const NL=nw.cls.label,OL=ol.cls.label;if(NL===OL)continue;
+    const NL=nw.cls.label,OL=ol.cls.label;if(i<_bkO&&bookBreaks(OL))_bkO=i;if(i<_bkN&&bookBreaks(NL))_bkN=i;if(NL===OL)continue;
     const mc=pos.turn,mine=!userColor||mc===userColor;   // #549 item (66): the position's side to move, so a set-up game starting with Black is attributed right
-    if(mine){const a=_tallyBucket(OL),b=_tallyBucket(NL);if(a)delta[a]--;if(b)delta[b]++;const a2=_tallySplit(effLabel(ol.cls,i,_bk)),b2=_tallySplit(effLabel(nw.cls,i,_bk));if(a2)delta[a2]--;if(b2)delta[b2]++;}
+    if(mine){const a=_tallyBucket(OL),b=_tallyBucket(NL);if(a)delta[a]--;if(b)delta[b]++;const a2=_tallySplit(effLabel(ol.cls,i,_bkO)),b2=_tallySplit(effLabel(nw.cls,i,_bkN));if(a2)delta[a2]--;if(b2)delta[b2]++;}
     else{if(OL==='Brilliant')delta.obril--;if(NL==='Brilliant')delta.obril++;}
     if(OL==='Brilliant'||NL==='Brilliant'){
       const m=pl,u=rc2sq(m.fr,m.fc)+rc2sq(m.tr,m.tc)+(m.promo||'');
@@ -3613,7 +3628,7 @@ async function analyzeGameCounts(pgn,userColor){
     const res=loadSANs(sans,_st.game);if(!res||!res.plies.length)return null;
     let bril=0,great=0,inacc=0,mist=0,blun=0,proc=0,obril=0,best=0,grt=0;
     /* #550 answer a9 (item 73): Best and Great are counted apart, with the summary's book plies (effCls) kept out of Best, so the row's numbers are the summary's */
-    const _bk=_st.game?0:(()=>{try{return openingBookPlies(sans,res.positions)||0;}catch(e){return 0;}})();
+    let _bk=_st.game?0:(()=>{try{return openingBookPlies(sans,res.positions)||0;}catch(e){return 0;}})();
     for(let i=0;i<res.plies.length;i++){
       const mc=res.positions[i].turn;const _opp=!!userColor&&mc!==userColor;   /* #549 item (66): the mover is the position's side to move, not ply parity - a set-up game may start with Black */ // #548 item (128): the opponent's moves are graded too, for ONE thing - whether any was Brilliant
       const pos=res.positions[i],scored=rankMoves(pos,2);if(!scored||!scored.length)continue;
@@ -3634,7 +3649,7 @@ async function analyzeGameCounts(pgn,userColor){
       const _nb3=nextBestW(bestVal,scored[1]?scored[1].v:null,!!actual&&actual===scored[0]);
       let _c3=isBrilliant(pos,pl,Math.round(loss),evalPawns(res.positions[i+1]),evalPawns(pos),_nb3==null?null:Math.max(-99,Math.min(99,_nb3/100)),undefined,{lossWin:winDrop(bestVal,actualVal,mc),playedIsBest:!!actual&&actual===scored[0],positions:res.positions,i})?{label:'Brilliant'}:classifyMove(winDrop(bestVal,actualVal,mc),!!actual&&actual===scored[0],scored.length);
       if(_c3.label!=='Brilliant'&&matesMover(actualVal,mc,bestVal))_c3=mateLadder(evalPawns(pos)*100,mc);
-      const L=_c3.label;
+      const L=_c3.label;if(i<_bk&&bookBreaks(L))_bk=i;   // #553: the book ends at the first Mistake, Blunder or Miss (bookSound), for either side, as the review's does
       if(_opp){if(L==='Brilliant')obril++;if((++proc)%2===0)await new Promise(r=>setTimeout(r,0));continue;}
       if(L==='Brilliant')bril++;else if(L==='Best'||L==='Great')great++;else if(L==='Inaccuracy')inacc++;else if(L==='Mistake'||L==='Miss')mist++;else if(L==='Blunder')blun++;
       {const E=effLabel(_c3,i,_bk);if(E==='Best')best++;else if(E==='Great')grt++;}
@@ -8606,7 +8621,7 @@ function AppMain(){
         if(fc.length)setFollowBril(prev=>followBrilMerge(prev,fc));
       }
     }catch(e){}
-    const bookN=_st.game?0:openingBookPlies(playedSans,res.positions);   // #549 item (98): the named-position table as well as the lesson lines
+    const bookN=_st.game?0:bookSound(openingBookPlies(playedSans,res.positions),(i)=>out[i]&&out[i].cls&&out[i].cls.label);   // #549 item (98): the named-position table as well as the lesson lines; #553: cut at the first Mistake, Blunder or Miss (bookSound)
     if(meta&&meta.key&&gameStatsRef.current[meta.key]){   /* #550 answer a9 (item 73): the games list shows Best and Great apart, each the summary's own count for his side (effLabel, book applied) */
       const uc=meta.userColor;let best=0,grt=0;out.forEach((o,i)=>{if(uc&&res.positions[i].turn!==uc)return;const E=effLabel(o.cls,i,bookN);if(E==='Best')best++;else if(E==='Great')grt++;});
       recordGameStats(meta.key,{...gameStatsRef.current[meta.key],best,grt});

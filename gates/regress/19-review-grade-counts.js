@@ -143,6 +143,20 @@ function expectedPrefix(pgn){
   }
   return Math.min(best,24);
 }
+// #553, jobs/a-lesson-library-book-move-that-allows-mate-is-graded-book-and-praised-2026-11-19: THE BOOK ENDS AT A MOVE THAT LOSES THE GAME.
+// The app cuts its Book prefix at the first ply its engine grades Mistake, Blunder or Miss (chess.jsx bookSound). This gate's oracle must
+// not read the app's grades, so it cuts at the one such ply it can prove FROM THE BOARD ALONE: a move inside the prefix after which the
+// opponent has a mate in one (legal-move enumeration through engine-extract's rules of chess, no engine, no grader). That is exactly the
+// SCHOLAR case (3...Nf6 allows 4.Qxf7#, index 5); the other four fixtures have no such ply, so their oracle is the prefix as before.
+const RULES=(()=>{try{return require('../engine-extract');}catch(e){return null;}})();
+function mateInOneCut(pgn,prefix){
+  if(!RULES||!prefix)return prefix;
+  const sans=RULES.parsePGN(pgn);const res=RULES.loadSANs(sans);if(!res||!res.positions)return prefix;
+  for(let i=0;i<prefix&&i+1<res.positions.length;i++){const p=res.positions[i+1];
+    let m1=false;try{for(const mv of RULES.getLegal(p)){if(RULES.getStatus(RULES.makeMove(p,mv))==='checkmate'){m1=true;break;}}}catch(e){}
+    if(m1)return i;}
+  return prefix;
+}
 
 
 // the number of plies in a PGN, counted off the movetext, so the walk covers every one of them
@@ -248,8 +262,8 @@ async function runFixture(geo,name,pgn,acc){
    L.say(known.length===LBL.length&&Object.keys(dots).length===LBL.length&&bad.length===0,tag+' TC-R75 every grade\'s summary dot is the colour the classifier paints that grade - one ladder, not two copies'+(bad.length?' ('+bad.join('; ')+')':''),{bad});}
 
   const bookPainted=(rows.Book[0].n||0)+(rows.Book[1].n||0);
-  const bookExpected=expectedPrefix(pgn);
-  L.say(Number.isInteger(bookPainted),tag+' A2 painted Book total = '+bookPainted+' (w '+rows.Book[0].n+' b '+rows.Book[1].n+'); this gate computes the prefix INDEPENDENTLY as '+bookExpected+', over '+n+' PGN plies');
+  const bookLine=expectedPrefix(pgn),bookExpected=mateInOneCut(pgn,bookLine);   // #553: the lesson prefix, cut at a move that allows mate in one
+  L.say(Number.isInteger(bookPainted),tag+' A2 painted Book total = '+bookPainted+' (w '+rows.Book[0].n+' b '+rows.Book[1].n+'); this gate computes the prefix INDEPENDENTLY as '+bookExpected+(bookExpected!==bookLine?' (the lesson line runs '+bookLine+' plies; the book ends at the move that allows mate in one)':'')+', over '+n+' PGN plies');
   acc.prefixes.push({tag,bookPainted,bookExpected});
 
   // ---- clause (b) FIRST, while the summary is the live view ----
@@ -393,7 +407,10 @@ async function runFixture(geo,name,pgn,acc){
     let g=await readG();let viaSheet=false;if(!g){try{await b.tapCt('rev-more',500);g=await readG();viaSheet=true;await b.page.mouse.click(8,120);await b.settle(400);}catch(e){}}
     L.say(!!g,tag+' A7 the eval graph is on the move screen or in its more sheet (the denominator for the dot check)'+(viaSheet?' - read from the sheet':''),g?{w:g.w,dots:g.dots.length,viaSheet}:null);
     if(g){const RAW=['#ec5c4e','#f08a5d','#f0a24e','#f0cf5e'];/* Blunder, Miss, Mistake, Inaccuracy: the grade dots a book ply must not carry; Brilliant and Great are exempt and the yellow current-ply marker is not a grade */const inBook=g.dots.map(d=>({...d,i:d.i!=null?d.i:Math.round(d.cx/(g.w||1)*((n-1)||1))})).filter(d=>d.i<bookExpected&&(RAW.indexOf(d.fill)>=0||['Blunder','Miss','Mistake','Inaccuracy'].indexOf(d.grade)>=0));
-      L.say(inBook.length===0,tag+' A7 no eval-graph dot paints a raw grade on a book ply (the badge says Book there)',{bookExpected,inBook});}
+      L.say(inBook.length===0,tag+' A7 no eval-graph dot paints a raw grade on a book ply (the badge says Book there)',{bookExpected,inBook});
+      /* #553: and the move that ENDS the book (3...Nf6, index 5, which allows mate in one) carries its Blunder dot - the graph marks it as the badge grades it */
+      const atCut=g.dots.map(d=>({...d,i:d.i!=null?d.i:Math.round(d.cx/(g.w||1)*((n-1)||1))})).filter(d=>d.i===bookExpected&&(d.fill==='#ec5c4e'||d.grade==='Blunder'));
+      L.say(bookExpected<bookLine&&atCut.length>0,tag+' TC-R270 A7d the eval graph marks the book-ending move (index '+bookExpected+', 3...Nf6, mate in one against it) as a Blunder ('+atCut.length+' mark(s))',{atCut});}
   }
   const dis=[];
   for(const l of LBL)for(let sd=0;sd<2;sd++){
@@ -446,8 +463,12 @@ async function barGraphRun(){
     return {w,lines,path:!!sv.querySelector('path')};});
   const n=7;   // 1. e4 e5 2. Bc4 Nc6 3. Qh5 Nf6 4. Qxf7#
   L.say(!!g&&g.path&&g.w>=90,tag+' A7c PRECONDITION the bottom player bar draws its own eval graph ('+(g?g.w+' wide':'absent')+')',g&&{w:g.w,lines:g.lines.length});
-  if(g){const red=g.lines.filter(l=>l.k==='#ec5c4e').map(l=>({...l,i:Math.round((l.x-1)/((g.w-2)||1)*(n-1))}));const inBook=red.filter(l=>l.i<=5);
-    L.say(inBook.length===0,tag+' A7c the bar graph marks no Blunder on a book ply - 3...Nf6 (index 5) is Book on its badge ('+red.length+' Blunder mark(s): '+JSON.stringify(red)+')',{red});}
+  /* #553, jobs/a-lesson-library-book-move-that-allows-mate-is-graded-book-and-praised-2026-11-19: 3...Nf6 (index 5) allows 4.Qxf7#, so it is
+     no longer Book - the book ends there and its badge reads Blunder. So the bar graph marks no Blunder on plies 0..4 (the book) and DOES
+     mark one on index 5 (it was pinned the other way, as Book, until #553). */
+  if(g){const red=g.lines.filter(l=>l.k==='#ec5c4e').map(l=>({...l,i:Math.round((l.x-1)/((g.w-2)||1)*(n-1))}));const inBook=red.filter(l=>l.i<5),at5=red.filter(l=>l.i===5);
+    L.say(inBook.length===0,tag+' A7c the bar graph marks no Blunder on a book ply - plies 0..4 are Book on their badges ('+red.length+' Blunder mark(s): '+JSON.stringify(red)+')',{red});
+    L.say(at5.length===1,tag+' TC-R270 A7e the bar graph marks 3...Nf6 (index 5, which allows mate in one) as the Blunder its badge now reads - the book ends there ('+at5.length+' mark(s) at index 5)',{red});}
   const errs=b.errs.filter(e=>!/RuntimeError: unreachable/.test(e));
   L.say(errs.length===0,tag+' A7c no page errors'+(errs.length?' -- '+errs.slice(0,2).join(' | '):''));
   await b.close();
