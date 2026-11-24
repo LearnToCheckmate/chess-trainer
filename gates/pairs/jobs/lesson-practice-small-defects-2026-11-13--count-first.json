@@ -1,0 +1,29 @@
+{
+ "job": "lesson-practice-small-defects-2026-11-13",
+ "about": "His pick A on Desk card 83 (run-answers orchestrator-B14-Q10-2026-11-24): in lesson practice a right move's confirm line starts with the count ('2 of 5 · ✓ e4, correct: ...'), so the count always shows. Graded by gate 11's TC-R419 (inside the TC-LS-064 block, CT_LS064_ONLY=1) at kunal761 and 320x568. NOT COVERED: a free run's 'move N' (it stays at the end, by the pick's own example); his look.",
+ "gate": "gates/regress/11-lesson.js",
+ "env": {"CT_LS064_ONLY": "1"},
+ "checks": [
+  "^TC-R419 "
+ ],
+ "build": "always",
+ "situations": [
+  {"name": "kunal761", "match": "^TC-R419 kunal761 "},
+  {"name": "320x568", "match": "^TC-R419 se "}
+ ],
+ "breaks": [
+  {
+   "name": "the-count-back-at-the-end",
+   "patch": "breaks/q10-the-count-back-at-the-end.diff",
+   "why": "the count goes back to the end of the confirm line, where the clamp of a long note can hide it - the state before his pick",
+   "mustFailIn": ["kunal761", "320x568"]
+  },
+  {
+   "name": "the-count-dropped-from-the-confirm",
+   "patch": "breaks/q10-the-count-dropped-from-the-confirm.diff",
+   "why": "the confirm line carries no count at all",
+   "mustFailIn": ["kunal761", "320x568"]
+  }
+ ],
+ "timeoutSec": 900
+}

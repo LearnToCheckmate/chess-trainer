@@ -256,7 +256,7 @@ L.run(async()=>{
    const p0=await position(b);const n1=await tapMove(b,E,g,bySan(E,g,'Qd3'));const p1=await position(b);
    L.say(/^✗/.test(n1)&&p0===p1,'TC-LS-074 King & Queen Mate still refuses a safe move that is not its line (Qd3, guarded by the king) and the board does not move',n1);
    const n2=await tapMove(b,E,g,bySan(E,g,'Qd8'));
-   L.say(/^✓ Qd8/.test(n2),'TC-LS-074 and accepts its book move Qd8',n2);});
+   L.say(/^2 of 5 · ✓ Qd8/.test(n2),'TC-LS-074 and accepts its book move Qd8 (its line led by the count, #553 card 83 pick A)',n2);});
   L.done();
 },'156-lesson-stages');
 // CONTROL-RECORD: 8eb78e0 2026-11-13 total=45 red=4 scope=trial:68181e018d4e how=TC-LS-076 THE SUBJECT REMOVED: t179, the tree before the repetition rule - the second and third occurrence lines and the draw line red, and the over-check throws (no draw to read); with the rule (t180 9aa49ab2df6f) 45/0

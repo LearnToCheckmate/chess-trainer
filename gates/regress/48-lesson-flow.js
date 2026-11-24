@@ -836,7 +836,7 @@ L.run(async()=>{
     await b.move('e2','e4',1500);
     L.say((await position(b))!==pos0,geo+': 1.e4 IS the book move, so the position changes',{changed:(await position(b))!==pos0});
     L.say(await bar(b)==='20%',geo+': the progress bar advances to 20% - one of the five moves Kunal plays in this ten-ply line',await bar(b));
-    L.say(/^(\u{1F4A1}.*?[.!?]\s*)?✓ e4/u.test((await D.noteText(b))||''),geo+': and the note confirms it',((await D.noteText(b))||'').slice(0,40));
+    L.say(/^(\u{1F4A1}.*?[.!?]\s*)?\d+ of \d+ · ✓ e4/u.test((await D.noteText(b))||''),geo+': and the note confirms it, the count first (#553 card 83 pick A)',((await D.noteText(b))||'').slice(0,40));
     L.say(JSON.stringify(await hintSquares(b))==='["f3","g1"]',geo+': and the hint has MOVED ON to the next book move, Nf3 (g1-f3) - a hint that stayed on e2/e4 would still count two squares and be wrong',await hintSquares(b));
     const pAfter=await b.metrics();
     L.say(!!pAfter.board&&near(pAfter.board.w,Pr.w)&&near(pAfter.board.top,BOARD_TOP,1),
@@ -1762,7 +1762,7 @@ L.run(async()=>{
    const M=mineCount(IT);const b=await L.launch({geo:'kunal730',name:'lesson-counter'});await b.open();
    let ok=true;try{await D.states['practice-m0'](b);await b.settle(500);}catch(e){ok=false;}
    const seen=[await D.noteText(b)];for(const [f,t] of [['e2','e4'],['g1','f3'],['f1','c4'],['c2','c3']]){await b.move(f,t,1600);seen.push(await D.noteText(b));}
-   const got=seen.map(x=>{const m=/·\s*(\d+)\s+of\s+(\d+)/.exec(x||'');return m?[+m[1],+m[2]]:null;});
+   const got=seen.map(x=>{const m=/(?:^|·\s*)(\d+)\s+of\s+(\d+)/.exec(x||'');return m?[+m[1],+m[2]]:null;});   /* #553 card 83 pick A: a right move's line starts with its count, the prompt carries it after '·' */
    L.say(ok&&got.every(x=>!!x),'TC-LS-043 PRECONDITION every practice note before the last move carries an "N of M" counter',{seen:seen.map(x=>(x||'').slice(0,50))});
    L.say(got.every((x,i)=>!!x&&x[0]===i+1&&x[1]===M),'TC-LS-043 the counter counts the learner\'s own moves: 1 of '+M+' up to 5 of '+M+' for the Italian Game, M taken from lessons.js',{got,M});
    await b.close();

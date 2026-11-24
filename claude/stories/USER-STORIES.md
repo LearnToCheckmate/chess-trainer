@@ -2942,3 +2942,8 @@ As a player in a game from a scanned board on a phone where the move list is a c
 As a player using the app from its Home Screen icon, every lesson shows its board at the width of the phone, as it does in the browser, from the intro to practice.
 - In the Home Screen shell (a layout viewport short by the top inset under a page as tall as the screen), every lesson state's board is at least 90% of the screen's width at 375x812, 320x568, 390x844 and 430x932. (TC-R416, TC-R417)
 - The Puzzles board in the same shell is at least 90% of the width too. (TC-R418)
+
+### US-R245 In lesson practice a right move's line starts with my place in the lesson
+*Added #553 B3, jobs/lesson-practice-small-defects-2026-11-13, his pick A on Desk card 83 (run-answers orchestrator-B14-Q10-2026-11-24).*
+As a player practising a lesson line on my phone, after a right move I always see where I am, because the count comes before the move and its note, which may be cut short.
+- A right move's confirm line reads '<N> of <M> · ✓ <move>, correct: <note>', the count first; the prompt before a move, a miss and a free run's 'move N' keep the count where it was. (TC-R419)

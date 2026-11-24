@@ -689,7 +689,7 @@ L.run(async()=>{
         // or its element is taller than it shows, it is clamped (an ellipsis) and its element ends inside the box; (2) at move 1 with hints on,
         // the count 'N of M' lies wholly inside the box as it shows.
         const pv=()=>b.page.evaluate(()=>{const n=document.querySelector('[data-ct="lesson-note"]');const sc=n&&n.querySelector('.scroll');if(!sc)return null;const q=sc.getBoundingClientRect();
-          const tw=document.createTreeWalker(sc,NodeFilter.SHOW_TEXT);let x,t=null;while((x=tw.nextNode()))if(/^\s*(Your move|✓)/.test(x.textContent)){t=x;break;}if(!t)return {found:false};
+          const tw=document.createTreeWalker(sc,NodeFilter.SHOW_TEXT);let x,t=null;while((x=tw.nextNode()))if(/^\s*(Your move|✓|\d+ of \d+ · ✓)/.test(x.textContent)){t=x;break;}   /* #553 card 83 pick A: a right move's line now starts with its count */if(!t)return {found:false};
           const el=t.parentElement;const g=document.createRange();g.selectNodeContents(t);const rs=[...g.getClientRects()].filter(r=>r.width>0.5&&r.height>2);
           const past=rs.some(r=>r.bottom>q.bottom+0.5);const er=el.getBoundingClientRect();const cut=past||el.scrollHeight>el.clientHeight+1;const clamp=getComputedStyle(el).webkitLineClamp;
           const i=t.textContent.search(/\d+ of \d+/);let cnt=null;if(i>=0){const h=document.createRange();h.setStart(t,i);h.setEnd(t,i+t.textContent.slice(i).match(/\d+ of \d+/)[0].length);const cr=[...h.getClientRects()].filter(r=>r.width>0.5);cnt={in:cr.length>0&&cr.every(r=>r.top>=q.top-0.5&&r.bottom<=q.bottom+0.5),at:cr.map(r=>Math.round(r.top)+'-'+Math.round(r.bottom)).join(','),value:t.textContent.slice(i).match(/\d+ of \d+/)[0]};
@@ -761,9 +761,13 @@ L.run(async()=>{
         await b.move('e2','e4',1400);await b.settle(500);const s1=await read();const bd1=await b.board();
         const want1='✓ e4, correct: '+lc(s0.notes&&s0.notes[0]);L.note('    TC-LS-064 '+geo+' after e4 the note reads: '+s1.note);
         L.say((s1.note||'').indexOf(want1)>=0,'TC-LS-064 '+geo+' a correct e4 is confirmed with the lesson\'s own note for it ("'+want1+'")',{note:s1.note});
+        // TC-R419 [#553 B3, his pick A on Desk card 83, run-answers orchestrator-B14-Q10-2026-11-24]: the confirm line STARTS with the count, the
+        // place in the lesson the next move is ('2 of 5' after 1.e4 of White's five), then the tick, the move and its note - never the count at the end.
+        L.say(/^2 of 5 · ✓ e4, correct: /.test(s1.note||'')&&!/ · \d+ of \d+$/.test(s1.note||''),'TC-R419 '+geo+' the confirm after e4 starts with the count: "'+String(s1.note||'').slice(0,40)+'"',{note:s1.note});
         await b.move('g1','f3',1400);await b.settle(500);const s2=await read();
         const want2='✓ Nf3, correct: '+lc(s0.notes&&s0.notes[2]);L.note('    TC-LS-064 '+geo+' after Nf3 the note reads: '+s2.note);
         L.say((s2.note||'').indexOf(want2)>=0,'TC-LS-064 '+geo+' a correct Nf3 is confirmed with the lesson\'s own note for it ("'+want2+'")',{note:s2.note});
+        L.say(/^3 of 5 · ✓ Nf3, correct: /.test(s2.note||'')&&!/ · \d+ of \d+$/.test(s2.note||''),'TC-R419 '+geo+' and after Nf3 too: "'+String(s2.note||'').slice(0,40)+'"',{note:s2.note});
         await b.move('f3','e5',1000);await b.settle(400);const s3=await read();const bd3=await b.board();
         const want3='✗ Nxe5 hangs the knight (Nxe5). Try again.';L.note('    TC-LS-064 '+geo+' 3.Nxe5 with hints off, the note reads: '+s3.note);
         L.say((s3.note||'').indexOf(want3)>=0&&!/isn.t the line/.test(s3.note||''),'TC-LS-064 '+geo+' with hints OFF a wrong 3.Nxe5 gives its reason ("'+want3+'"), not "isn\'t the line"',{note:s3.note});
