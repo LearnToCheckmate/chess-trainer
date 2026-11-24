@@ -14,6 +14,7 @@
 //          (gates/logs/<f> is read from claude/agents/gatelogs/<f> when only the archive is committed, as arm (2) maps it).
 //  TC-R362 per row: the PASS and FAIL lines naming the id (the id not followed by a letter or digit, so 03 does not count 03b) equal
 //          the published N and M, and N + M > 0.
+// CONTROL-RECORD: e3317d5 2026-11-24 total=6 red=1 scope=full how=#553 B2 (the pair gates/pairs/jobs/tc-inv-case-rows-cite-a-result-that-is-not-in-the-log-2026-09-27.json, base e3317d5): TC-INV-02a's cell given 46 PASS where 548b-all.log carries 45 - TC-R362 for 02a red alone, while verify-log.sh --citations arm (2) stays green (the id occurs); TC-INV-02c re-cited to 423-all.log reds 02c's TC-R362 alone; two of the seven TC-INV-02d lines cut from the archived log reds 02d's alone. The committed tree 6/0
 const L=require('../lib');
 const fs=require('fs'),path=require('path');
 const ROOT=path.join(__dirname,'..','..');
