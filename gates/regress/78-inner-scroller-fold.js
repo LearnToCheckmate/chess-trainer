@@ -61,7 +61,9 @@ L.run(async()=>{
   // CT_G78_08P_ONLY=1 runs this block alone.
   // CONTROL-RECORD: 951cc9b 2026-11-13 total=4 red=1 scope=trial:41836edc5c77 how=#550 item (99), CT_G78_08P_ONLY=1: t5c, chess.jsx with fit()'s retries removed (the pre-6239001 one-measure effect) - the clear-of-the-tab-bar line red (the board 40px under it); the precondition, error and font-pin lines green
   // CONTROL-RECORD: 951cc9b 2026-11-13 total=4 red=1 scope=trial:10ff5e69dc21 how=#550 item (99), CT_G78_08P_ONLY=1: t5b, fit() re-measured on the FIRST frame only (no second frame, no fonts.ready) - the same line red, 40px under, so the block needs the second-frame re-measure itself; on the fix 983bc1598719 4/0 (128px above)
-  {const g='kunal761';const b=await L.launch({geo:g,name:'tactics-late-settle'});await b.open();let ok=true;
+  // CT_G78_PRIM_ONLY=1 [#553 B1, jobs/review-analyze-game-sits-below-the-fold-with-stored-games-at-six-of-seven-geometries-2026-11-07's pair]
+  // skips this block and runs only the primary-actions loop below (TC-INV-08f..08j at Kunal's phone and the seven columns).
+  if(!process.env.CT_G78_PRIM_ONLY){const g='kunal761';const b=await L.launch({geo:g,name:'tactics-late-settle'});await b.open();let ok=true;
    const rd=()=>b.page.evaluate(()=>{const gs=[...document.querySelectorAll('div')].filter(d=>getComputedStyle(d).gridTemplateColumns.split(' ').length===8&&d.getBoundingClientRect().width>100).sort((a,c)=>c.getBoundingClientRect().width-a.getBoundingClientRect().width);
      const bar=document.querySelector('[data-ct="tabbar"]');if(!gs.length||!bar)return null;const r=gs[0].getBoundingClientRect();return {top:Math.round(r.top*10)/10,bottom:Math.round(r.bottom*10)/10,w:Math.round(r.width*10)/10,barTop:Math.round(bar.getBoundingClientRect().top*10)/10};});
    try{await D.states['tactics'](b);await b.settle(600);
@@ -149,6 +151,7 @@ L.run(async()=>{
     await b.close();
   }
   L.note('    PRIMARY ACTIONS MEASURED (px past the fold on arrival): '+JSON.stringify(pv));
+  if(process.env.CT_G78_PRIM_ONLY)return;
   const got={};
   for(const g of L.TA7){
     const geo=L.GEOS[g];const n=geo.w+'x'+geo.h;
