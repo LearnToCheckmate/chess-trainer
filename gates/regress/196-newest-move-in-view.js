@@ -97,6 +97,21 @@ async function drill(G){
   L.say(okClip,'TC-R296 '+tag+' '+where+': the caption and the whole line are on screen'+(G.geo==='se'?' or a scroll of their box away':'')+', cut by no box that clips them ('+(eg.clip.length?eg.clip.map(x=>x.of+' by '+x.by+' ('+x.ov+(x.scroll?(x.reach?', in reach by scrolling it':', NOT in reach by scrolling it'):'')+') '+x.el.join('..')+' in '+x.box.join('..')).join('; '):'none')+')',{clip:eg.clip});
   const wraps=eg.need!=null&&eg.room!=null&&(eg.need<=eg.room+0.5||(eg.last&&eg.last.lines>=2));
   L.say(!!eg.moves&&/[a-h][1-8]/.test(eg.txt)&&eg.sw<=eg.cw+1&&eg.sh<=eg.ch+1&&eg.moves.r<=eg.vw+0.5&&!!eg.last&&eg.last.r<=eg.vw+0.5&&eg.row.r<=eg.vw+0.5&&wraps,'TC-R296 '+tag+' '+where+': the line stays inside the screen - no sideways or downward overflow in its row ('+eg.sw+'/'+eg.cw+', '+eg.sh+'/'+eg.ch+'), its last move ends at '+(eg.last&&eg.last.r)+' of '+eg.vw+' - on '+(eg.last&&eg.last.lines)+' line(s), needing '+eg.need+' on one row against '+eg.room+': "'+eg.txt.slice(0,70)+'"',eg);
+  // the sentence for the move just tried (gate 187) shares the box: on his phone it makes room for the caption and the line (lead's ruling at the
+  // merge; Amber flags/amber-553-analysis-sentence-two-lines-with-the-engine-line). It must sit whole inside rev-compact, and where its box is
+  // shorter than its text, the clamp's ellipsis and a tap to the whole sentence in rev-why-sheet say so - never a silent cut.
+  const st=await b.page.evaluate(()=>{const R1=(x)=>Math.round(x*10)/10;const t=document.querySelector('[data-ct="rev-why-txt"]'),c=document.querySelector('[data-ct="rev-compact"]');if(!t||!c)return null;
+    const q=t.getBoundingClientRect(),z=c.getBoundingClientRect();const T0=z.top+c.clientTop,B0=T0+c.clientHeight;
+    const k=t.cloneNode(true);k.style.cssText='position:absolute;left:-9999px;top:0;width:'+t.clientWidth+'px;font:'+getComputedStyle(t).font+';line-height:'+getComputedStyle(t).lineHeight;document.body.appendChild(k);const full=k.getBoundingClientRect().height;k.remove();
+    const inBox=q.top>=T0-0.5&&q.bottom<=B0+0.5;let reach=inBox;if(!inBox){const was=c.scrollTop;c.scrollTop=was+Math.max(0,q.bottom-B0)+1;const q2=t.getBoundingClientRect(),z2=c.getBoundingClientRect();const T2=z2.top+c.clientTop;reach=q2.top>=T2-0.5&&q2.bottom<=T2+c.clientHeight+0.5;c.scrollTop=was;}
+    return {txt:(t.innerText||'').trim(),h:R1(q.height),full:R1(full),inBox,reach,last:t.getAttribute('data-last'),top:R1(q.top),bot:R1(q.bottom),box:[R1(T0),R1(B0)],role:t.getAttribute('role'),clamp:getComputedStyle(t).webkitLineClamp};});
+  if(st&&st.txt&&st.txt!=='\u00a0'){
+    const cut=st.full>st.h+1;let sheet=null;
+    if(cut){await b.page.locator('[data-ct="rev-why-txt"]').click().catch(()=>{});await b.settle(500);sheet=await b.page.evaluate(()=>{const e=document.querySelector('[data-ct="rev-why-sheet"]');return e?(e.innerText||'').replace(/\s+/g,' ').trim():null;});if(sheet)await b.page.locator('[data-ct="rev-why-sheet"]').click().catch(()=>{});await b.settle(400);}
+    const norm=(x)=>String(x||'').replace(/\s+/g,' ').trim();
+    // at 320x568 the rows have given way, so (batch 13's _reasonLast) the sentence goes AFTER the switched-on lines and rev-compact scrolls to it: there it passes in reach by scrolling
+    L.say((st.inBox||(G.geo==='se'&&st.last==='1'&&st.reach))&&(!cut||(st.role==='button'&&st.clamp!=='none'&&!!sheet&&sheet.indexOf(norm(st.txt).replace(/\u2026$/,'').slice(0,40))===0)),'TC-R296 '+tag+' '+where+': the sentence for the move just tried sits whole in its box'+(st.inBox?'':(st.reach?' a scroll away (after the lines, batch 13)':' NOT in reach'))+' ('+st.top+'..'+st.bot+' in '+st.box.join('..')+', '+st.h+' of '+st.full+' tall)'+(cut?' and, cut, it ends in the clamp\'s ellipsis and a tap opens it whole in the sheet':' and is not cut'),{st,sheet:sheet&&sheet.slice(0,120)});
+  }else L.note('TC-R296 '+tag+' '+where+': no sentence for the move on screen here, so the sentence line is NOT CHECKED');
   if(mustWrap)L.say(eg.need!=null&&eg.room!=null&&eg.need>eg.room&&!!eg.last&&eg.last.lines>=2,'TC-R296 '+tag+' '+where+': the line is longer than one row here ('+eg.need+' > '+eg.room+') and it WRAPS onto '+(eg.last&&eg.last.lines)+' lines',{need:eg.need,room:eg.room,last:eg.last});
   };
   const b0=await boardOf(b);const r0=await rd();
