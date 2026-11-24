@@ -1,11 +1,11 @@
 diff --git a/gates/control-audit.js b/gates/control-audit.js
-index 1febb21c..14e7a75f 100755
+index 46e763f1..12f41fd9 100755
 --- a/gates/control-audit.js
 +++ b/gates/control-audit.js
-@@ -198,5 +198,5 @@ function audit(ROOT, { ranNow, redNow, logSha }) {
+@@ -207,5 +207,5 @@ function audit(ROOT, { ranNow, redNow, logSha }) {
      //    With no usable ref line the log is held as before #553. WHETHER THE RECORD MATCHES THE GATE'S PRESENT ASSERTIONS is
      //    a separate question, asked first and unchanged: lines gone since the record is ASSERTIONS-MOVED, lines added is PARTIAL.
--    const inputs = []; for (const l of nowSrc.split('\n')) { const m = l.match(/^\s*\/\/\s*CONTROL-COUNT-INPUT:\s*(\S+)\s+(\S+)\s*$/); if (m) inputs.push({ dir: m[1], re: new RegExp(m[2]) }); }
-+    const inputs = []; for (const l of nowSrc.split('\n')) { const m = l.match(/^\s*\/\/\s*CONTROL-COUNT-INPUTS:\s*(\S+)\s+(\S+)\s*$/); if (m) inputs.push({ dir: m[1], re: new RegExp(m[2]) }); }
+-    const inputs = []; for (const l of gateSrc.split('\n')) { const m = l.match(/^\s*\/\/\s*CONTROL-COUNT-INPUT:\s*(\S+)\s+(\S+)\s*$/); if (m) inputs.push({ dir: m[1], re: new RegExp(m[2]) }); }
++    const inputs = []; for (const l of gateSrc.split('\n')) { const m = l.match(/^\s*\/\/\s*CONTROL-COUNT-INPUTS:\s*(\S+)\s+(\S+)\s*$/); if (m) inputs.push({ dir: m[1], re: new RegExp(m[2]) }); }
      const countSet = (sha, src) => { const out = linesOf(src);
        for (const inp of inputs) { let ls = ''; try { ls = G('ls-tree -r --name-only ' + sha + ' -- ' + JSON.stringify(inp.dir)); } catch (e) {}
