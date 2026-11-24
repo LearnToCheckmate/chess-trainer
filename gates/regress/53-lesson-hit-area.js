@@ -113,9 +113,16 @@ const hit=(b)=>b.page.evaluate(([AN,CP])=>{
     return {own,toOther,toX,total};};
   // the flip boundary, stepped at 0.125px INSIDE Analyze's own box, from its top downwards: the first y at
   // which the box stops answering for itself. null when it never stops, which is the fixed state.
+  // #553 (jobs/copy-chip-flash-slides-analyze-under-the-finger-2026-09-29, its folded padding-band job; Amber:
+  // flags/amber-553-moves-chips-leave-the-list): the move list is now stacked ABOVE the two tap boxes, so the
+  // 10.5px of Analyze's box that reaches down over the list answers as the list - by design, and gate 231 pins it.
+  // The box this probe steps is therefore Analyze's box ABOVE the list's top edge; the ink scan below still reads
+  // every row of the painted chip, so a list that rose into the chip would still go red there.
   let flipY=null;
   {const cx=ar.left+ar.width/2;
-   for(let y=Math.ceil(ar.top); y<ar.bottom; y+=0.125){
+   const hr=document.querySelector('[data-ct="moves-head-row"]');let ls=hr?hr.nextElementSibling:null;while(ls&&!(ls.classList&&ls.classList.contains('scroll')))ls=ls.nextElementSibling;
+   const yEnd=ls?Math.min(ar.bottom,ls.getBoundingClientRect().top-1):ar.bottom;   /* less 1px: the hit test hands the list's fractional top edge to the list half a pixel early (measured: top 450.875, list from 450.38) */
+   for(let y=Math.ceil(ar.top); y<yEnd; y+=0.125){
      if(!owns(document.elementFromPoint(cx,y),an)){flipY=Math.round(y*1000)/1000;break;} }}
   const a=scan(an), c=scan(cp);
   // ── THE FIT MEASUREMENT (amendment B, 2026-09-28: the no-wrap route). The row is

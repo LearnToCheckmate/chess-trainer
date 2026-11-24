@@ -2168,6 +2168,12 @@ As a player at a lesson's moves row, Analyze and Copy are small icons rather tha
 - Each tap area is at least 44 by 44 while the visible chip is at most 32 wide. (TC-R189b)
 - The two tap areas do not overlap. (TC-R189c)
 
+### US-R239 A tap on the move list is the move list's, never Analyze's or Copy's
+*Added in batch 14 (#553, builder seat B2), jobs/copy-chip-flash-slides-analyze-under-the-finger-2026-09-29, the folded job moves-chip-padding-band-covers-the-move-list-2026-09-29: the two buttons' 44-point tap areas reached 10.5px down over the move list, and a tap on Kh8 at 320x568 opened the analysis board. Kunal's comment on the question (Desk B10-Q6) chose no trade; the run's pick is built. Amber: flags/amber-553-moves-chips-leave-the-list. It narrows US-R122's tap area: the part of it over the move list belongs to the list.*
+As a player in a lesson with the move list under the Analyze and Copy buttons, touching a move never opens the analysis board or copies the moves, and the two buttons still take a tap anywhere on their icons and anywhere in their tap areas above the list.
+- No point of any move I can see, and no point of the list's own box, is taken by Analyze or Copy, on my phone at a lesson's demo end and at 320x568 at an endgame lesson's demo end. (TC-R392, TC-R393)
+- Every point of each button's icon, and every point of its tap area above the list, still answers for that button, and each tap area is still at least 44 wide; nothing on screen moves. (TC-R394)
+
 ### US-R123 When a review cannot finish, it says so and lets me try again
 *Added #550 answer a32 (Kunal on build__1794388896663, 11 Nov 2026: "a short message with Try again and Back to games when a review's analysis fails, as in your mockup (550-136-k14-2)").*
 As a player whose review's engine stops answering partway, I am told the review stopped and that it was not my doing, with Try again and Back to games, instead of a progress screen that never ends or a review graded from nothing.
