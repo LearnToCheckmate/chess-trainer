@@ -132,3 +132,4 @@
 174	173	raise	2026-11-24	553	build__1795473826826	B1 merge: gate 194 (the Brilliant drill counter jumps to the chosen card) joins 204 and the rest	-	4c9869fb0472
 175	174	raise	2026-11-24	553	build__1795473826826	B3 merge: gate 205 (the Puzzles board at larger text) joins 194 and the rest	-	20fb3fd1df8a
 176	175	raise	2026-11-24	553	build__1795473826826	batch 14 B1: gate 207 (board letters keep their contrast under a highlight) joins the required set	-	439b5a90a42f
+177	176	raise	2026-11-24	553	build__1795473826826	batch 14 B1: gate 208 (the play board between its bars) joins the required set	-	2b99d6afc202

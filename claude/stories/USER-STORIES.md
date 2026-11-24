@@ -2751,6 +2751,12 @@ As a player looking at a highlighted square, its file or rank letter reads exact
 - Every board letter is painted on an opaque chip of its square's colour, in the other square's colour, so highlighted or not it reads the theme's own pair (3.37:1 on the default board) - on a puzzle's Show square and on a flipped board with a piece selected, on my phone and on a 320x568 screen. (TC-R326)
 - On a highlighted square the letter is painted above the highlight. (TC-R327)
 
+### US-R218 Against the computer the board never sits on a player bar
+*Added in batch 14 (#553, builder seat B1), jobs/at-375x568-the-board-overlaps-the-top-of-the-bottom-player-bar-against-the-bot-2026-11-07: #549's run notes read an overlap of about 6px into the bottom 'You' bar at 375x568 off one screenshot; #550 and #553 measured none (2px clear; the pieces' 1.06 paint reaches 1.3px past the board). This holds that.*
+As a player in a game against the computer on a short phone, the board sits between the two player bars and nothing on it is drawn over either bar.
+- The board's box ends at or above the bottom bar and starts at or below the top bar, at move 0 and after moves, at 375x568, 320x568 and on my phone. (TC-R328)
+- No piece, drawn a little larger than its square, paints onto either bar. (TC-R329)
+
 ### US-R188 A wrong try on Tactics gets a longer, friendlier line that still fits my screen
 *Added in batch 13, jobs/tactics-strategy-wrong-chess-and-messages-2026-11-12. Kunal's Desk answer to run-question q23, 11:20pm EST Thu 19 Nov 2026: "Longer, friendlier wrong try lines" (the option that said it "needs a taller box or smaller text on short phones"). It widens US-R172's wrong-try clause.*
 As a player who just tried the wrong move, the card tells me warmly what to look for, in one or two sentences, and the screen around it stays still.

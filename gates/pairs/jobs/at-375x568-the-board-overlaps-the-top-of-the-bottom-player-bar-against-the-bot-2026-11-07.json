@@ -1,0 +1,46 @@
+{
+ "job": "at-375x568-the-board-overlaps-the-top-of-the-bottom-player-bar-against-the-bot-2026-11-07",
+ "about": "Against the computer the board's layout box sits between its two player bars (gaps >= 0) and no piece's painted box (each drawn at scale 1.06) crosses into either bar, at move 0 and after 4 plies, at 375x568 (the job's size), 320x568 and 375x761 with his insets. Graded by gate 208 (TC-R328..329). The job's overlap was NOT reproduced on 3b8ef29f (gap 2px under the board; the pieces paint 1.3px past it), as #550 found; the gate keeps that measurement. NOT COVERED: his phone (iOS Safari), which is where a picture of an overlap would come from.",
+ "gate": "gates/regress/208-play-board-between-the-bars.js",
+ "checks": [
+  "TC-R32[89] "
+ ],
+ "build": "always",
+ "situations": [
+  {
+   "name": "short375",
+   "match": "^375x568 "
+  },
+  {
+   "name": "se 320x568",
+   "match": "^320x568 "
+  },
+  {
+   "name": "kunal761",
+   "match": "^375x761 "
+  }
+ ],
+ "breaks": [
+  {
+   "name": "the-you-bar-rides-up-onto-the-board",
+   "patch": "breaks/208-the-you-bar-rides-up-onto-the-board.diff",
+   "why": "the bottom player bar is pulled 6px up onto the board - the overlap the job describes",
+   "mustFailIn": [
+    "short375",
+    "se 320x568",
+    "kunal761"
+   ]
+  },
+  {
+   "name": "the-pieces-paint-onto-the-bars",
+   "patch": "breaks/208-the-pieces-paint-onto-the-bars.diff",
+   "why": "the pieces are drawn at scale 1.2, so the edge ranks paint about 4px past the board and onto the bars, though the board's box has not moved",
+   "mustFailIn": [
+    "short375",
+    "se 320x568",
+    "kunal761"
+   ]
+  }
+ ],
+ "timeoutSec": 1500
+}
