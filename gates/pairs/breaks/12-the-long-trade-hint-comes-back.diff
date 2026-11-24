@@ -1,0 +1,9 @@
+--- a/chess.jsx
++++ b/chess.jsx
+@@ -2339,5 +2339,5 @@
+         return {k:'defend',hint:'Your '+nm(t.t)+' on '+rc2sq(r,c)+' is attacked'+(a?(' by the '+nm(a.t)+' on '+rc2sq(a.r,a.c)):'')+'. Look after it.',say:san+' looks after the '+nm(t.t)+' on '+rc2sq(r,c)+'.'};}}
+     if(cap&&cap.c===them){const sqC=mv.epCap?rc2sq(mv.fr,mv.tc):rc2sq(mv.tr,mv.tc);
+-      return {k:'trade',hint:'Their '+nm(cap.t)+' on '+sqC+' can be taken: take it, even though it can be taken back.' /* #553 B3 (Amber: flags/amber-553-puzzle-hints-fit-three-lines): shorter so a puzzle hint carrying it fits the 3 lines a short phone's header draws (g6 at 320) */,say:san+' takes the '+nm(cap.t)+' on '+sqC+'.'};}
++      return {k:'trade',hint:'Their '+nm(cap.t)+' on '+sqC+' can be taken, and taking it is right even though it can be taken back.',say:san+' takes the '+nm(cap.t)+' on '+sqC+'.'};}
+     return null;
+   }catch(e){return null;}

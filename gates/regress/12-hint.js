@@ -14,6 +14,29 @@
 const L=require('../lib');const P=require('../drive/puzzles');
 const SRC=require('fs').readFileSync(require('path').join(__dirname,'..','..','chess.jsx'),'utf8');
 const HINTS=[...new Set([...SRC.matchAll(/\bhint:\s*("((?:[^"\\]|\\.)*)"|'((?:[^'\\]|\\.)*)')/g)].map(x=>x[2]||x[3]).filter(x=>x&&x.length>3))];
+// TC-PZ-04c [#553 B3, jobs/gate-12-clipping-assertion-cannot-fail-while-the-clamp-is-what-cuts-2026-09-30, the 15 Nov check's GAP]: THE TEXT
+// THE HEADER DISPLAYS, not the bare hint. On a short upright phone (vp.h<700, #550 a42) the Hint button writes '💡 motif · level: hint', so
+// HINTS above measured shorter text than the player sees and stayed green while 10 of 14 curated hints were cut at 320. DISPLAY is every
+// puzzle's hint as shown: the 14 curated PUZZLES (motif, level and hint read from chess.jsx) and the generated PZ_GEN set (PZGEN_RAW through
+// the shipped pzText via gates/engine-extract.js; level by _pzLevel's bands; a generated puzzle pzText has no reading for keeps its
+// _pzHint template, rebuilt here from the same two strings - the one copy of app text in this gate, named so it is not mistaken for a read).
+const E12=require('../engine-extract.js');
+const DISPLAY=(()=>{const out=[];const i0=SRC.indexOf('const PUZZLES=[');const blk=SRC.slice(i0,SRC.indexOf('\n];',i0));
+  for(const m of blk.matchAll(/motif:"([^"]*)", level:"([^"]*)"[\s\S]*?hint:"((?:[^"\\]|\\.)*)"/g))out.push({id:'c'+out.length,motif:m[1],level:m[2],hint:m[3].replace(/\\"/g,'"')});
+  const raw=JSON.parse(/const PZGEN_RAW=(\[.*?\]);\n/s.exec(SRC)[1]);const lvl=r=>r<1000?'Easy':r<1400?'Medium':r<1800?'Hard':'Expert';
+  raw.forEach((p,i)=>{const P={id:'g'+i,fen:p.f,sol:p.s,reply:p.y,goal:(p.n>0?('mate in '+p.n):'find the best move'),motif:p.m,level:lvl(p.r),
+    hint:(p.n>0?("It's mate in "+p.n+': start with the most forcing check.'):('Find the forcing move: a check, capture, or strong threat. ('+p.m+')')),explain:''};
+    let h=P.hint;try{h=E12.pzText(P).hint||P.hint;}catch(e){}out.push({id:P.id,motif:P.motif,level:P.level,hint:h});});
+  return out;})();
+async function displayFit(b,geo){
+  const r=await b.page.evaluate((D)=>{const h=document.querySelector('[data-ct="pz-hint-head"]');if(!h)return null;const cs=getComputedStyle(h),lh=parseFloat(cs.lineHeight);
+    const clamp=parseInt(cs.webkitLineClamp||cs.WebkitLineClamp||'0',10);const short=window.innerHeight<700&&window.innerWidth<window.innerHeight;
+    const pr=document.createElement('div');pr.style.cssText='position:absolute;visibility:hidden;width:'+h.clientWidth+'px;font:'+cs.font+';letter-spacing:'+cs.letterSpacing+';line-height:'+cs.lineHeight+';white-space:normal;';document.body.appendChild(pr);
+    const over=[];let n=0,maxNeed=0;for(const p of D){const t='\u{1F4A1} '+(short?(p.motif+(p.level?' · '+p.level:'')+': '):'')+p.hint;pr.textContent=t;const need=Math.round(pr.getBoundingClientRect().height/lh);n++;if(need>maxNeed)maxNeed=need;if(need>clamp)over.push(p.id+':'+need);}
+    pr.remove();const shown=(h.textContent||'');return {n,short,clamp,over,maxNeed,shownHasPrefix:/ · (Easy|Medium|Hard|Expert): /.test(shown)};},DISPLAY);
+  L.say(!!r&&r.n===DISPLAY.length&&r.n>=800&&DISPLAY.filter(x=>x.id[0]==='c').length===14&&r.clamp===3&&r.short===r.shownHasPrefix,geo+': TC-PZ-04c DENOMINATOR every puzzle hint as the header displays it was measured ('+(r&&r.n)+': 14 curated and the generated set), with the motif and level prefix exactly where the app shows it ('+(r&&r.short?'here, a short upright phone':'not here')+'; the live header '+(r&&r.shownHasPrefix?'carries':'does not carry')+' it)',r&&{n:r.n,short:r.short,shownHasPrefix:r.shownHasPrefix});
+  L.say(!!r&&r.over.length===0,geo+': TC-PZ-04c every puzzle hint, as the header DISPLAYS it, fits the '+(r&&r.clamp)+' lines the clamp draws - '+(r?r.over.length:'?')+' need more (most needed '+(r&&r.maxNeed)+')',r&&r.over.slice(0,12));
+}
 async function corpusFit(b,geo){
      const fit=await b.page.evaluate((hints)=>{const h=document.querySelector('[data-ct="pz-hint-head"]');if(!h)return null;
        const cs=getComputedStyle(h),lh=parseFloat(cs.lineHeight),clamp=parseInt(cs.webkitLineClamp||cs.WebkitLineClamp||'0',10),orig=h.textContent,over=[];
@@ -93,7 +116,7 @@ L.run(async()=>{
     // and '25 vs 12' at se, RED at all three, with this gate 55 pass / 21 fail (the corpus lines red too); on e97c7bcbe69e 76 / 0. So
     // the line does see a clamp that cuts the header's OWN hint; what it cannot see is a hint in the corpus that this puzzle does not
     // show, which is what corpusFit is for. Both stay; neither is decoration.
-    await corpusFit(b,geo);
+    await corpusFit(b,geo);await displayFit(b,geo);
     L.say(b.errs.length===0,geo+': zero app errors',b.errs.slice(0,3));
     await b.close();
   }
@@ -107,7 +130,7 @@ L.run(async()=>{
     await P.states['train'](b);await P.tapBtn(b,/^(\u{1F4A1} Hint|Hint)$/u,600);await b.settle(1200);
     const up=await b.page.evaluate(()=>!!document.querySelector('[data-ct="pz-hint-head"]'));
     L.say(up,geo+': PRECONDITION the hint header is showing after the Hint tap, so the corpus below is set into the real box');
-    await corpusFit(b,geo);
+    await corpusFit(b,geo);await displayFit(b,geo);
     L.say(b.errs.length===0,geo+': zero app errors',b.errs.slice(0,3));
     await b.close();
   }

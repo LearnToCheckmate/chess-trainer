@@ -1,0 +1,9 @@
+--- a/chess.jsx
++++ b/chess.jsx
+@@ -13641,5 +13641,5 @@
+                   // (a limit stated that did not bind) with a worse number in it.
+                   const _n=(_M[id]||[]).length;
+-                  if(_n>=ACCT_GMAX)return {b:'games',cap:ACCT_GMAX,gap:false};
++                  if(_n>ACCT_GMAX)return {b:'games',cap:ACCT_GMAX,gap:false};
+                   // #550 item (111) [jobs/forty-rows-is-not-evidence-of-a-cut-on-the-deployed-app-2026-09-30; Kunal, B8-SMALL-DEFAULTS
+                   // (4): the line appears only when that limit actually cut games]. A bound-less store of EXACTLY 40 rows used to read

@@ -1,0 +1,36 @@
+{
+ "job": "forty-rows-is-not-evidence-of-a-cut-on-the-deployed-app-2026-09-30",
+ "about": "A bound-less account store (no ct_acctcap) of 39, 40, 41, 137, 199 or 9 rows states no limit on the Review list; one of 200 rows (the current cap) states the cut as the date its held games reach back to and prints no cap number. Graded by gate 61 block A10 alone (CT_G61_ONLY=A10) at 375x730 (its own geometry), kunal761 and 320x568. NOT COVERED: a real legacy store on his phone (his look); the Load older games button, which still shows at 40 by design (offering to look is not a claim of a cut).",
+ "gate": "gates/regress/61-review-list-month-independence.js",
+ "env": {"CT_G61_ONLY": "A10"},
+ "checks": [
+  "A10[abc]? "
+ ],
+ "build": "always",
+ "situations": [
+  {"name": "375x730", "env": {"CT_G61_A10_GEO": "375x730"}},
+  {"name": "kunal761", "env": {"CT_G61_A10_GEO": "kunal761"}},
+  {"name": "se", "env": {"CT_G61_A10_GEO": "se"}}
+ ],
+ "breaks": [
+  {
+   "name": "forty-rows-read-as-cut-again",
+   "patch": "breaks/61-forty-rows-read-as-cut-again.diff",
+   "why": "_bound1 reads a bound-less store of exactly 40 rows as cut by the legacy cap again - the job's defect: a limit stated that did not bind",
+   "mustFailIn": ["375x730", "kunal761", "se"]
+  },
+  {
+   "name": "a-row-count-read-as-a-cap",
+   "patch": "breaks/61-a-row-count-read-as-a-cap.diff",
+   "why": "the first #433 shape: any bound-less store above 40 is read as cut at its own row count, printing 41, 137 or 199 back as a limit this app never had",
+   "mustFailIn": ["375x730", "kunal761", "se"]
+  },
+  {
+   "name": "a-full-store-read-as-uncut",
+   "patch": "breaks/61-a-full-store-read-as-uncut.diff",
+   "why": "a store sitting at the current cap of 200 is read as uncut, so the one case where a cut is known states nothing",
+   "mustFailIn": ["375x730", "kunal761", "se"]
+  }
+ ],
+ "timeoutSec": 900
+}

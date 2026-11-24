@@ -1,0 +1,8 @@
+--- a/chess.jsx
++++ b/chess.jsx
+@@ -13649,4 +13649,5 @@
+                   // item (31) names each cut account with its own date. acctCanGrow still OFFERS Load older games at 40: offering
+                   // to look is not a claim that anything was cut.
++                  if(_n>ACCT_GMAX_LEGACY)return {b:'games',cap:_n,gap:false};
+                   return {b:'all',cap:0,gap:false};};
+                 // #549 item (31) [Amber: flags/amber-549-merged-list-limit-line] THE LINE NAMES WHAT IS HELD, NOT THE LAST
