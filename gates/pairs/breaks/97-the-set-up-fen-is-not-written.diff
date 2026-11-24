@@ -1,0 +1,9 @@
+--- a/chess.jsx
++++ b/chess.jsx
+@@ -3686,5 +3686,5 @@
+ }
+ function pgnMovesFrom(sans,startFen,notes){let n=1,side='w',tags='';
+-  if(startFen){const f=String(startFen).trim().split(/\s+/);side=f[1]==='b'?'b':'w';n=Math.max(1,parseInt(f[5],10)||1);tags='[SetUp "1"]\n[FEN "'+String(startFen).trim()+'"]\n';}
++  if(startFen){const f=String(startFen).trim().split(/\s+/);side=f[1]==='b'?'b':'w';n=Math.max(1,parseInt(f[5],10)||1);tags='';}
+   let s='',_an=false;for(let i=0;i<sans.length;i++){const white=(side==='w')===(i%2===0);if(white)s+=n+'. ';else if(i===0||_an)s+=n+'... ';s+=sans[i]+' ';_an=false;if(!white)n++;
+     /* batch 13 coach mode: a note is a {comment} after its move, and a Black move after a comment carries its number again, as PGN asks */

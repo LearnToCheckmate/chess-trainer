@@ -109,7 +109,7 @@ As a player who just finished a game on chess.com, I paste its PGN and get a rev
 - A best-effort lookup the review makes on the side (the players' countries for their flags) that FAILS leaves the app as it
   was and is tried again the next time the review opens: a refused or offline lookup is never stored as the answer, so one
   offline review cannot remove a player's flag for good. A country that IS known paints as its flag in that player's
-  bar, before the name, and a value that is not a two-letter code paints nothing. (TC-R68, TC-R107; #548 item (41), #549 item (3),
+  bar, before the name, and a value that is not a two-letter code paints nothing. (TC-R68, TC-R107, TC-R396, TC-R397; #548 item (41), #549 item (3),
   jobs/a-failed-country-lookup-is-cached-as-an-answer-so-one-offline-review-removes-the-flag-for-ever-2026-10-10)
 - A pasted PGN whose [FEN] header sets up a position is reviewed FROM THAT POSITION: the review's first board is the header's,
   and the move numbers and the side each move belongs to follow it (a study chapter with Black to move at 23 opens on '23…').
@@ -1890,6 +1890,7 @@ As a player in an online game, a call I place that does not connect gives up aft
 As a player who starts a game from a scanned board or from a position in Review, Copy gives me moves I can paste anywhere, and Analyze and Review open the game, because the start position travels with the moves.
 - The copied moves carry [SetUp "1"] [FEN "..."] and are numbered from the position's own move number. (TC-PL-069a)
 - Analyze and Review of that game reach the review instead of failing at move 1, and the review's PGN carries the FEN. (TC-PL-069b, TC-PL-069c)
+- From a position with Black to move, the copy numbers Black's first move '3... Nf6' and White's reply '4.', and the review's strip reads '3… Nf6'. (TC-R398; #553 B3)
 
 ### US-PL-26 An online game whose clock ran out ends by itself
 *Added #550 item (101), jobs/online-clock-flag-fall-auto-end (Kunal's Desk answer 'it should be automatic', 22 Sep 2026; in scope on his word of 10 Nov 2026).*

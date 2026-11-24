@@ -1,0 +1,9 @@
+--- a/chess.jsx
++++ b/chess.jsx
+@@ -790,5 +790,5 @@
+     }
+   }catch(e){cc='';answered=false;}
+-  if(answered)countryCacheSet(site,user,cc);
++  countryCacheSet(site,user,cc);
+   return cc;
+ }
