@@ -1,0 +1,28 @@
+{
+ "job": "landscape-puzzle-prev-next-unnamed-and-under-the-tab-bar-2026-11-03",
+ "about": "Gate 217 (TC-R353..355): on the first training puzzle, the Prev / Next pair is found by what it is (its words sideways, its row's data-ct upright), named 'Previous puzzle' / 'Next puzzle' once each, wholly on screen at rest, 44px or taller, clear of the tab bar or rail and owning its centre, and a real tap on Next shows another puzzle and on Prev brings the first back. Graded sideways at 730x375 (the job's), 844x390, 667x375 and 761x375, and upright at kunal761 (375x761, insets 51/31) and 320x568. The three breaks are all sideways (the job's layout); upright is graded only as a situation the real code must pass. NOT COVERED: the home-indicator inset sideways (no sideways geometry models one), a solved puzzle's Next, the online (Lichess) puzzle view, his phone.",
+ "gate": "gates/regress/217-puzzle-prev-next-named-and-clear.js",
+ "env": {},
+ "checks": ["TC-R353 ", "TC-R354 ", "TC-R355a ", "TC-R355b "],
+ "build": "auto",
+ "situations": [
+  {"name": "land 730x375", "match": "^730x375: "},
+  {"name": "land 844x390", "match": "^844x390: "},
+  {"name": "land 667x375", "match": "^667x375: "},
+  {"name": "land 761x375", "match": "^761x375: "},
+  {"name": "kunal761", "match": "^375x761: "},
+  {"name": "se 320x568", "match": "^320x568: "}
+ ],
+ "breaks": [
+  {"name": "sideways-pair-unnamed", "patch": "breaks/553-sideways-puzzle-pair-unnamed.diff",
+   "why": "the sideways pair loses its aria-labels, as before #548: it still reads '‹ Prev' / 'Next ›' and works, but a screen reader and the puzzles driver cannot name it",
+   "mustFailIn": ["land 730x375", "land 844x390", "land 667x375", "land 761x375"]},
+  {"name": "sideways-next-reloads-the-same", "patch": "breaks/553-sideways-puzzle-next-reloads-the-same.diff",
+   "why": "the sideways Next calls pzNextInTier without the index after the puzzle on screen, as before #553, so on an unsolved training puzzle it re-loads the same one and reads as dead",
+   "mustFailIn": ["land 730x375", "land 844x390", "land 667x375", "land 761x375"]},
+  {"name": "sideways-pair-under-the-fold", "patch": "breaks/553-sideways-puzzle-pair-under-the-fold.diff",
+   "why": "the sideways pair's row gets marginTop 60, so at rest it runs past the bottom of the screen and is reachable only by scrolling the panel - the job's 'starts under the fold' in another costume",
+   "mustFailIn": ["land 730x375", "land 844x390", "land 667x375", "land 761x375"]}
+ ],
+ "timeoutSec": 1800
+}
