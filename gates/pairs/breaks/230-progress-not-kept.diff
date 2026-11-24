@@ -1,0 +1,11 @@
+--- a/chess.jsx
++++ b/chess.jsx
+@@ -10811,7 +10811,7 @@
+   const ANA_PART_MAX=3;
+   const anaPartAll=()=>{try{return JSON.parse(localStorage.getItem('ct_anapart')||'{}')||{};}catch(e){return {};}};
+   const anaPartGet=(k)=>{const v=anaPartAll()[k];return (v&&v.r)?v.r:{};};
+-  const anaPartPut=(k,rs)=>{try{const all=anaPartAll();const cur=(all[k]&&all[k].r)||{};for(const i of Object.keys(rs))cur[i]=rs[i];all[k]={r:cur,at:Date.now()};
++  const anaPartPut=(k,rs)=>{return;try{const all=anaPartAll();const cur=(all[k]&&all[k].r)||{};for(const i of Object.keys(rs))cur[i]=rs[i];all[k]={r:cur,at:Date.now()};
+     const ks=Object.keys(all).filter(x=>x!==k).sort((a,b)=>(all[a].at||0)-(all[b].at||0));while(ks.length+1>ANA_PART_MAX)delete all[ks.shift()];
+     localStorage.setItem('ct_anapart',JSON.stringify(all));}catch(e){}};
+   const anaPartDrop=(k)=>{try{const all=anaPartAll();if(!all[k])return;delete all[k];localStorage.setItem('ct_anapart',JSON.stringify(all));}catch(e){}};
