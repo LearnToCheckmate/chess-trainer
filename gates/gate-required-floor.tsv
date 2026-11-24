@@ -130,3 +130,4 @@
 172	171	raise	2026-11-24	553	build__1795473826826	batch 14 B1: gate 193 (the grade table dots told apart, headers over their columns) joins the required set	-	fc3c10146aa3
 173	172	raise	2026-11-24	553	build__1795473826826	B3 merge: gate 204 (primary blue buttons white on a deeper blue) joins 193 and the rest	-	f012a4641a9e
 174	173	raise	2026-11-24	553	build__1795473826826	B1 merge: gate 194 (the Brilliant drill counter jumps to the chosen card) joins 204 and the rest	-	4c9869fb0472
+175	174	raise	2026-11-24	553	build__1795473826826	B3 merge: gate 205 (the Puzzles board at larger text) joins 194 and the rest	-	20fb3fd1df8a
