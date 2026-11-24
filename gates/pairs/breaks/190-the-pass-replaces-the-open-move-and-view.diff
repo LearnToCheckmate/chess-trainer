@@ -1,13 +1,11 @@
-diff --git a/chess.jsx b/chess.jsx
-index a92d2134..1fb4e731 100644
 --- a/chess.jsx
 +++ b/chess.jsx
-@@ -8822,7 +8822,7 @@ function AppMain(){
+@@ -8903,7 +8903,7 @@
         that review is still the one open (the same game's moves); anything else and the pass is dropped (its cache and tally stay). */
      if(_deep){if(deepStopRef.current!==_anaStop)return;deepStopRef.current=null;analyzingRef.current=false;setDeepRun(null);
        const _cur=revNowRef.current;if(!_cur||!_cur.plies||_cur.plies.length!==_rv.plies.length||_cur.pgn!==_rv.pgn)return;
 -      setReview(_rv);setLastReview(_rv);if(typeof window!=='undefined')window.__ctReview=_rv;return;}
 +      setReview(_rv);setLastReview(_rv);if(typeof window!=='undefined')window.__ctReview=_rv;setReviewView('summary');setPly(0);return;}
+     if(anaStopRef.current!==_anaStop)return;   /* #553: stopped by him (the Stop control) - his games list stays */
+     anaStopRef.current=null;
      setReview(_rv);setLastReview(_rv);setReviewView('summary');
-     if(typeof window!=='undefined')window.__ctReview=_rv; /* #549 item (55), jobs/widen-the-input-space: the harness seam - review.analysis is React state, so a per-ply invariant over a real review needs one page.evaluate per game instead of one tap per ply. Read-only, invisible to a player. */
-     setPly(0);setFlip((meta&&meta.userColor==='b')?true:false);setAnalyzing(false);setProgress(1);
