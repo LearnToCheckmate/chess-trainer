@@ -1,0 +1,20 @@
+{
+ "job": "puzzles-the-advantage-bar-shows-before-and-after-your-move-2026-11-19",
+ "about": "BATCH 14 ENTRY 25 (Kunal's pick 'Before and after', 19 Nov 2026). The Puzzles tab's only advantage bar is the drill's (drill-eval, top row of the brilliant-moves and mistakes drills): hidden while he thinks, and after any move on the card, right or wrong, it reads '<before> -> <after>' from his side. Graded by gate 185 on a trial bundle at kunal761 (375x761, ct_safe 51,31) and 320x568, with the result state also read at the text sizes of gates 177/178 (300x609, 750x1522, 573x1243 and 256x454 as page-zoom sheets): no bar or painted value before the move; values pinned to the material on the board (a queen up; a queen against a hanging rook, then Qd7+?? Kxd7 a rook down; the same for Black); before kept and after re-read on the next try; the top row and the board unmoved; the two values whole. The real code passes everywhere; three ways the fix could come undone are each caught. NOT COVERED: the mistakes drill itself (the same render and the same engine path; gate 185 drives the brilliant-moves drill), mate labels (no card here ends in mate), iOS Safari, his own look on the phone.",
+ "gate": "gates/regress/185-drill-bar-before-and-after.js",
+ "checks": ["TC-R267"],
+ "build": "always",
+ "situations": [
+  {"name": "375x761 kunal761 (ct_safe 51,31), with 375 and 430 text sizes", "match": "^TC-R267[a-f]? (PRECONDITION )?kunal761 "},
+  {"name": "320x568, with 320 at 125%", "match": "^TC-R267[a-f]? (PRECONDITION )?320x568 "}
+ ],
+ "breaks": [
+  {"name": "bar-only-on-a-solve", "patch": "breaks/185-bar-only-on-a-solve.diff",
+   "why": "the bar comes up only on a solve or Show move again, as before the fix: a wrong move shows nothing, so 'every result, right or wrong' fails"},
+  {"name": "before-read-from-after", "patch": "breaks/185-before-read-from-after.diff",
+   "why": "the 'before' value reads the position after his move, so it shows after -> after and never where it was: a wrong move reads negative before"},
+  {"name": "bar-up-while-he-thinks", "patch": "breaks/185-bar-up-while-he-thinks.diff",
+   "why": "the bar is drawn as soon as the card's own position is searched, before he moves: it gives the hint his pick rules out"}
+ ],
+ "timeoutSec": 1800
+}
