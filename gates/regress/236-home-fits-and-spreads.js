@@ -20,6 +20,10 @@
 //          least what it was before the change (0 between the pawns, the Today card and the tiles; 16 under New here; 12 above the
 //          colours and style row) - and where the free space allows (a returning player at all three, a brand-new player at 375x812 and
 //          390x844), the gaps are within 8px of each other.
+// CONTROL: run against 475be0b8's bundle (trial 594085a5eebf, the tree before this change) the gate reads 24 pass / 12 fail - every
+// TC-R414 foot and evenness line at all three geometries and TC-R413's 320x568 returning-player fit. The pairs job's three breaks are
+// the per-mechanism controls (packed at the top, overflow at 320, the last row pinned to the foot): all CAUGHT at e5435040.
+// CONTROL-RECORD: e5435040 2026-11-24 total=36 red=12 scope=trial:594085a5eebf how=the tree before the change (475be0b8) - no fit, no spread
 const L=require('../lib');
 const STORES={returning:{ct_demodone:'1'},fresh:{}};
 const BASE={returning:[0,0,0,12],fresh:[0,0,16,0,12]};   // the gaps on 475be0b8, measured (claude/agents notes in the commit)
