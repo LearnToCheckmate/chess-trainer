@@ -1,0 +1,11 @@
+diff --git a/chess.jsx b/chess.jsx
+index 0df6635a..1e775811 100644
+--- a/chess.jsx
++++ b/chess.jsx
+@@ -13545,5 +13545,5 @@ function AppMain(){
+                   const full=rs.length>=_scap;
+                   return {...x,b:full?'games':x.b,id,old,full,n:rs.length};});
+-                const _cut=_b.filter(x=>x.n>0&&(x.b==='games'||x.b==='months'));
++                const _cut=_b.filter(x=>x.n>0&&(x.b==='games'||x.b==='months')&&!/^li:/.test(x.id));
+                 const _gap=_b.some(x=>x.gap);
+                 const _drop=(acctDropped||[]).filter(Boolean);
