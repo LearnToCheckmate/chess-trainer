@@ -565,6 +565,7 @@ L.run(async()=>{
    await marks('drill analyse',onAna?'Qxd7':null);
    await b.close();}
 
+  // CONTROL-RECORD: 97b09af2 2026-11-25 total=113 red=1 scope=trial:f16dbbaeead1 how=#553 B3 the TC-R109 main-worker line re-anchored to the engine start: a break where the eval bar posts 'go depth 11' (its main worker never posts the depth-12 go) - the MAIN WORKER IN SCOPE line red on all 5 walks (gos 0,0,0,0,0), everything else green; the same gate 113/0 on 0316f16c's app (f0c66ac8c7d7) and on HEAD's (88f922302974)
   // CONTROL-RECORD: e7287e7 2026-11-06 total=5 red=2 scope=trial:b14a33ac6f42 how=block Q (TC-R109 handshake) run alone against the trial built from HEAD 2bea40d before the A2-R2 fix (cedb498's anaIdle): the review-worker go-before-bestmove line read 1 of 54 and the 0-PAGEERROR line read 1 (RuntimeError: unreachable, worker 1); 2 of 2 control runs red on both, 3 of 3 runs of the fixed trial 5be4259f3452 green [#549 item (26), antagonist A round 2]
   // ── BLOCK Q [#549, item (26), antagonist A round 2, A2-R2 P1 on cedb498]. TC-R109, THE HANDSHAKE HALF: NO `go` IS EVER POSTED TO A
   // STOCKFISH WORKER WHILE ANOTHER `go` ON THAT WORKER HAS NOT ANSWERED `bestmove`. cedb498's anaIdle waited for the stopped search's
@@ -582,6 +583,11 @@ L.run(async()=>{
   // walk runs FIVE times (five fresh browsers, concurrently) because a 1-in-5 trap needs that many walks to be seen. The main worker is
   // still identified by MECHANISM (the one worker posting `go depth 12`, created before the review opened) so its own denominator is
   // asserted: it must have searched, or a page whose eval bar never ran could pass the zero.
+  // RE-ANCHORED [#553 B3; SPD-05, jobs/speed-check-regressions-2026-11-12, merged 7ea1e9ef; Amber: flags/amber-553-engine-starts-after-home]: the
+  // engine now starts when Home is left (or after 3 s on Home), so the main worker is born AFTER this walk opens the page and 'created before the
+  // review opened' was false on every walk (lead, 0316f16c 112/1, gos 21,19,19,21,21) while nothing it guards had changed. 'First' is anchored to
+  // the engine start instead: the one depth-12 worker is the FIRST Stockfish worker created, and it exists before any other Stockfish worker posts
+  // its first go. Exactly one, first, and at least two searches all stay.
   // AND THE POOL [measured at #549 while fixing A2-R3]: on a loaded machine (44 other Chromium processes) the review's POOL workers posted
   // 12 `go depth 16`s into running searches over five walks and trapped 3 times, because sfEvalOn's 20 s stuck-worker guard abandoned a
   // search without stopping it and the slot took the next position at once. The pool slots now use the same stopIdle/engMsg pair, and
@@ -590,9 +596,9 @@ L.run(async()=>{
    const walk=async(wn)=>{
    const b=await L.launch({geo:'kunal761',store:{...R.SEED,ct_pool:'3'},name:'engline-handshake-'+wn});
    await b.ctx.addInitScript(()=>{if(window.__ctWk)return;const W=window.Worker;const log=window.__ctWk={workers:[],viol:[]};
-     window.Worker=function(url,o){const w=new W(url,o);const rec={url:String(url),born:Math.round(performance.now()),gos:0,best:0,out:0,viol:0,d12:0,err:0};log.workers.push(rec);w.addEventListener('error',()=>{rec.err++;});
+     window.Worker=function(url,o){const w=new W(url,o);const rec={url:String(url),born:Math.round(performance.now()),gos:0,best:0,out:0,viol:0,d12:0,err:0,firstGo:null};log.workers.push(rec);w.addEventListener('error',()=>{rec.err++;});
        w.addEventListener('message',(e)=>{const m=String(e.data||'');if(m.startsWith('bestmove')){rec.best++;if(rec.out>0)rec.out--;}});
-       const pm=w.postMessage.bind(w);w.postMessage=(m,...a)=>{const t=String(m);if(/^go\b/.test(t)){rec.gos++;if(t==='go depth 12')rec.d12++;if(rec.out>0){rec.viol++;if(log.viol.length<8)log.viol.push({w:log.workers.indexOf(rec),go:t,out:rec.out,at:Math.round(performance.now())});}rec.out++;}return pm(m,...a);};
+       const pm=w.postMessage.bind(w);w.postMessage=(m,...a)=>{const t=String(m);if(/^go\b/.test(t)){if(rec.firstGo==null)rec.firstGo=Math.round(performance.now());rec.gos++;if(t==='go depth 12')rec.d12++;if(rec.out>0){rec.viol++;if(log.viol.length<8)log.viol.push({w:log.workers.indexOf(rec),go:t,out:rec.out,at:Math.round(performance.now())});}rec.out++;}return pm(m,...a);};
        return w;};window.Worker.prototype=W.prototype;});
    await b.open();let ok=true,steps=0;const revAt=await b.page.evaluate(()=>Math.round(performance.now()));
    try{await R.states['moves-ply10'](b);await R.engineSet(b,true);await b.settle(1500);
@@ -602,13 +608,13 @@ L.run(async()=>{
    const wk=await b.page.evaluate(()=>window.__ctWk||null);
    const all=wk?wk.workers.filter(w=>/stockfish/i.test(w.url)):[];const mainW=all.filter(w=>w.d12>0);
    const pe=b.errs.filter(e=>/^PAGEERROR/.test(e));
-   const rec={wn,ok:ok&&!!wk&&steps===21,steps,n:all.length,mainOk:mainW.length===1&&mainW[0]===all[0]&&mainW[0].born<revAt,mainGos:mainW[0]?mainW[0].gos:0,mainViol:mainW[0]?mainW[0].viol:null,
+   const rec={wn,ok:ok&&!!wk&&steps===21,steps,n:all.length,mainOk:mainW.length===1&&mainW[0]===all[0]&&all.slice(1).every(w=>w.firstGo==null||mainW[0].born<=w.firstGo),mainBorn:mainW[0]?mainW[0].born-revAt:null,mainGos:mainW[0]?mainW[0].gos:0,mainViol:mainW[0]?mainW[0].viol:null,
      gos:all.reduce((a,w)=>a+w.gos,0),viol:all.reduce((a,w)=>a+w.viol,0),first:wk?wk.viol.slice(0,3):[],pe:pe.slice(0,2),pen:pe.length,errs:all.map(w=>w.err)};
    L.note('TC-R109 handshake walk '+(wn+1)+'/'+WALKS+': '+rec.gos+' go(s) on '+rec.n+' worker(s), '+rec.viol+' posted into a running search (main worker '+rec.mainViol+' of '+rec.mainGos+'), '+rec.pen+' PAGEERROR(s)');
    await b.close();return rec;};
    const walks=await Promise.all(Array.from({length:WALKS},(_,i)=>walk(i)));   // CONCURRENT: five sequential walks pushed the gate past gates.sh's 900 s per-gate timeout; five browsers at once also load the machine, which is the condition the race needs
    const gos=walks.reduce((a,w)=>a+w.gos,0),viol=walks.reduce((a,w)=>a+w.viol,0),pen=walks.reduce((a,w)=>a+w.pen,0),steps=walks.reduce((a,w)=>a+w.steps,0);
-   L.say(walks.length===WALKS&&walks.every(w=>w.mainOk&&w.mainGos>=2),'TC-R109 handshake MAIN WORKER IN SCOPE, each of the '+WALKS+' walks: exactly one worker posts the eval bar\'s go depth 12, it is the first, created before the review opened, and it searched at least twice (gos '+walks.map(w=>w.mainGos).join(',')+')',{walks:walks.map(w=>({mainOk:w.mainOk,mainGos:w.mainGos}))});
+   L.say(walks.length===WALKS&&walks.every(w=>w.mainOk&&w.mainGos>=2),'TC-R109 handshake MAIN WORKER IN SCOPE, each of the '+WALKS+' walks: exactly one worker posts the eval bar\'s go depth 12, it is the first Stockfish worker the page creates (the engine start), created before any other Stockfish worker searched, and it searched at least twice (gos '+walks.map(w=>w.mainGos).join(',')+'; born '+walks.map(w=>w.mainBorn).join(',')+' ms after open)',{walks:walks.map(w=>({mainOk:w.mainOk,mainGos:w.mainGos}))});
    L.say(walks.length===WALKS&&walks.every(w=>w.ok),'TC-R109 handshake PRECONDITION the Worker wrap was installed before the app loaded and all '+WALKS+' walks ran: engine on at ply 10, three double-steps (two ArrowRight 10 ms apart) each followed by five steps 300 ms apart ('+steps+' steps)',{walks:walks.map(w=>({ok:w.ok,steps:w.steps,n:w.n}))});
    L.say(walks.length===WALKS&&walks.every(w=>w.gos>w.steps),'TC-R109 handshake DENOMINATOR every walk made the engine search: more go(s) than steps on its Stockfish workers ('+walks.map(w=>w.gos).join(',')+' gos, '+gos+' in all)',{gos:walks.map(w=>w.gos)});
    L.say(walks.length===WALKS&&viol===0,'TC-R109 handshake no go is posted to ANY Stockfish worker, main worker included, while its previous go has not answered bestmove, over '+WALKS+' walks ('+viol+' of '+gos+')',{viol,first:walks.filter(w=>w.viol).map(w=>({wn:w.wn,first:w.first}))});
