@@ -3014,4 +3014,4 @@ As a player reviewing one of my long games, the review reaches its summary even 
 ### US-R254 Starting a new review while another is open never shrinks the board on the way
 *Added #553 B1, jobs/the-lesson-board-paints-half-width-for-its-first-half-second-on-entry-2026-11-25 (re-titled: Review's analysis-wait flash at the board floor). Amber: flags/amber-553-review-fit-loop-off-while-analysing.*
 As a player who reviews a game and then starts another analysis, the waiting screen shows its board at its own size and the review's board comes in at its own size; no frame in between paints a board smaller than the waiting screen's, however the new analysis was started.
-- From the tap that starts the second import to the settled review, no frame paints a board narrower than the waiting screen's own size at 375x679, 375x812 and 375x761. (TC-R441)
+- From the moment the second import starts to the settled review, no frame paints a board narrower than the waiting screen's own size at 375x679 and 375x812. (TC-R441)
