@@ -43,9 +43,8 @@
   {
    "name": "caption-measured-once",
    "patch": "breaks/g148-caption-measured-once.diff",
-   "why": "the caption is decided at the first paint and never again: after the window changes width it keeps the words chosen for the old width, cut at the narrow one and short at the wide one",
+   "why": "the caption is decided at the first paint and never again: after the window changes width, or Home's scale lands, it keeps the words chosen first - since #553 at 320x568 that is the short caption decided before the 0.85 scale, red on the long-caption pins. At kunal761 it is no longer red (both 375 and 320 now give the long words, so the width check cannot tell a re-measure from none), so it must fail at se only",
    "mustFailIn": [
-    "kunal761",
     "se 320x568"
    ]
   },
