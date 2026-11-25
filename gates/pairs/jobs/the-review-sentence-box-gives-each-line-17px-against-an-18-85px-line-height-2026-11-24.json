@@ -1,0 +1,45 @@
+{
+ "job": "the-review-sentence-box-gives-each-line-17px-against-an-18-85px-line-height-2026-11-24",
+ "about": "The Review sentence under the board (rev-why-txt) sets its lines no more than 17px apart, the height its box reserves per line (line height 1.3 on a phone, lower only where the font is over 13px). Gate 121 is run whole (about 7 minutes a try): at every one of the 85 plies of his game at 320x568 and at 761x375 (his phone turned sideways), TC-R118 holds the box no taller than the clamped lines and TC-R118b holds it no shorter than the lines it shows, so the clamp and never the box edge cuts. NOT COVERED, said rather than implied: 375-wide portrait is gate 120's (TC-R118 and TC-R118b there, not run by this pair); 812x375 and the 1440x900 desktop window were measured by hand (the probe in the job's outcome), not by a gate; the analysis board's sentence (anaMode, minHeight) and the engine and best line rows are not read; the gate browser's font is not his phone's.",
+ "gate": "gates/regress/121-coach-sentence-clamps-small.js",
+ "checks": [
+  "TC-R118b? "
+ ],
+ "build": "auto",
+ "situations": [
+  {
+   "name": "se 320x568",
+   "match": "320x568"
+  },
+  {
+   "name": "landscape 761x375",
+   "match": "761x375"
+  }
+ ],
+ "breaks": [
+  {
+   "name": "sentence-lines-1-3",
+   "patch": "breaks/g121-sentence-lines-1-3.diff",
+   "why": "the line height goes back to 1.3 of the font, as before the change: sideways the 14.5px font sets lines 18.85 apart in a box of 34 for two, and the box edge cuts the second line's foot by 1.84px",
+   "mustFailIn": [
+    "landscape 761x375"
+   ]
+  },
+  {
+   "name": "sentence-box-short",
+   "patch": "breaks/g121-sentence-box-short.diff",
+   "why": "the sideways box reserves 32px for its two lines of 17: the lines are right and the box cuts the second one by 2px",
+   "mustFailIn": [
+    "landscape 761x375"
+   ]
+  },
+  {
+   "name": "sentence-box-slack",
+   "patch": "breaks/g121-sentence-box-slack.diff",
+   "why": "line height 1.15: on a phone the 13px lines are 14.95 apart in boxes that reserve 17 a line, so the box is taller than the clamped lines and the next line paints its top into the slack under an ellipsis (CLAUDE.md, a clamp and a clip are two different boxes). Sideways the 14.5px lines are 16.675 and two fit their 34 within the 0.5px tolerance, so it is held only at 320x568",
+   "mustFailIn": [
+    "se 320x568"
+   ]
+  }
+ ]
+}
