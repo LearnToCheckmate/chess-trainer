@@ -138,12 +138,26 @@ const SMALL_TEXT=`(()=>{const bd=[...document.querySelectorAll('div')].filter(d=
     seen++;const f=parseFloat(cs.fontSize);if(f>=11.95)continue;if(bd.some(g=>g.contains(el))&&/^[a-h1-8]$/.test(txt)){coords++;continue;}
     out.push(txt.slice(0,24)+' '+(Math.round(f*10)/10)+'px'+((el.closest('[data-ct]')||{getAttribute:()=>null}).getAttribute('data-ct')?' ['+el.closest('[data-ct]').getAttribute('data-ct')+']':''));}
   return {seen,coords,small:out};})()`;
+// TC-R440 EXTENDED [#553 B3, q23 part 2a; the lead: his pick A covers the screens outside the survey]: the drive states where the census
+// (gates/drive/sweep.js CT_SWEEP_MEASURE=small over all 176 states, job field a11y19Census_553) found player-facing text under 12px, and the
+// preview gallery, which he reads on his phone. Classic only (the survey measured the same counts in both skins). NOT HERE: the puzzle hint
+// header at 320 wide (an open question to him: 12px needs a fourth line there), the three dev readouts and the five screens no drive state
+// reaches (part 2b).
+const BLOCK_I_EXTRA=[['home','home-look'],['home','home-gallery'],['home','home-wave'],['lesson','gambit-demo-end'],['menu','menu-puzzles'],
+  ['play','setup-bots'],['review','analysis'],['menu','menu-play-live'],['review','list-stored'],['review','stored-review']];
 async function blockI(){
   for(const sk of ['classic','playful'])for(const geo of ['kunal761','se'])for(const st of Object.keys(BLOCK_I_STATES)){
     const tag='TC-R440 '+sk+' '+geo+' '+st;const b=await L.launch({geo,name:'small144-'+sk+'-'+geo+'-'+st,store:{ct_pool:'3',ct_skin:String(SKINS.indexOf(sk))},pro:sk!=='classic'});
     let ok=true;try{await b.open();await b.settle(1200);await BLOCK_I_STATES[st](b);await b.settle(1500);}catch(e){ok=false;L.note(tag+' did not reach the screen: '+String(e.message||e).split('\n')[0].slice(0,140));}
     const m=ok?await b.page.evaluate(SMALL_TEXT):{seen:0,coords:0,small:[]};const skinNow=await b.page.evaluate(()=>localStorage.getItem('ct_skin')).catch(()=>null);
     L.say(ok&&m.seen>=5&&skinNow===String(SKINS.indexOf(sk)),tag+' PRECONDITION the screen is reached in its skin and shows text ('+m.seen+' texts, ct_skin '+skinNow+')');
+    L.say(ok&&m.seen>=5&&m.small.length===0,tag+' no text under 12px but the board letters ('+m.coords+' excluded): '+(m.small.length?m.small.length+' under: '+m.small.join('; '):'none'),m.small);
+    L.say(b.errs.length===0,tag+' zero app errors',b.errs.slice(0,3));await b.close();}
+  for(const geo of ['kunal761','se'])for(const [mod,st] of BLOCK_I_EXTRA){
+    const tag='TC-R440 extra '+geo+' '+mod+'.'+st;const M=require('../drive/'+mod);const b=await L.launch({geo,name:'small144x-'+geo+'-'+st,store:{ct_pool:'3'}});
+    let ok=true;try{await b.open();await b.settle(1200);await M.states[st](b);await b.settle(1500);}catch(e){ok=false;L.note(tag+' did not reach the state: '+String(e.message||e).split('\n')[0].slice(0,140));}
+    const m=ok?await b.page.evaluate(SMALL_TEXT):{seen:0,coords:0,small:[]};
+    L.say(ok&&m.seen>=5,tag+' PRECONDITION the state is reached and shows text ('+m.seen+' texts)');
     L.say(ok&&m.seen>=5&&m.small.length===0,tag+' no text under 12px but the board letters ('+m.coords+' excluded): '+(m.small.length?m.small.length+' under: '+m.small.join('; '):'none'),m.small);
     L.say(b.errs.length===0,tag+' zero app errors',b.errs.slice(0,3));await b.close();}
 }
