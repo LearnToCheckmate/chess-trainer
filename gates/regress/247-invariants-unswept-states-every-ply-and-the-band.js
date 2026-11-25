@@ -464,3 +464,9 @@ L.run(async()=>{
     }
   }
 },'247-invariants-unswept-states-every-ply-and-the-band');
+// THE SPLIT'S COUNT, for the landing's assertcount record: 629 gate assertions, the same lines before and after, split 518 + 111, plus
+// one TC-SUITE-233 font-pin PASS per gate process. So the PASS total goes 630 -> 519 + 112 = 631. Proved line for line, not by total:
+// the 629 non-pin PASS lines of gate 26 (one run, 895.1 s, trial 18aaa1612b8d) and of gates 26 + 247 (trial 18aaa1612b8d) are
+// identical once their measured numbers are blanked.
+// ON THE REAL TREE after the split: 112 pass, 0 fail, 477.3 s and 464.9 s (two runs, trial 18aaa1612b8d, branch at da731670, 25 Nov 2026).
+// CONTROL-RECORD: da731670 2026-11-25 total=69 red=8 scope=CT_INV_ONLY=band;trial:0db304551e61 how=#553 B2, this file's first control after the split: the pair's break pending-not-marked (rev-why-txt without data-pending), CT_INV_ONLY=band at se, kunal730, short375 and kunal761 - TC-R239 red 4 at kunal730 and 4 at kunal761, none at se or short375 (as before the split); the real tree (trial 335da337d2f4) 69 of 69. Same run: band-ignores-the-hold and brilliant-not-flagged red the same 8 (gates/pairs/logs/20261125T150913Z)

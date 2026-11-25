@@ -2089,3 +2089,12 @@ L.run(async()=>{
 // CONTROL-RECORD: 270363da 2026-11-25 total=69 red=8 scope=trial:bde79c21e19b how=#553 B1, the same run, the pair's break band-ignores-the-hold: the same 8, 4 at kunal730 and 4 at kunal761, none at se or short375
 // CONTROL-RECORD: 270363da 2026-11-25 total=69 red=8 scope=trial:1898ccf60242 how=#553 B1, the same run, the pair's break brilliant-not-flagged: the same 8, 4 at kunal730 and 4 at kunal761, none at se or short375
 // CONTROL-RECORD (B1 #553), not a control: on 270363da the real tree (trial 7184abf3ebb1), CT_INV_ONLY=band at all four geometries: 69 pass 0 fail, kunal761 17 of 17 (TC-R239e: the graph drawn in the one-line final reason's empty lines, 209 of 209 frames); run 02:42:53Z to 02:53:20Z, logs gates/pairs/logs/20261125T024253Z/
+// THE SPLIT [#553 B2, jobs/gate-26-runs-at-846-of-its-900-seconds-make-it-finish-well-inside-its-limit-2026-11-25]: the TC-INV-03b/03c/02g,
+// TC-INV-09/10 and TC-R239 blocks and the TC-INV-03b default-run guard moved to gates/regress/247-invariants-unswept-states-every-ply-and-the-band.js;
+// the CONTROL-RECORD lines above that name them are this gate's history from before the split. THE SPLIT'S COUNT, for the landing's
+// assertcount record: 629 gate assertions, the same lines before and after, split 518 + 111, plus one TC-SUITE-233 font-pin PASS per gate
+// process. So the PASS total goes 630 -> 519 + 112 = 631. Proved line for line: the 629 non-pin PASS lines of the one-gate run (895.1 s,
+// trial 18aaa1612b8d) and of gates 26 + 247 on the same trial are identical once their measured numbers are blanked.
+// ON THE REAL TREE after the split: 519 pass, 0 fail, 412.3 s and 403.7 s (two runs, trial 18aaa1612b8d, branch at da731670, 25 Nov 2026).
+// CONTROL-RECORD: da731670 2026-11-25 total=177 red=6 scope=CT_INV_GEOS=short375;trial:52ca2a9b93e4 how=#553 B2, this gate's first control after the split: the gates-26-and-48 pair's break home-tab-icon-4px-larger (the Home tab icon 26px, not 22) - TC-INV-02a and TC-INV-02e red at puzzles, pz-solved and pz-rankup (gates/pairs/logs, the 2026-11-25 15:20Z run)
+// CONTROL-RECORD: da731670 2026-11-25 total=161 red=6 scope=CT_INV_GEOS=kunal730;trial:52ca2a9b93e4 how=#553 B2, the same run and break at kunal730: TC-INV-02a and TC-INV-02e red at puzzles, pz-solved and pz-rankup
