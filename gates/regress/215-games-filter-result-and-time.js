@@ -54,7 +54,7 @@ const OPP=(g)=>g.white===g.acct?g.black:g.white;
 const set=(...ns)=>ns.map(n=>OPP(G[+n.slice(1)-1])).sort().join(',');
 L.run(async()=>{
   for(const geo of GEOS)for(const sk of SKINS){
-    const med=sk==='medieval';const tag=(geo==='se'?'320x568':'375x761')+' '+sk;
+    const med=sk==='medieval';const GE=L.GEOS[geo];const tag=GE.w+'x'+GE.h+' '+sk;   /* #553 B2 (r19 audit A4a/A4b): the tag from the GEOS entry's size, never from its name */
     const b=await L.launch({geo,dev:false,name:'g215-'+geo+'-'+sk,...(med?{pro:true}:{}),store:{...STORE,...(med?{ct_skin:'2'}:{})}});await b.open();
     let ok=true;try{await b.tile('Review');await b.settle(1500);}catch(e){ok=false;L.note(tag+' open: '+String(e).slice(0,120));}
     const read=()=>b.page.evaluate(()=>{const rows=[...document.querySelectorAll('[data-ct="game-row"]')].filter(r=>r.getBoundingClientRect().height>0);

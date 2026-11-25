@@ -117,7 +117,7 @@ L.run(async()=>{
   for(const [key,enter,must,geos,xstore] of STATES){
     if(ONLY.length&&!ONLY.includes(key))continue;
     for(const g of (geos||['kunal761','se'])){
-      const geo=GEO[g];const tag=(g==='kunal761'?'375x761':g==='se'?'320x568':'1280x800')+' '+key;
+      const geo=GEO[g];const GE=typeof geo==='string'?L.GEOS[geo]:geo;const tag=GE.w+'x'+GE.h+' '+key;   /* #553 B2 (r19 audit A4a/A4b): the tag from the entry's size, never from its name */
       const b=await L.launch({geo,name:'g227-'+key+'-'+g,store:{...(xstore||{})}});await b.open();let ok=true,err='';
       try{await enter(b);await b.settle(700);}catch(e){ok=false;err=e.message;}
       const bs=await b.page.evaluate(READ,MS);
