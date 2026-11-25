@@ -1,0 +1,369 @@
+From 4d8dba96d0d258bf930b3bd7e6098ec566a8ab93 Mon Sep 17 00:00:00 2001
+From: Claude <noreply@anthropic.com>
+Date: Wed, 25 Nov 2026 16:11:27 +0000
+Subject: [PATCH 1/5] WIP batch 14 q28 (his pick A): the slim coach line on
+ Home opens the coach's plan sheet; gate 248 opens it by a player's tap; gate
+ 49's rosters re-key the line as a sheet (seat B3)
+
+Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>
+Claude-Session: https://claude.ai/code/session_01RC45u6eKy6MX5TBN3qDhjW
+---
+ chess.jsx                                     |  2 +-
+ .../regress/248-coach-plan-opens-from-home.js | 48 +++++++++++++++++++
+ gates/regress/49-home.js                      |  4 +-
+ 3 files changed, 51 insertions(+), 3 deletions(-)
+ create mode 100644 gates/regress/248-coach-plan-opens-from-home.js
+
+diff --git a/chess.jsx b/chess.jsx
+index 51a0eb02..f2fa4360 100644
+--- a/chess.jsx
++++ b/chess.jsx
+@@ -11766,7 +11766,7 @@ function AppMain(){
+               </div>);}
+ 
+             return null;})();
+-            const _coachline=(()=>{const _t=dstr(new Date());const _yd=new Date();_yd.setDate(_yd.getDate()-1);const atRisk=daily&&daily.date===dstr(_yd)&&(daily.streak||0)>=1&&!streakDismiss;const txt=atRisk?('Streak at risk - do a lesson or puzzle today'/* #550 one Today card: Home no longer has a card called Daily 3, and a31: any one keeps the streak */):(_coachRec?_coachRec.msg:'Your coach is ready');return(<button data-fix44="1" onClick={()=>{if(_coachRec&&!atRisk){setHomeScreen(false);setMode('learn');selectOpening(_coachRec.idx);}else{setStreakDismiss(true);}}} style={{width:'100%',display:'flex',alignItems:'center',gap:9,background:'rgba(255,255,255,.05)',border:'1px solid '+(atRisk?'rgba(240,162,78,.5)':'rgba(255,255,255,.14)'),borderRadius:12,padding:'9px 12px',cursor:'pointer',textAlign:'left',color:'inherit',minHeight:(!hb&&!hLand)?44/_hz:undefined/* #553 gate 26 TC-INV-01b: the coach line is a tap target, 44pt on a phone at every Home scale (it was 39 at full size and 33.3 at 320x568's 0.85; amber flags/amber-553-home-phone-fit-and-spread) */}}><span style={{fontSize:16,flexShrink:0}}>{atRisk?'\u26A0\uFE0F':'\uD83C\uDF93'}</span><span style={{flex:1,minWidth:0,fontSize:12.5,color:'rgba(255,255,255,.78)',whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis'}}>{txt}</span><span style={{fontSize:12,color:'var(--ac2)',flexShrink:0}}>{atRisk?'dismiss':'open'}</span></button>);})();
++            const _coachline=(()=>{const _t=dstr(new Date());const _yd=new Date();_yd.setDate(_yd.getDate()-1);const atRisk=daily&&daily.date===dstr(_yd)&&(daily.streak||0)>=1&&!streakDismiss;const txt=atRisk?('Streak at risk - do a lesson or puzzle today'/* #550 one Today card: Home no longer has a card called Daily 3, and a31: any one keeps the streak */):(_coachRec?_coachRec.msg:'Your coach is ready');return(<button data-fix44="1" data-ct="home-coachline" onClick={()=>{if(atRisk){setStreakDismiss(true);return;}/* #553 q28 pick A (his Desk answer, 25 Nov; amber flags/amber-553-coach-line-opens-the-plan): the line opens the coach's plan sheet - since #314 nothing rendered the coach card that held the only route to it. The suggested lesson stays one tap away there ('Coach's pick'). The card's rule is kept: Pro opens it, the free previews open it, then the upgrade message. */if(isPro){setCoachOpen(true);}else if(coachFree<COACH_FREE_LOOKS){setCoachFree(coachFree+1);setCoachOpen(true);}else{setUpgradeMsg('That was your last free Coach preview. Unlock Pro to keep your coach.');setAcctOpen(true);}}} style={{width:'100%',display:'flex',alignItems:'center',gap:9,background:'rgba(255,255,255,.05)',border:'1px solid '+(atRisk?'rgba(240,162,78,.5)':'rgba(255,255,255,.14)'),borderRadius:12,padding:'9px 12px',cursor:'pointer',textAlign:'left',color:'inherit',minHeight:(!hb&&!hLand)?44/_hz:undefined/* #553 gate 26 TC-INV-01b: the coach line is a tap target, 44pt on a phone at every Home scale (it was 39 at full size and 33.3 at 320x568's 0.85; amber flags/amber-553-home-phone-fit-and-spread) */}}><span style={{fontSize:16,flexShrink:0}}>{atRisk?'\u26A0\uFE0F':'\uD83C\uDF93'}</span><span style={{flex:1,minWidth:0,fontSize:12.5,color:'rgba(255,255,255,.78)',whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis'}}>{txt}</span><span style={{fontSize:12,color:'var(--ac2)',flexShrink:0}}>{atRisk?'dismiss':'open'}</span></button>);})();
+               /* THE ONE TODAY CARD (#550, the ruling above): 3 a day - the day's lesson and two puzzles, a dot each - with his streak on the same card and
+                  Next, which goes to the next undone item (the lesson, or Continue: <lesson>, while the lesson is undone; the puzzle roadmap after it). The
+                  third line keeps answer a31 (Kunal, 11 Nov 2026: 'any one lesson or puzzle keeps the streak ... so all three read as a bonus'). */
+diff --git a/gates/regress/248-coach-plan-opens-from-home.js b/gates/regress/248-coach-plan-opens-from-home.js
+new file mode 100644
+index 00000000..301ccdde
+--- /dev/null
++++ b/gates/regress/248-coach-plan-opens-from-home.js
+@@ -0,0 +1,48 @@
++'use strict';
++// gates/regress/248-coach-plan-opens-from-home.js - THE COACH'S PLAN OPENS FROM HOME BY A TAP. TCID / USID.
++//
++// WHY [#553 B3, jobs/the-mastery-plan-sheet-cannot-be-opened-since-the-home-coach-card-stopped-rendering-2026-11-25; Kunal's q28 pick A
++// (run-answers orchestrator-B14-DESK-ANSWERS-Q25-Q28-Q29-2026-11-25): "open the Mastery plan from the slim coach line on Home"]: the plan
++// sheet (Your coach - Today's plan, the training rows, the Mastery plan with its Run rows) opened only through setCoachOpen(true), and both
++// calls sat inside the Home coach CARD that nothing has rendered since #314 (2026-09-06), so no player could open it. The slim coach line
++// that replaced the card now opens it (amber flags/amber-553-coach-line-opens-the-plan).
++// WHAT IT READS: the bundle under test (CT_APP), a fresh store (not Pro, no free preview used), at kunal761, 320x568 (se) and 375x679
++// (kunal). The line is found by WHAT IT SAYS ('\u{1F393} ... open'), the sheet by its words ('Your coach' and "Today's plan") and the Run
++// rows by their text, never by a hook this build added (CLAUDE.md, #432), so the tree before is read the same way. The tap is a player's:
++// the line scrolled into Home's own scroller, its rect re-read, elementFromPoint at the tap point IS the line, then a mouse click there.
++//  (1) PRECONDITION the coach line is on Home and the tap point is the line.
++//  (2) after the tap the plan sheet is up: 'Your coach' and "Today's plan" are on screen, over Home.
++//  (3) its Run rows are REACHABLE: at least one 'Run' button, and the first one, scrolled into view by the sheet's own scroller (a box with
++//      overflow-y auto that actually moves it), is on screen and is the element at its centre.
++//  (4) zero app errors.
++// KNOW ITS LIMIT: the Pro path and the last-free-preview path (the upgrade message) are not driven; the streak-at-risk line (which
++// dismisses) is not seeded.
++const L=require('../lib');const H=require('../drive/home');
++const LINE=/^\u{1F393} .* open$/u;
++L.run(async()=>{
++  for(const geo of ['kunal761','se','kunal']){
++    const tag='TCID '+geo;const b=await L.launch({geo,name:'g248-'+geo});
++    let ok=true;try{await b.open();await b.settle(1000);await H.fresh(b);}catch(e){ok=false;L.note(tag+' did not reach Home: '+String(e.message||e).slice(0,140));}
++    // (1) the line, scrolled into Home's scroller, hit-tested at its centre
++    const hit=ok?await b.page.evaluate((src)=>{const re=new RegExp(src,'u');const el=[...document.querySelectorAll('button')].find(x=>re.test((x.innerText||'').replace(/\s+/g,' ').trim())&&x.getBoundingClientRect().width>1);
++      if(!el)return {found:false};el.scrollIntoView({block:'center'});const r=el.getBoundingClientRect();const x=r.left+r.width/2,y=r.top+r.height/2;const at=document.elementFromPoint(x,y);
++      return {found:true,x,y,h:Math.round(r.height*10)/10,top:Math.round(r.top*10)/10,onTop:!!at&&(el===at||el.contains(at)),inView:y>0&&y<innerHeight};},LINE.source):{found:false};
++    L.say(hit.found&&hit.onTop&&hit.inView,tag+' PRECONDITION the coach line is on Home and the tap point is the line (top '+hit.top+', height '+hit.h+')',hit);
++    if(hit.found&&hit.onTop){await b.page.mouse.click(hit.x,hit.y);await b.settle(1500);}
++    // (2) the sheet
++    const sh=await b.page.evaluate(()=>{const vis=(e)=>{const r=e.getBoundingClientRect();return r.width>1&&r.height>1&&r.bottom>0&&r.top<innerHeight;};
++      const leaf=(re)=>[...document.querySelectorAll('div,span')].find(e=>e.children.length===0&&re.test((e.textContent||'').trim())&&vis(e));
++      const yc=leaf(/^Your coach$/),tp=leaf(/^Today's plan$/);let over=false;
++      if(yc){let s=yc;while(s&&getComputedStyle(s).position!=='fixed')s=s.parentElement;over=!!s&&(parseInt(getComputedStyle(s).zIndex,10)||0)>500;}
++      return {yourCoach:!!yc,todaysPlan:!!tp,over};});
++    L.say(sh.yourCoach&&sh.todaysPlan&&sh.over,tag+' the tap opens the coach\'s plan sheet over Home (Your coach '+sh.yourCoach+', Today\'s plan '+sh.todaysPlan+', a fixed layer above Home '+sh.over+')',sh);
++    // (3) a Run row reachable by the sheet's own scroller
++    const run=await b.page.evaluate(async()=>{const btn=[...document.querySelectorAll('button')].filter(x=>/(^|\s)Run$/.test((x.innerText||'').trim()));if(!btn.length)return {n:0};
++      const el=btn[0];let sc=el.parentElement;while(sc&&!(/(auto|scroll)/.test(getComputedStyle(sc).overflowY)&&sc.scrollHeight>sc.clientHeight+1))sc=sc.parentElement;
++      const r0=el.getBoundingClientRect();if(sc){sc.scrollTop+=r0.top+r0.height/2-innerHeight/2;await new Promise(r=>setTimeout(r,250));}
++      const r=el.getBoundingClientRect();const x=r.left+r.width/2,y=r.top+r.height/2;const at=document.elementFromPoint(x,y);
++      return {n:btn.length,scroller:!!sc,moved:Math.round(r0.top-r.top),inView:y>0&&y<innerHeight,onTop:!!at&&(el===at||el.contains(at)),t:(el.innerText||'').trim()};});
++    L.say(run.n>=1,tag+' DENOMINATOR the plan sheet shows its Run rows ('+run.n+')',run);
++    L.say(run.n>=1&&run.inView&&run.onTop,tag+' the first Run row is reachable: brought on screen'+(run.scroller?' by the sheet\'s own scroller (moved '+run.moved+'px)':' (already on screen)')+' and the element at its centre is that button',run);
++    L.say(b.errs.length===0,tag+' zero app errors',b.errs.slice(0,3));await b.close();}
++},'248-coach-plan-opens-from-home');
+diff --git a/gates/regress/49-home.js b/gates/regress/49-home.js
+index 65b772b5..c2d2174b 100644
+--- a/gates/regress/49-home.js
++++ b/gates/regress/49-home.js
+@@ -1120,7 +1120,7 @@ const HOME_ROSTER=[
+   {id:'tile-puzzles',  kind:'screen', lands:'puzzle'},
+   {id:'tile-review',   kind:'screen', lands:'review'},
+   {id:'tile-play',     kind:'screen', lands:'play'},
+-  {id:'coachline',     kind:'screen', lands:'lesson'},
++  {id:'coachline',     kind:'sheet'                }, // RE-KEYED [#553 B3, q28 pick A; Amber: flags/amber-553-coach-line-opens-the-plan]: the line opens the coach's plan sheet over Home (it went straight to the suggested lesson); gate 248 asserts the sheet
+   {id:'home-look',     kind:'sheet'                }, // the Look and feel picker, [data-ct="look"], drawn over Home
+   {id:'stylerow',      kind:'sheet'                },
+   {id:'home-preview',  kind:'sheet'                }, // 🎬 the preview gallery (dev)
+@@ -1141,7 +1141,7 @@ const HOME_ROSTER_EARNED=[
+   {id:'tile-puzzles',  kind:'screen', lands:'puzzle'},
+   {id:'tile-review',   kind:'screen', lands:'review'},
+   {id:'tile-play',     kind:'screen', lands:'play'},
+-  {id:'coachline',     kind:'screen', lands:'lesson'},
++  {id:'coachline',     kind:'sheet'                }, // RE-KEYED [#553 B3, q28 pick A; Amber: flags/amber-553-coach-line-opens-the-plan]: the line opens the coach's plan sheet over Home (it went straight to the suggested lesson); gate 248 asserts the sheet
+   {id:'home-look',     kind:'sheet'                },
+   {id:'stylerow',      kind:'sheet'                },
+   {id:'home-preview',  kind:'sheet'                },
+-- 
+2.43.0
+
+
+From f411047c85ad57b4ee9d318cad2d6303c99c0903 Mon Sep 17 00:00:00 2001
+From: Claude <noreply@anthropic.com>
+Date: Wed, 25 Nov 2026 16:18:06 +0000
+Subject: [PATCH 2/5] WIP batch 14 q28: gate 248 TC-R451 seeds one slate lesson
+ and opens the folded Mastery plan by a tap before reading Run; gate 227's Run
+ check reads the plan sheet on the real route; US-R258, TC-R451 (seat B3)
+
+Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>
+Claude-Session: https://claude.ai/code/session_01RC45u6eKy6MX5TBN3qDhjW
+---
+ claude/stories/TEST-CASES.md                  |  1 +
+ claude/stories/USER-STORIES.md                |  6 +++++
+ gates/regress/227-nav-symbols-one-meaning.js  | 24 +++++++++----------
+ .../regress/248-coach-plan-opens-from-home.js | 21 +++++++++++-----
+ 4 files changed, 34 insertions(+), 18 deletions(-)
+
+diff --git a/claude/stories/TEST-CASES.md b/claude/stories/TEST-CASES.md
+index 1f40168f..57c6812b 100644
+--- a/claude/stories/TEST-CASES.md
++++ b/claude/stories/TEST-CASES.md
+@@ -2252,3 +2252,4 @@ never built is accepted the same way; that residual is
+ | TC-R448 | US-R257 | Gate 246 at kunal761, ct_pool 3, a fresh review of drive/review PGN_CORNER; a Worker wrapper (addInitScript) holds every message of the first pool search after 1.e4 for 24 s after its go, readyok let through (alive) or held too (dead). | DENOMINATOR per launch: exactly one pool search held at least 24 s; the review reaches its summary on the pool path with the game's 7 plies; zero app errors. | `gates/regress/246-a-silent-search-is-not-a-dead-one.js` | Not yet run in a full suite: its result is read from #553's final suite log (gate 246). Controls: gates/pairs/jobs/one-of-his-games-never-finishes-its-review-it-stalls-at-move-68-of-103-2026-11-24.json |
+ | TC-R449 | US-R257 | Gate 246, launch alive. | engine.retried 0 and engine.abandoned 0, and no 'stop' posted to the held worker during the hold. The tree before (9f95c414, trial d889a3c7d0f6): retried 2, one stop at 21.1 s, red. | `gates/regress/246-a-silent-search-is-not-a-dead-one.js` | Not yet run in a full suite: its result is read from #553's final suite log (gate 246). Controls: gates/pairs/jobs/one-of-his-games-never-finishes-its-review-it-stalls-at-move-68-of-103-2026-11-24.json |
+ | TC-R450 | US-R257 | Gate 246, launch dead. | engine.retried at least 1, and the held search is stopped at or after 20 s and before the hold ends (the ping does not keep a worker that answers nothing alive). | `gates/regress/246-a-silent-search-is-not-a-dead-one.js` | Not yet run in a full suite: its result is read from #553's final suite log (gate 246). Controls: gates/pairs/jobs/one-of-his-games-never-finishes-its-review-it-stalls-at-move-68-of-103-2026-11-24.json |
++| TC-R451 | US-R258 | Gate 248 at kunal761, 320x568 and 375x679: a fresh store (not Pro, no free preview used), Home; the coach line found by its words ('🎓 ... open'), scrolled into Home's scroller, hit-tested, then a mouse tap at its centre. | The plan sheet is up over Home ('Your coach' and "Today's plan" on screen in a fixed layer above Home's 500), it shows at least one Run button, and the first Run button, brought on screen by the sheet's own scroller, is the element at its centre; zero app errors. The tree before (the line went straight to the suggested lesson) and a break with the line's tap handler removed both red. | `gates/regress/248-coach-plan-opens-from-home.js` | Not yet run in a full suite: its result is read from #553's final suite log (gate 248). Controls: the gate header's CONTROL-RECORD and gates/pairs/jobs/the-mastery-plan-sheet-cannot-be-opened-since-the-home-coach-card-stopped-rendering-2026-11-25.json |
+diff --git a/claude/stories/USER-STORIES.md b/claude/stories/USER-STORIES.md
+index 2bbbef27..8df77452 100644
+--- a/claude/stories/USER-STORIES.md
++++ b/claude/stories/USER-STORIES.md
+@@ -3011,3 +3011,9 @@ As a player reviewing one of my long games, the review reaches its summary even
+ - The check holds one engine search silent for longer than the app's limit, and the review still reaches its summary. (TC-R448)
+ - A search that is silent but still answering is waited for, not searched again. (TC-R449)
+ - An engine that answers nothing is still given up on at the limit. (TC-R450)
++
++### US-R258 Tapping the slim coach line on Home opens the Mastery plan
++*Added #553 B3, jobs/the-mastery-plan-sheet-cannot-be-opened-since-the-home-coach-card-stopped-rendering-2026-11-25; his q28 pick A, 25 Nov 2026. Amber: flags/amber-553-coach-line-opens-the-plan. Related: US-HM-09 (the coach line's one row and its at-risk wording, unchanged).*
++As a player on Home, tapping the coach line opens my coach's plan - Today's plan, the training rows and the Mastery plan with its Run rows - over Home, and the suggested lesson is one tap further, as the plan's Coach's pick.
++- From Home at his phone, the small phone and the shorter column, a tap on the coach line opens the plan sheet, and its Run rows can be scrolled to and tapped. (TC-R451)
++
+diff --git a/gates/regress/227-nav-symbols-one-meaning.js b/gates/regress/227-nav-symbols-one-meaning.js
+index 54b707af..b687fb39 100644
+--- a/gates/regress/227-nav-symbols-one-meaning.js
++++ b/gates/regress/227-nav-symbols-one-meaning.js
+@@ -162,24 +162,24 @@ L.run(async()=>{
+     const badL=ls.filter(x=>/[▶◀⏮⏭⏸▸◂►]/.test(x.t)||x.svg>0);
+     L.say(ls.length===3&&badL.length===0,'TC-R411 375x761 lesson-video every coach link carries no play sign, text or drawn ('+(badL.length?badL.map(x=>JSON.stringify(x.t)).join(', '):ls.length+' of '+ls.length)+')',badL);
+     await b.close();}
+-  /* #553 card 90: 'Run' in the Mastery plan CANNOT BE REACHED BY A PLAYER ON THIS TREE - the plan sheet opens only from the Home coach
+-     card (_coach in chess.jsx), and nothing renders _coach (measured: no 'Your coach' element on Home at 375x761; the two setCoachOpen(true)
+-     calls are both inside it). So this reads the BUNDLE UNDER TEST instead of a screen, and says so: the Run button's text carries no play
+-     sign. A denominator first (the button is in the bundle at all), then the sign. */
++  /* #553 card 90, MOVED TO THE REAL ROUTE [#553 B3, q28 pick A; amber flags/amber-553-coach-line-opens-the-plan]: this block read the Run
++     button out of the BUNDLE, because nothing a player could tap opened the Mastery plan sheet (the Home coach card that held its only route
++     was not rendered after #314). The slim coach line on Home now opens it, so the Run buttons are read on the SCREEN: Home on a fresh store,
++     the coach line tapped by a player's tap, the plan sheet's buttons whose text ends 'Run'. A denominator first (the sheet shows a Run
++     button at all), then the sign. Gate 248 owns the route itself. */
+   if(!ONLY.length||ONLY.includes('coach-run')){
+-    const src=require('fs').readFileSync(process.env.CT_APP||require('path').join(L.ROOT,'app.js'),'utf8');
+-    // esbuild writes the sign as an escape ("\u25B6 Run") and minifies coachRun's name, so the button is its string literal. The forms the sign can
+-    // take in a bundle: the escape (all esbuild emits for non-ASCII, measured: 5 escapes and 0 literal characters in t2), the literal character
+-    // (a bundle built without escaping), and either one followed by the emoji variation selector U+FE0F. Each form is in both patterns below.
+-    const runs=/Mastery plan/.test(src)?(src.match(/"(\\u25B6(\\uFE0F)? |\u25b6\ufe0f? )?Run"/gi)||[]):[];
+-    L.say(runs.length>=1,'TC-R411 bundle coach-run DENOMINATOR the Mastery plan Run button is in the bundle ('+runs.length+')',{n:runs.length});
++    const b=await L.launch({geo:'kunal761',name:'g227-coach-run'});let runs=[],err='';
++    try{await b.open();await b.settle(1000);await require('../drive/home').fresh(b);await require('../drive/home').tapBtn(b,/^\u{1F393} .* open$/u,1500);
++      runs=await b.page.evaluate(()=>[...document.querySelectorAll('button')].map(x=>(x.innerText||'').replace(/\s+/g,' ').trim()).filter(t=>/(^|\s)Run$/.test(t)).map(t=>JSON.stringify(t)));}
++    catch(e){err=String(e.message||e).split('\n')[0].slice(0,140);}
++    L.say(b.errs.length===0,'TC-R411 375x761 coach-run zero app errors on the route to the plan sheet',b.errs.slice(0,3));await b.close();
++    L.say(runs.length>=1,'TC-R411 375x761 coach-run DENOMINATOR the Mastery plan sheet, opened from the Home coach line, shows its Run button(s) ('+runs.length+(err?'; '+err:'')+')',{n:runs.length,err});
+     const signed=/\\u25B6(\\uFE0F)?\s*Run\b|\u25b6\ufe0f?\s*Run\b/i;
+     // THE PATTERN'S OWN BOTH-WAYS CORPUS (the negated-regex-guards rule for a pattern bound to a name, as gates 16, 29, 33 and 65 do): it must
+     // match every form the sign can take before Run, and reject Run without it and the sign before other words.
+     const SGN_YES=['"\\u25B6 Run"','"\\u25b6 Run"','"\\u25B6\\uFE0F Run"','"\u25b6 Run"','"\u25b6\ufe0f Run"'],SGN_NO=['"Run"','"Running"','"\\u25B6 Watch"','"\\u25B6 Runs"'];
+     const sgnBad=[...SGN_YES.filter(x=>!signed.test(x)).map(x=>'missed '+x),...SGN_NO.filter(x=>signed.test(x)).map(x=>'matched '+x)];
+     L.say(sgnBad.length===0,'TC-R411 bundle coach-run the play-sign pattern matches all '+SGN_YES.length+' forms of the sign before Run (escaped, literal, each with and without U+FE0F) and none of '+SGN_NO.length+' look-alikes',sgnBad);
+-    L.note('TC-R411 coach-run is read from the bundle, not a screen: the Mastery plan sheet is not reachable by a player on this tree (nothing renders the Home coach card)');
+-    if(runs.length>=1)L.say(!signed.test(src),'TC-R411 bundle coach-run the Run button carries no play sign ('+runs.length+' Run literal(s) found; the sign '+(signed.test(src)?'IS before Run: '+(src.match(signed)||[''])[0]:'before none')+')',{n:runs.length});   // over nothing it does not run: the DENOMINATOR line above is red then
++    if(runs.length>=1)L.say(runs.every(t=>!signed.test(t)),'TC-R411 375x761 coach-run every Run button on the plan sheet carries no play sign ('+runs.join(', ')+')',{runs});   // over nothing it does not run: the DENOMINATOR line above is red then
+   }
+ });
+diff --git a/gates/regress/248-coach-plan-opens-from-home.js b/gates/regress/248-coach-plan-opens-from-home.js
+index 301ccdde..bcc8ed46 100644
+--- a/gates/regress/248-coach-plan-opens-from-home.js
++++ b/gates/regress/248-coach-plan-opens-from-home.js
+@@ -1,27 +1,31 @@
+ 'use strict';
+-// gates/regress/248-coach-plan-opens-from-home.js - THE COACH'S PLAN OPENS FROM HOME BY A TAP. TCID / USID.
++// gates/regress/248-coach-plan-opens-from-home.js - THE COACH'S PLAN OPENS FROM HOME BY A TAP. US-R258 / TC-R451.
+ //
+ // WHY [#553 B3, jobs/the-mastery-plan-sheet-cannot-be-opened-since-the-home-coach-card-stopped-rendering-2026-11-25; Kunal's q28 pick A
+ // (run-answers orchestrator-B14-DESK-ANSWERS-Q25-Q28-Q29-2026-11-25): "open the Mastery plan from the slim coach line on Home"]: the plan
+ // sheet (Your coach - Today's plan, the training rows, the Mastery plan with its Run rows) opened only through setCoachOpen(true), and both
+ // calls sat inside the Home coach CARD that nothing has rendered since #314 (2026-09-06), so no player could open it. The slim coach line
+ // that replaced the card now opens it (amber flags/amber-553-coach-line-opens-the-plan).
+-// WHAT IT READS: the bundle under test (CT_APP), a fresh store (not Pro, no free preview used), at kunal761, 320x568 (se) and 375x679
++// WHAT IT READS: the bundle under test (CT_APP), a fresh store (not Pro, no free preview used, one lesson on his Mastery slate), at kunal761, 320x568 (se) and 375x679
+ // (kunal). The line is found by WHAT IT SAYS ('\u{1F393} ... open'), the sheet by its words ('Your coach' and "Today's plan") and the Run
+ // rows by their text, never by a hook this build added (CLAUDE.md, #432), so the tree before is read the same way. The tap is a player's:
+ // the line scrolled into Home's own scroller, its rect re-read, elementFromPoint at the tap point IS the line, then a mouse click there.
+ //  (1) PRECONDITION the coach line is on Home and the tap point is the line.
+ //  (2) after the tap the plan sheet is up: 'Your coach' and "Today's plan" are on screen, over Home.
+-//  (3) its Run rows are REACHABLE: at least one 'Run' button, and the first one, scrolled into view by the sheet's own scroller (a box with
++//  (3) the sheet's Mastery plan row opens by a tap (it is folded).
++//  (4) its Run rows are REACHABLE: at least one 'Run' button, and the first one, scrolled into view by the sheet's own scroller (a box with
+ //      overflow-y auto that actually moves it), is on screen and is the element at its centre.
+-//  (4) zero app errors.
++//  (5) zero app errors.
+ // KNOW ITS LIMIT: the Pro path and the last-free-preview path (the upgrade message) are not driven; the streak-at-risk line (which
+ // dismisses) is not seeded.
+ const L=require('../lib');const H=require('../drive/home');
+ const LINE=/^\u{1F393} .* open$/u;
++// THE SLATE IS SEEDED: a Run button belongs to a lesson on his Mastery slate (ct_coachtargets), and a fresh store's slate is empty ('Empty:
++// pick a lesson below'), so the store carries one lesson he has picked before. Not learned and not done today, so its row shows Run.
++const SLATE=['Italian Game'];
+ L.run(async()=>{
+   for(const geo of ['kunal761','se','kunal']){
+-    const tag='TCID '+geo;const b=await L.launch({geo,name:'g248-'+geo});
++    const tag='TC-R451 '+geo;const b=await L.launch({geo,name:'g248-'+geo,store:{ct_coachtargets:SLATE}});
+     let ok=true;try{await b.open();await b.settle(1000);await H.fresh(b);}catch(e){ok=false;L.note(tag+' did not reach Home: '+String(e.message||e).slice(0,140));}
+     // (1) the line, scrolled into Home's scroller, hit-tested at its centre
+     const hit=ok?await b.page.evaluate((src)=>{const re=new RegExp(src,'u');const el=[...document.querySelectorAll('button')].find(x=>re.test((x.innerText||'').replace(/\s+/g,' ').trim())&&x.getBoundingClientRect().width>1);
+@@ -36,7 +40,12 @@ L.run(async()=>{
+       if(yc){let s=yc;while(s&&getComputedStyle(s).position!=='fixed')s=s.parentElement;over=!!s&&(parseInt(getComputedStyle(s).zIndex,10)||0)>500;}
+       return {yourCoach:!!yc,todaysPlan:!!tp,over};});
+     L.say(sh.yourCoach&&sh.todaysPlan&&sh.over,tag+' the tap opens the coach\'s plan sheet over Home (Your coach '+sh.yourCoach+', Today\'s plan '+sh.todaysPlan+', a fixed layer above Home '+sh.over+')',sh);
+-    // (3) a Run row reachable by the sheet's own scroller
++    // (3) the Mastery plan is a folded row on the sheet ('\u{1F4CB} MASTERY PLAN \u00b7 TIER n ... \u203a'): opened by a player's tap, like the line
++    const mp=await b.page.evaluate(()=>{const el=[...document.querySelectorAll('button')].find(x=>/MASTERY PLAN/i.test(x.innerText||'')&&x.getBoundingClientRect().width>1);if(!el)return {found:false};
++      el.scrollIntoView({block:'center'});const r=el.getBoundingClientRect();const x=r.left+r.width/2,y=r.top+r.height/2;const at=document.elementFromPoint(x,y);return {found:true,x,y,onTop:!!at&&(el===at||el.contains(at))};});
++    L.say(mp.found&&mp.onTop,tag+' PRECONDITION the sheet shows the Mastery plan row and the tap point is that row',mp);
++    if(mp.found&&mp.onTop){await b.page.mouse.click(mp.x,mp.y);await b.settle(900);}
++    // (4) a Run row reachable by the sheet's own scroller
+     const run=await b.page.evaluate(async()=>{const btn=[...document.querySelectorAll('button')].filter(x=>/(^|\s)Run$/.test((x.innerText||'').trim()));if(!btn.length)return {n:0};
+       const el=btn[0];let sc=el.parentElement;while(sc&&!(/(auto|scroll)/.test(getComputedStyle(sc).overflowY)&&sc.scrollHeight>sc.clientHeight+1))sc=sc.parentElement;
+       const r0=el.getBoundingClientRect();if(sc){sc.scrollTop+=r0.top+r0.height/2-innerHeight/2;await new Promise(r=>setTimeout(r,250));}
+-- 
+2.43.0
+
+
+From 6f8f241e3c47773acc9fc1fbd29f65a470ee87cd Mon Sep 17 00:00:00 2001
+From: Claude <noreply@anthropic.com>
+Date: Wed, 25 Nov 2026 16:18:24 +0000
+Subject: [PATCH 3/5] WIP batch 14 q28: gate 248's control records (the tap
+ handler removed, and the tree before: 12 red each) (seat B3)
+
+Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>
+Claude-Session: https://claude.ai/code/session_01RC45u6eKy6MX5TBN3qDhjW
+---
+ gates/regress/248-coach-plan-opens-from-home.js | 2 ++
+ 1 file changed, 2 insertions(+)
+
+diff --git a/gates/regress/248-coach-plan-opens-from-home.js b/gates/regress/248-coach-plan-opens-from-home.js
+index bcc8ed46..14478d3f 100644
+--- a/gates/regress/248-coach-plan-opens-from-home.js
++++ b/gates/regress/248-coach-plan-opens-from-home.js
+@@ -18,6 +18,8 @@
+ //  (5) zero app errors.
+ // KNOW ITS LIMIT: the Pro path and the last-free-preview path (the upgrade message) are not driven; the streak-at-risk line (which
+ // dismisses) is not seeded.
++// CONTROL-RECORD: f411047c 2026-11-25 total=19 red=12 scope=trial:e6d0152cfb26 how=#553 B3 THE SUBJECT REMOVED: the coach line's tap handler removed (it only dismisses an at-risk streak) - at all three geometries the sheet, the Mastery plan row, the Run denominator and the reachable Run line red (4 x 3); 19/0 with it (trial 59fa96395060)
++// CONTROL-RECORD: f411047c 2026-11-25 total=19 red=12 scope=trial:fd0ec4f8c336 how=#553 B3 the tree before (13e6b5a7's app: the line goes straight to the suggested lesson) - the same 12 red
+ const L=require('../lib');const H=require('../drive/home');
+ const LINE=/^\u{1F393} .* open$/u;
+ // THE SLATE IS SEEDED: a Run button belongs to a lesson on his Mastery slate (ct_coachtargets), and a fresh store's slate is empty ('Empty:
+-- 
+2.43.0
+
+
+From c46bd61202edd9770ead0d48538534ef0409e337 Mon Sep 17 00:00:00 2001
+From: Claude <noreply@anthropic.com>
+Date: Wed, 25 Nov 2026 16:19:03 +0000
+Subject: [PATCH 4/5] WIP batch 14 q28: the job's pairs file (gate 248 at three
+ geometries; the tap handler removed) (seat B3)
+
+Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>
+Claude-Session: https://claude.ai/code/session_01RC45u6eKy6MX5TBN3qDhjW
+---
+ .../248-the-coach-line-tap-does-nothing.diff  |  9 ++++++++
+ ...ach-card-stopped-rendering-2026-11-25.json | 21 +++++++++++++++++++
+ 2 files changed, 30 insertions(+)
+ create mode 100644 gates/pairs/breaks/248-the-coach-line-tap-does-nothing.diff
+ create mode 100644 gates/pairs/jobs/the-mastery-plan-sheet-cannot-be-opened-since-the-home-coach-card-stopped-rendering-2026-11-25.json
+
+diff --git a/gates/pairs/breaks/248-the-coach-line-tap-does-nothing.diff b/gates/pairs/breaks/248-the-coach-line-tap-does-nothing.diff
+new file mode 100644
+index 00000000..c3a2eb56
+--- /dev/null
++++ b/gates/pairs/breaks/248-the-coach-line-tap-does-nothing.diff
+@@ -0,0 +1,9 @@
++--- a/chess.jsx
+++++ b/chess.jsx
++@@ -11767,5 +11767,5 @@
++ 
++             return null;})();
++-            const _coachline=(()=>{const _t=dstr(new Date());const _yd=new Date();_yd.setDate(_yd.getDate()-1);const atRisk=daily&&daily.date===dstr(_yd)&&(daily.streak||0)>=1&&!streakDismiss;const txt=atRisk?('Streak at risk - do a lesson or puzzle today'/* #550 one Today card: Home no longer has a card called Daily 3, and a31: any one keeps the streak */):(_coachRec?_coachRec.msg:'Your coach is ready');return(<button data-fix44="1" data-ct="home-coachline" onClick={()=>{if(atRisk){setStreakDismiss(true);return;}/* #553 q28 pick A (his Desk answer, 25 Nov; amber flags/amber-553-coach-line-opens-the-plan): the line opens the coach's plan sheet - since #314 nothing rendered the coach card that held the only route to it. The suggested lesson stays one tap away there ('Coach's pick'). The card's rule is kept: Pro opens it, the free previews open it, then the upgrade message. */if(isPro){setCoachOpen(true);}else if(coachFree<COACH_FREE_LOOKS){setCoachFree(coachFree+1);setCoachOpen(true);}else{setUpgradeMsg('That was your last free Coach preview. Unlock Pro to keep your coach.');setAcctOpen(true);}}} style={{width:'100%',display:'flex',alignItems:'center',gap:9,background:'rgba(255,255,255,.05)',border:'1px solid '+(atRisk?'rgba(240,162,78,.5)':'rgba(255,255,255,.14)'),borderRadius:12,padding:'9px 12px',cursor:'pointer',textAlign:'left',color:'inherit',minHeight:(!hb&&!hLand)?44/_hz:undefined/* #553 gate 26 TC-INV-01b: the coach line is a tap target, 44pt on a phone at every Home scale (it was 39 at full size and 33.3 at 320x568's 0.85; amber flags/amber-553-home-phone-fit-and-spread) */}}><span style={{fontSize:16,flexShrink:0}}>{atRisk?'\u26A0\uFE0F':'\uD83C\uDF93'}</span><span style={{flex:1,minWidth:0,fontSize:12.5,color:'rgba(255,255,255,.78)',whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis'}}>{txt}</span><span style={{fontSize:12,color:'var(--ac2)',flexShrink:0}}>{atRisk?'dismiss':'open'}</span></button>);})();
+++            const _coachline=(()=>{const _t=dstr(new Date());const _yd=new Date();_yd.setDate(_yd.getDate()-1);const atRisk=daily&&daily.date===dstr(_yd)&&(daily.streak||0)>=1&&!streakDismiss;const txt=atRisk?('Streak at risk - do a lesson or puzzle today'/* #550 one Today card: Home no longer has a card called Daily 3, and a31: any one keeps the streak */):(_coachRec?_coachRec.msg:'Your coach is ready');return(<button data-fix44="1" data-ct="home-coachline" onClick={()=>{if(atRisk){setStreakDismiss(true);return;}}} style={{width:'100%',display:'flex',alignItems:'center',gap:9,background:'rgba(255,255,255,.05)',border:'1px solid '+(atRisk?'rgba(240,162,78,.5)':'rgba(255,255,255,.14)'),borderRadius:12,padding:'9px 12px',cursor:'pointer',textAlign:'left',color:'inherit',minHeight:(!hb&&!hLand)?44/_hz:undefined/* #553 gate 26 TC-INV-01b: the coach line is a tap target, 44pt on a phone at every Home scale (it was 39 at full size and 33.3 at 320x568's 0.85; amber flags/amber-553-home-phone-fit-and-spread) */}}><span style={{fontSize:16,flexShrink:0}}>{atRisk?'\u26A0\uFE0F':'\uD83C\uDF93'}</span><span style={{flex:1,minWidth:0,fontSize:12.5,color:'rgba(255,255,255,.78)',whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis'}}>{txt}</span><span style={{fontSize:12,color:'var(--ac2)',flexShrink:0}}>{atRisk?'dismiss':'open'}</span></button>);})();
++               /* THE ONE TODAY CARD (#550, the ruling above): 3 a day - the day's lesson and two puzzles, a dot each - with his streak on the same card and
++                  Next, which goes to the next undone item (the lesson, or Continue: <lesson>, while the lesson is undone; the puzzle roadmap after it). The
+diff --git a/gates/pairs/jobs/the-mastery-plan-sheet-cannot-be-opened-since-the-home-coach-card-stopped-rendering-2026-11-25.json b/gates/pairs/jobs/the-mastery-plan-sheet-cannot-be-opened-since-the-home-coach-card-stopped-rendering-2026-11-25.json
+new file mode 100644
+index 00000000..0788487b
+--- /dev/null
++++ b/gates/pairs/jobs/the-mastery-plan-sheet-cannot-be-opened-since-the-home-coach-card-stopped-rendering-2026-11-25.json
+@@ -0,0 +1,21 @@
++{
++ "job": "the-mastery-plan-sheet-cannot-be-opened-since-the-home-coach-card-stopped-rendering-2026-11-25",
++ "about": "q28 pick A: the slim coach line on Home opens the coach's plan sheet. Graded by gate 248 TC-R451 at kunal761, 320x568 and 375x679: a player's tap on the line, the sheet over Home, the folded Mastery plan opened by a tap, a Run row reachable by the sheet's scroller. NOT COVERED: the Pro and last-free-preview paths, the at-risk line.",
++ "gate": "gates/regress/248-coach-plan-opens-from-home.js",
++ "env": {},
++ "checks": [
++  "^TC-R451 "
++ ],
++ "build": "always",
++ "situations": [
++  {"name": "kunal761", "match": "^TC-R451 kunal761 "},
++  {"name": "320x568", "match": "^TC-R451 se "},
++  {"name": "375x679", "match": "^TC-R451 kunal "}
++ ],
++ "breaks": [
++  {"name": "the-coach-line-tap-does-nothing", "patch": "breaks/248-the-coach-line-tap-does-nothing.diff",
++   "why": "the coach line's tap handler is removed (it only dismisses an at-risk streak), so nothing opens the plan sheet - the state since #314",
++   "mustFailIn": ["kunal761", "320x568", "375x679"]}
++ ],
++ "timeoutSec": 1200
++}
+-- 
+2.43.0
+
+
+From 09876e312068a65a8b7d789e3a62ef3cf9c52a0f Mon Sep 17 00:00:00 2001
+From: Claude <noreply@anthropic.com>
+Date: Wed, 25 Nov 2026 16:27:06 +0000
+Subject: [PATCH 5/5] WIP batch 14 q28: gate 227's real-route Run check seeds
+ one slate lesson and opens the folded Mastery plan, as gate 248 does (seat
+ B3)
+
+Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>
+Claude-Session: https://claude.ai/code/session_01RC45u6eKy6MX5TBN3qDhjW
+---
+ gates/regress/227-nav-symbols-one-meaning.js | 4 ++--
+ 1 file changed, 2 insertions(+), 2 deletions(-)
+
+diff --git a/gates/regress/227-nav-symbols-one-meaning.js b/gates/regress/227-nav-symbols-one-meaning.js
+index b687fb39..bdaea049 100644
+--- a/gates/regress/227-nav-symbols-one-meaning.js
++++ b/gates/regress/227-nav-symbols-one-meaning.js
+@@ -168,8 +168,8 @@ L.run(async()=>{
+      the coach line tapped by a player's tap, the plan sheet's buttons whose text ends 'Run'. A denominator first (the sheet shows a Run
+      button at all), then the sign. Gate 248 owns the route itself. */
+   if(!ONLY.length||ONLY.includes('coach-run')){
+-    const b=await L.launch({geo:'kunal761',name:'g227-coach-run'});let runs=[],err='';
+-    try{await b.open();await b.settle(1000);await require('../drive/home').fresh(b);await require('../drive/home').tapBtn(b,/^\u{1F393} .* open$/u,1500);
++    const b=await L.launch({geo:'kunal761',name:'g227-coach-run',store:{ct_coachtargets:['Italian Game']}});   // a Run row belongs to a lesson on his slate; a fresh slate is empty (gate 248 seeds the same)let runs=[],err='';
++    try{await b.open();await b.settle(1000);await require('../drive/home').fresh(b);await require('../drive/home').tapBtn(b,/^\u{1F393} .* open$/u,1500);await require('../drive/home').tapBtn(b,/MASTERY PLAN/i,900);   /* the plan is a folded row on the sheet */
+       runs=await b.page.evaluate(()=>[...document.querySelectorAll('button')].map(x=>(x.innerText||'').replace(/\s+/g,' ').trim()).filter(t=>/(^|\s)Run$/.test(t)).map(t=>JSON.stringify(t)));}
+     catch(e){err=String(e.message||e).split('\n')[0].slice(0,140);}
+     L.say(b.errs.length===0,'TC-R411 375x761 coach-run zero app errors on the route to the plan sheet',b.errs.slice(0,3));await b.close();
+-- 
+2.43.0
+
