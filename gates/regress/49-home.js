@@ -449,14 +449,17 @@ const launch=async(o)=>{const b=await L.launch(o);const [y,m,d]=TODAY.split('-')
 const M={
   // RE-PINNED AGAIN [#553 B2, gate 26 TC-INV-01b's fallout; same amber]: the coach line is 44pt on a phone at every Home scale now (minHeight
   // 44/scale; it was 39 at full size and 33.3 at se's 0.85), so everything under it moved; measured on trial 9ae5c2387332 (the scale solved with the coach line and the footer row both held at 44).
-  se      :{colW:296,sh:666,travel:98,intro:{y:12,h:79.9},today:{y:91.9,h:71.9},newhere:{y:163.7,h:85.4},
+  se      :{colW:296,sh:665,travel:97,intro:{y:12,h:79.9},today:{y:91.9,h:71.9},newhere:{y:163.7,h:85.4},
             tiles:{y:262.8,h:267.4},coach:{y:530.2,h:44},look:{y:584.3,h:37.4},devrow:{y:584.3},build:{y:635.1}},
   kunal730:{colW:351,sh:730,travel:0, intro:{y:12,h:88.7},today:{y:100.7,h:78.9},newhere:{y:179.6,h:92.9},
             tiles:{y:287.6,h:301.4},coach:{y:589,h:44},look:{y:644.3,h:44},devrow:{y:644.3},build:{y:695.9}},
-  '390'   :{colW:366,sh:844,travel:0,  intro:{y:12,h:94},today:{y:124.7,h:84},newhere:{y:227.4,h:100},
-            tiles:{y:346.1,h:321},coach:{y:685.8,h:44},look:{y:748.4,h:44},devrow:{y:748.4},build:{y:811.1}},
-  '430'   :{colW:406,sh:932,travel:0,  intro:{y:12,h:94},today:{y:138.1,h:84},newhere:{y:254.2,h:102},
-            tiles:{y:388.3,h:326.5},coach:{y:746.9,h:44},look:{y:823,h:44},devrow:{y:823},build:{y:899.1}}};
+  '390'   :{colW:366,sh:844,travel:0,  intro:{y:12,h:94},today:{y:124.5,h:84},newhere:{y:227,h:100},
+            tiles:{y:345.5,h:321},coach:{y:685,h:44},look:{y:747.5,h:44},devrow:{y:747.5},build:{y:810}},
+  '430'   :{colW:406,sh:932,travel:0,  intro:{y:12,h:94},today:{y:137.9,h:84},newhere:{y:253.8,h:102},
+            tiles:{y:387.7,h:326.5},coach:{y:746.1,h:44},look:{y:822,h:44},devrow:{y:822},build:{y:897.9}}};
+// RE-PINNED [#553 B3, q23 his pick A, 12px minimum; Amber: flags/amber-553-text-12px-minimum]: the Daily 3 'bonus' line and the build line
+// went 11 -> 12px (the build line's box 1px taller, its top margin 1px less), so the spread at 390 and 430 moved every card 0.2-1.2px up and
+// se's column is 1px shorter (sh 665, travel 97); measured on trial 1bbdb880e518 (was se sh 666/98; 390 today 124.7 ... build 811.1; 430 today 138.1 ... build 899.1).
 // Per-tile rects, measured before any tap. gridTemplate minmax(0,1fr) x2 (AUD-H01: '1fr 1fr' let a one-line caption's min-content widen
 // its column at 320, 135.2 against 137.2) with a 16px column gap, so the right column's x is 12 + w + 16 at every width (18 + w + 16 before FMT-A-08).
 // RE-KEYED by formatting audit FMT-A-08 (Kunal's pick 12 Nov): the 12 gutter on a page with no board (was the overlay's 18), so each tile is 6
@@ -466,10 +469,10 @@ const T={   // RE-PINNED [#553, see M above]: scaled at se and kunal730, moved d
             analyze:{x:12,y:401.5,w:141.2,h:128.6},play:{x:166.8,y:401.5,w:141.2,h:128.6}},
   kunal730:{learn:{x:12,y:288.2,w:168,h:145.2},puzzle:{x:195,y:288.2,w:168,h:145.2},   // RE-PINNED [#553 B3, q23 his pick A, 12px minimum; Amber: flags/amber-553-text-12px-minimum]: the
             analyze:{x:12,y:444.7,w:168,h:145.2},play:{x:195,y:444.7,w:168,h:145.2}},   // Daily 3 'bonus' line 11->12px moves Home's fitted scale; the tiles sit 0.6 lower and 0.2 taller (trial 88f922302974; was 287.6/444, h 145)
-  '390'   :{learn:{x:12,y:346.1,w:175,h:154.5},  puzzle:{x:203,y:346.1,w:175,h:154.5},
-            analyze:{x:12,y:512.6,w:175,h:154.5},play:{x:203,y:512.6,w:175,h:154.5}},
-  '430'   :{learn:{x:12,y:388.3,w:195,h:157.3},puzzle:{x:223,y:388.3,w:195,h:157.3},
-            analyze:{x:12,y:557.5,w:195,h:157.3},play:{x:223,y:557.5,w:195,h:157.3}}};   // re-pinned with M (the 44pt coach line), trial 70fefd700e62
+  '390'   :{learn:{x:12,y:345.5,w:175,h:154.5},  puzzle:{x:203,y:345.5,w:175,h:154.5},   // RE-PINNED [#553 B3, q23, see M]: was y 346.1 and 512.6
+            analyze:{x:12,y:512,w:175,h:154.5},play:{x:203,y:512,w:175,h:154.5}},
+  '430'   :{learn:{x:12,y:387.7,w:195,h:157.3},puzzle:{x:223,y:387.7,w:195,h:157.3},   // RE-PINNED [#553 B3, q23, see M]: was y 388.3 and 557.5
+            analyze:{x:12,y:556.9,w:195,h:157.3},play:{x:223,y:556.9,w:195,h:157.3}}};   // re-pinned with M (the 44pt coach line), trial 70fefd700e62
 // #553: the icon box is 80 at full size and scales with the column where Home is fitted (se 0.85, kunal730 about 0.957 with the dev row)
 const ICONBOX={se:68,kunal730:75.8,'390':80,'430':80};   // kunal730 75.8 since the 44pt coach line (scale about 0.948)
 // #553: the Today card in the earned state (block E, se and kunal730 only): scaled at se, moved down by the spread at kunal730
