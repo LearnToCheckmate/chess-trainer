@@ -20,6 +20,8 @@
 //  TC-R449 alive: the held search was waited for, not abandoned - the review's engine.retried and engine.abandoned are 0, and no 'stop' was
 //      posted to the held worker during the hold.
 //  TC-R450 dead: the guard still catches a worker that answers nothing - engine.retried is at least 1, and the held search is stopped between 20 s and the hold's end (the ping does not keep a silent, unanswering worker alive).
+// ON THE REAL TREE: 8 pass, 0 fail on trial 6b2cff176ab5 (worktree 1f873e84 on 4bab8cec), 25 Nov 2026, about 60 s.
+// CONTROL-RECORD: 9f95c414 2026-11-25 total=8 red=1 scope=trial:d889a3c7d0f6 how=#553 B2 the tree before the fix (no liveness ping): TC-R449 red - the held live search stopped at 21.1 s and its group retried (retried 2); TC-R448 and TC-R450 stay green (the dead worker is abandoned on both trees)
 // KNOW ITS LIMIT: a wrapper's silence, not Stockfish's own; his game itself is walked by gate 239 from its recorded output, which this
 // fix let us record; his phone is his.
 const L=require('../lib');const RV=require('../drive/review');
