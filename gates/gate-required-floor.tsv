@@ -158,3 +158,4 @@
 200	199	raise	2026-11-25	553	build__1795473826826	gate 244 (a review-captured mistakes card keeps its grade through Home, TC-R442-444, seat B2) joins the required set	-	095c8266fac9
 201	200	raise	2026-11-25	553	build__1795473826826	gate 245 (the Play and Review button rows clear the home-indicator band, TC-R445-447, seat B2) joins the required set	-	7771b4c11d6b
 202	201	raise	2026-11-25	553	build__1795473826826	gate 246 (US-R257, TC-R448..R450): a silent review search is asked isready before it is dropped - jobs/one-of-his-games-never-finishes-its-review-it-stalls-at-move-68-of-103-2026-11-24	-	b00abf7cd56b
+203	202	raise	2026-11-25	553	build__1795473826826	#553 B2: gate 247 joins the required set - gate 26 split (its unswept-state, every-ply and band blocks moved byte for byte; gate 26 ran 895 s of its 900), jobs/gate-26-runs-at-846-of-its-900-seconds-make-it-finish-well-inside-its-limit-2026-11-25	-	8a3893f40a25
