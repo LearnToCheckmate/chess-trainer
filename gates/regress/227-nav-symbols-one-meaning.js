@@ -44,11 +44,12 @@ const MEAN={
   reset:/^(Reset|Try again|Replay from start|Back to the card's position|Back to the position after your move)$/,
 };
 // #553 card 90: helpers for the NAMED routes below - scroll the first button whose words match into view; the lesson's More sheet in practice;
-// its 'Watch it explained' box opened (a div with a disclosure caret, tapped by its words)
+// its 'Watch it explained' box opened (a div with a disclosure caret, tapped by its words: the DEEPEST div whose words start so, since
+// the closed box's outer div holds only that header and reads the same words, and a click on it toggles nothing)
 const toWords=async(b,re)=>{await b.page.evaluate((src)=>{const r=new RegExp(src.s,src.f);const e=[...document.querySelectorAll('button,a')].find(x=>r.test((x.innerText||'').replace(/\s+/g,' ').trim()));if(e)e.scrollIntoView({block:'center'});},{s:re.source,f:re.flags});await b.settle(400);};
 const demoSheet=async(b)=>{await D.states['demo-m0'](b);await b.page.locator('button[aria-label="More for this lesson"]').click();await b.settle(600);};
 const lessonSheet=async(b)=>{await D.states['practice-correct'](b);await b.page.locator('button[aria-label="More for this lesson"]').click();await b.settle(600);};
-const openVideo=async(b)=>{await b.page.evaluate(()=>{const e=[...document.querySelectorAll('div')].find(x=>x.children.length<=1&&/^📺 Watch it explained/.test((x.innerText||'').trim()));if(e){e.scrollIntoView({block:'center'});e.click();}});await b.settle(600);};
+const openVideo=async(b)=>{await b.page.evaluate(()=>{const e=[...document.querySelectorAll('div')].filter(x=>/^📺 Watch it explained/.test((x.innerText||'').trim())).pop();if(e){e.scrollIntoView({block:'center'});e.click();}});await b.settle(600);};
 // TC-R411: the worded buttons of his pick A, each reached by its words (never a data-ct this build added), at 375x761
 const NAMED=[
   ['play-setup',b=>P.states['setup'](b),/^Start game$/],
