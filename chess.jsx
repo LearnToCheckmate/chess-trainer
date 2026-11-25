@@ -4272,7 +4272,7 @@ const SKINS=[
        Classic PLAYFUL's four (🔭 🧩 🔍 ♟️), so the two skins became identical in the menu's Skin rows and on Home. Classic
        gets back its own pre-#366 emoji (6cd1449^): 📖 🧩 📈 👑 - still all four emoji, ink-matched through inkScale, as he
        chose, and no longer Playful's. */
-    icons:{learn:'📖',puzzle:'🧩',analyze:'📈',play:'👑'} },
+    icons:{learn:'📖',puzzle:'🧩',analyze:'📈',play:'♟️'} },   /* #553 card 92 (his pick '(a) Pawn', run-answers orchestrator-B14-Q20-CLASSIC-PAWN-2026-11-24; Amber: flags/amber-553-classic-play-tile-pawn): the crown goes, the pawn emoji takes its place in the same emoji style, ink-matched like the other three; no play sign on the tile. Playful keeps its pawn; the two still differ in Learn and Analyze (gate 92) */
   { key:'medieval', name:'Medieval', blurb:'Aged stone, parchment & gold', pal:8, pro:true,
     font:"'Cinzel',serif",
     pcf:'drop-shadow(0 2px 2px rgba(0,0,0,.45))',
