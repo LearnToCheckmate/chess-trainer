@@ -4923,8 +4923,16 @@ function IconGlyph({g,em,top}){return <span style={{fontSize:em+'em',lineHeight:
 /* #553 B2 (amber flags/amber-553-discover-caption-re-measures-after-home-scales): `w` carries Home's phone scale too (homePh.z), because the
    scale lands in a later layout pass than this box's first measurement: since Q13 (e5435040) Home is 0.85 at 320x568, the room grows from
    136 to 162 CSS px against 161.2 of long words, and a box measured only at scale 1 kept the short words where the long ones fit. */
-function FitLine({long,short,w,ct,style}){
+function FitLine({long,short,w:w0,ct,style}){
   const ref=useRef(null);const [st,setSt]=useState({w:null,cut:false});
+  /* #553 B2 (amber flags/amber-553-discover-caption-re-measures-after-home-scales, its second note): the fit is measured again whenever the
+     caption's TILE changes size (a ResizeObserver on the parent, which the caption's own long/short swap does not resize: both are one line)
+     and once the fonts are ready, so a scale or a font size that lands after the first measure cannot leave the long words cut. */
+  const [gen,setGen]=useState(0);const w=w0+'|'+gen;
+  useEffect(()=>{const p=ref.current&&ref.current.parentElement;if(!p)return;let last=null,ro=null,dead=false;
+    try{ro=new ResizeObserver(es=>{const r=es[0]&&es[0].contentRect;if(!r)return;const k=Math.round(r.width)+'x'+Math.round(r.height);if(last!==null&&k!==last)setGen(g=>g+1);last=k;});ro.observe(p);}catch(e){}
+    try{if(document.fonts&&document.fonts.ready)document.fonts.ready.then(()=>{if(!dead)setGen(g=>g+1);});}catch(e){}
+    return()=>{dead=true;try{if(ro)ro.disconnect();}catch(e){}};},[]);
   const useShort=st.w===w&&st.cut;
   useLayoutEffect(()=>{if(st.w===w)return;const e=ref.current;if(!e||e.clientWidth<=0)return;setSt({w,cut:e.scrollWidth>e.clientWidth});});
   return <div ref={ref} data-ct={ct} data-fit={st.w===w?(st.cut?'short':'long'):'measuring'} style={style}>{useShort?short:long}</div>;
