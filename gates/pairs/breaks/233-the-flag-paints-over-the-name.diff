@@ -1,9 +1,11 @@
+diff --git a/chess.jsx b/chess.jsx
+index a3a8162a..0d9063cf 100644
 --- a/chess.jsx
 +++ b/chess.jsx
-@@ -15090,5 +15090,5 @@
+@@ -15307,5 +15307,5 @@ function AppMain(){
              <div style={{minWidth:0,flex:(isTop&&landPlay&&opponent!=='computer')?'1 1 auto':1 /* #550 antagonist B F2: beside land-vs the name column sizes to its content, so the label (shrink 10) gives way before the captured pieces */}}>
                <div style={{display:'flex',alignItems:'baseline',gap:6,minWidth:0}}>
 -                {flag&&<img data-ct={'pbar-flag-'+col} src={'flags/'+flag+'.png'} alt={flag.toUpperCase()} title="Country" width={20} height={15} style={{flexShrink:0,width:20,height:15,borderRadius:2,objectFit:'cover',color:_fg,fontSize:10.5,fontWeight:800,lineHeight:'15px',textAlign:'center',overflow:'hidden' /* readability check A11Y-01 (Kunal's pick 12 Nov): if the picture cannot load, the browser draws the alt text (the two-letter code) - in the BAR'S OWN INK, never the root's white, which read 1.23 to 1 on the cream bar */,boxShadow:_lightBar?'0 0 0 1px rgba(0,0,0,.22)':'0 0 0 1px rgba(255,255,255,.18)',display:'block'}}/>}
 +                {flag&&<img data-ct={'pbar-flag-'+col} src={'flags/'+flag+'.png'} alt={flag.toUpperCase()} title="Country" width={20} height={15} style={{position:'absolute',flexShrink:0,width:20,height:15,borderRadius:2,objectFit:'cover',color:_fg,fontSize:10.5,fontWeight:800,lineHeight:'15px',textAlign:'center',overflow:'hidden' /* readability check A11Y-01 (Kunal's pick 12 Nov): if the picture cannot load, the browser draws the alt text (the two-letter code) - in the BAR'S OWN INK, never the root's white, which read 1.23 to 1 on the cream bar */,boxShadow:_lightBar?'0 0 0 1px rgba(0,0,0,.22)':'0 0 0 1px rgba(255,255,255,.18)',display:'block'}}/>}
                  <span style={{fontSize:'clamp(14px,3.2vw,16px)',fontWeight:800,color:_fg,whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis',lineHeight:1.15}}>{name}</span>
-                 {rating&&<span data-ct={'pbar-rating-'+col} style={{flexShrink:0,fontSize:'clamp(11.5px,2.2vw,12.5px)',fontWeight:800,color:_fg,opacity:_lightBar?1:.72 /* readability check A11Y-11 (Kunal's pick 12 Nov): faded ink on the cream bar read 3.51 to 1 */,fontFamily:'ui-monospace,Menlo,monospace',lineHeight:1.15}}>{rating}</span>}
+                 {rating&&<span data-ct={'pbar-rating-'+col} style={{flexShrink:0,fontSize:'clamp(12px,2.2vw,12.5px)' /* #553 q23: min was 11.5 */,fontWeight:800,color:_fg,opacity:_lightBar?1:.72 /* readability check A11Y-11 (Kunal's pick 12 Nov): faded ink on the cream bar read 3.51 to 1 */,fontFamily:'ui-monospace,Menlo,monospace',lineHeight:1.15}}>{rating}</span>}

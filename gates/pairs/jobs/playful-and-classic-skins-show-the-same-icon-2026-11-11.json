@@ -11,7 +11,7 @@
  ],
  "breaks": [
   {"name": "classic-takes-playfuls-icons", "patch": "breaks/553-classic-skin-takes-playfuls-icons.diff",
-   "why": "Classic's SKINS icons go back to Playful's four (the #366 state Kunal reported), so the rows, the Home tiles and the source all match",
+   "why": "Classic's SKINS icons go back to Playful's four (the #366 state Kunal reported), so the rows, the Home tiles and the source all match [re-cut at #553 B2, jobs/pairs-break-patches-go-stale-as-later-merges-move-their-context-2026-11-24: since card 92 both skins' Play icon is the pawn, so the break swaps the two icons that still differ, learn and analyze, to Playful's 🔭 and 🔍]",
    "mustFailIn": ["kunal761", "se 320x568"]},
   {"name": "home-tiles-ignore-the-skin", "patch": "breaks/553-home-tiles-ignore-the-skin.diff",
    "why": "Home's tiles paint their built-in glyph instead of the skin's, so every skin shows the same four tiles while SKINS and the Skin rows still differ",
