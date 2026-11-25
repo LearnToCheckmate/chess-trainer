@@ -7524,7 +7524,12 @@ function AppMain(){
     // both bundles at three geometries, fresh and rotated, and got 216/232/216 with over 0 every time - so the
     // review half is a no-change, kept for one predicate rather than two. It is a scope choice supported by a
     // measurement that it changes nothing, NOT a defect this build fixed, and it should not be written up as one.
-    const _fitScreen=!wide&&((inReview&&revCompact)||(mode==='play'&&!_psLay&&!(opponent==='online'&&!onlineGame)/* #550 cg8 FMT-B-02: the online LOBBY (no game yet) keeps the board the screen width, as the game it opens - the fit loop took it to 337 at 375x761 to fit the lobby card, which then scrolls under the board instead */)||(mode==='puzzle'&&(pzView==='browse'||pzView==='online'))||(mode==='learn'&&openIdx!==null));
+    /* #553 B1 (jobs/the-lesson-board-paints-half-width-for-its-first-half-second-on-entry-2026-11-25, re-titled; Amber: flags/amber-553-review-fit-loop-off-while-analysing):
+       NOT WHILE ANALYSING. A new import that starts while a previous review is still in state (the gallery walks import straight from a lesson)
+       keeps inReview true during the analysis, so this loop measured the WAITING SCREEN (content 1114-1148px over a 679 page, measured per frame
+       25 Nov) and trimmed the board to its 192 floor, which the waiting board and then the review painted for 220-480ms. The waiting board has its
+       own pre-paint fit (anaBs); this loop is for the review, and the off-branch below puts the trim back to 0 so the review fits from fresh. */
+    const _fitScreen=!wide&&!(mode==='analyze'&&analyzing)&&((inReview&&revCompact)||(mode==='play'&&!_psLay&&!(opponent==='online'&&!onlineGame)/* #550 cg8 FMT-B-02: the online LOBBY (no game yet) keeps the board the screen width, as the game it opens - the fit loop took it to 337 at 375x761 to fit the lobby card, which then scrolls under the board instead */)||(mode==='puzzle'&&(pzView==='browse'||pzView==='online'))||(mode==='learn'&&openIdx!==null));
     if(!_fitScreen){if(boardTrimRef.current!==0)setBoardTrim(0);fitGeoRef.current='';playFreshTrimRef.current=null;fitLeftRef.current=null;return;}
     // Reset ONLY on a geometry change (rotate, resize, different screen). A content change - a move played, a
     // banner appearing - settles from the CURRENT trim, or the board visibly jumps to full size and back on
@@ -7604,7 +7609,7 @@ function AppMain(){
     };
     fitIdleRef.current=false;raf=requestAnimationFrame(tick);
     return()=>{stop=true;cancelAnimationFrame(raf);};
-  },[_geoKey,inReview,revCompact,wide,ply,anaMode,engOn,reviewView,showBest,bestLineSan,mode,playSetup,pzView,openIdx,learnPhase,playHist.length,isOver,playEnd,movesOpen,fitBump]);
+  },[_geoKey,inReview,revCompact,wide,ply,anaMode,engOn,reviewView,showBest,bestLineSan,mode,playSetup,pzView,openIdx,learnPhase,playHist.length,isOver,playEnd,movesOpen,fitBump,analyzing]);
   /* #550 item (91), jobs/a-transient-overflow-that-ends-without-a-re-render-leaves-the-board-shrunk-on-tall-phones-2026-11-07: THE IDLE WAKE.
      The root observer above (fitBump, #364) re-arms the loop when #root's height changes. But once the loop has trimmed the board to fit,
      #root sits at its minHeight, so when the content that overflowed goes away (a message that shrinks, a row that leaves) the CONTENT

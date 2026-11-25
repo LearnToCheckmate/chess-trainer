@@ -276,20 +276,35 @@ const STATE_CARDS=[{id:'k10',hold:13000},{id:'k8',hold:8000},{id:3,hold:7000},{i
    engine line and its why) is a REVIEW card, so all four of its captions paint the review board. Measured on trial t6: the walk's only
    board-painting captions are EXP, EXP-1, EXP-2 and EXP-3, at both geometries. Pinned, so the board-conditioned checks stop being inert
    for this walk and a caption of EXP that LOSES its board reds rather than passing as 'boardless'. */
-const EXPECT_BOARD=['EXP','EXP-1','EXP-2','EXP-3','AUD','DSK'];   /* #550: IPAD walked screens with boards; #553 B1: AUD (a puzzle, a lesson, the review) and DSK (IPAD's walk) do; SPD does not here (a fresh store has no stored game to open, and Home, the list and the roadmap draw no board) */
+const EXPECT_BOARD=['EXP','EXP-1','EXP-2','EXP-3','AUD','DSK','SPD'];   /* #550: IPAD walked screens with boards; #553 B1: AUD (a puzzle, a lesson, the review) and DSK (IPAD's walk) do, and so does SPD - measured 25 Nov (07:32Z run): its row tap opens the stored Opera game that EXP, AUD and DSK imported earlier in the walk, so 'no caption painted a board where this commit pins none' read red on SPD until it was pinned here */
 /* #553 B1: THE WALK EXCUSALS, EARNED BY MEASUREMENT AND PINNED PER CARD ID (the lead's condition). IPAD, a walk across screens under one
    caption, was excused from two checks: the board's size across the walk (SHRINK) and pages that may scroll on the way (SCROLL). A card
    gets an excusal here only if gate 15 run with it OFF (CT_G15_NO_EXCUSE=<ids>, a measurement switch, printed loudly) reds exactly that
    walk check for that card, on screens where the board legitimately changes size or a page legitimately scrolls; the run is named in the
    reason. No pattern: the lookup is by the card id read out of the caption, and a card with no entry is excused from nothing. */
 const WALK_EXCUSE={
-  AUD:{shrink:'PENDING MEASUREMENT',scroll:'PENDING MEASUREMENT'},
-  DSK:{shrink:'PENDING MEASUREMENT',scroll:'PENDING MEASUREMENT'},
-  SPD:{shrink:'PENDING MEASUREMENT',scroll:'PENDING MEASUREMENT'},
+  /* AUD, MEASURED with its excusals off (CT_G15_NO_EXCUSE=AUD,DSK,SPD; 06:56-07:07Z and 07:32-07:48Z on 25 Nov, bundle a5c973667137):
+     SCROLL earned - its two over-episodes are pages that scroll by design, the Puzzles road (about 1140px over, 7 s into the card) and
+     the 8.8-screen Openings list (about 5700px, 21 s in; jobs/bench-97-lesson-list-is-5934px-...), each cleared when the next screen came.
+     SHRINK is BOUNDED, at 375x679 only (the lead's ruling): AUD's baseline is the previous card's leftover board (375, EXP's review
+     under the Home overlay, taken when AUD's caption appears) and the lesson it opens settles at 341.03 there (07:32Z run: 375.03 -> 341
+     at t=140901..142311 ms) - a legitimate size of another screen. It may go down to that settled lesson board and NO lower, so a
+     board at the fit loop's 192 floor stays red. R18 [#553 B1, 25 Nov]: this comment first called that 192 frame a LESSON-entry frame;
+     measured per frame it is Review's analysis-wait board on AUD's re-import of the already-analysed Opera Game, trimmed to the floor
+     because a review was still in state (jobs/the-lesson-board-paints-half-width-for-its-first-half-second-on-entry-2026-11-25,
+     re-titled; fixed by the fit loop staying off while analysing; gate 243 TC-R441 holds it per frame).
+     No shrink excusal at 375x812, where the lesson board settles at the full 375. */
+  AUD:{scroll:'the Puzzles road and the Openings list scroll by design (measured 25 Nov, see above)',shrinkFloor:{kunal:341.03-TOL}},
+  /* DSK: NONE. Measured with its excusals off: no scroll episode and no shrink but the P1 lesson-entry frame (375x812, t=243751 ms). */
+  /* SPD, MEASURED (07:32Z run): SCROLL earned - it ends on the Puzzles road, which scrolls by design (1115.6px at 375x812, still over at
+     the end of the record because the road is its last screen: the SPD-10 glow check). No shrink: it paints one board, the stored game. */
+  SPD:{scroll:'it ends on the Puzzles road, which scrolls by design (measured 25 Nov, see above)'},
 };
 const NO_EXCUSE=(process.env.CT_G15_NO_EXCUSE||'').split(',').map(x=>x.trim()).filter(Boolean);
 const capId=(cap)=>{const m=/\s\d+\/\d+\s\u00b7\s([A-Z][A-Z0-9]*)(?:-\d+)?\s/.exec(String(cap||''));return m?m[1]:null;};   // the caption is '🎬 #553 · 3/5 · AUD · 375x679 ...'
 const excused=(cap,check)=>{const id=capId(cap);if(!id||NO_EXCUSE.includes(id))return null;const e=WALK_EXCUSE[id];return e&&e[check]?id:null;};
+// a bounded shrink: excused only down to the card's measured floor at this geometry; below it, or at a geometry with no floor, it counts
+const shrinkExcused=(cap,lab,w)=>{const id=capId(cap);if(!id||NO_EXCUSE.includes(id))return false;const e=WALK_EXCUSE[id];const f=e&&e.shrinkFloor&&e.shrinkFloor[lab];return f!=null&&w>=f;};
 
 // tailStable(reads,hold,tol): reads are [{w,ms}] in poll order. The baseline is the value at the END of the read
 // window, and it counts as settled only if the run of reads agreeing with it within tol spans >= hold ms.
@@ -605,12 +620,15 @@ L.run(async()=>{
     L.say(pabN>0,lab+': the gallery offers a Play-all button to walk ('+pabN+' found) - if the ask queue is EMPTY this is the expected red and the walk below is skipped BY DECLARATION, not by a harness throw',{pabN,asks:N});
     if(pabN===0){L.note(lab+': walk skipped - no Play-all button, which is what an empty ask queue renders. The queue pin above still ran, so this run is not vacuous about the queue itself.');await b.close();continue;}
     const recOn=await OVREC(b).catch(()=>false);
-    await pab.first().click();
+    await pab.first().click();const walkT0=Date.now();   // #553 B1: the walk's own clock, so a shrink names when (and so on which screen of a walk card) it happened
     let ovCompared=0;const ovDisagree=[];
     const seen=[];let done=false;const scrolled=[],shrunk=[],pageScroll=[],unsettled=[],cards=[];
     let cur=null,base=null,raced=0,sampled=0,lateBase=0;
     let lastSample=Date.now();
-    for(let i=0;i<4000;i++){                                  // runaway guard only; the walk breaks on RECORDING COMPLETE
+    for(let i=0;i<8000;i++){                                  // runaway guard only; the walk breaks on RECORDING COMPLETE
+      // #553 B1: was 4000, which ended the walk before card 5 once AUD (100 s) and SPD (60 s) joined - measured with the walk excusals
+      // off (CT_G15_NO_EXCUSE=AUD,DSK,SPD, 06:56Z): DSK began about 246 s in and 'card 5 never appeared' at both geometries. The walk is
+      // now about 420 s; the guard still only stops a walk that never ends, and 'the run ends on RECORDING COMPLETE' still asserts it ended.
       const cap=await CAP(b);
       if(cap&&cap!==cur){
         cur=cap;seen.push(cap);
@@ -657,7 +675,7 @@ L.run(async()=>{
         if(!s2.st.ok&&s2.st.why!=='no board')unsettled.push({cap:cur.slice(0,34),why:s2.st.why,late:true,reads:s2.reads.map(r=>r.w).slice(0,20)});
         continue;
       }
-      if(m.board&&base!==null&&m.board.w<base-TOL&&!excused(cur,'shrink'))shrunk.push({cap:cur.slice(0,34),base,to:m.board.w});   /* #550: the IPAD card is a WALK across screens (lesson, puzzle, game, review) under one caption, so its board changes size by design; every other card is one screen */
+      if(m.board&&base!==null&&m.board.w<base-TOL&&!shrinkExcused(cur,lab,m.board.w))shrunk.push({cap:cur.slice(0,34),base,to:m.board.w,t:Date.now()-walkT0});   /* #550: the IPAD card is a WALK across screens (lesson, puzzle, game, review) under one caption, so its board changes size by design; every other card is one screen */
     }
     await b.shot('playall-'+lab+'-final');
     L.say(done,lab+': the run ends on the RECORDING COMPLETE frame ('+seen.length+' captions seen)');
