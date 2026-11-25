@@ -88,6 +88,26 @@ async function session(app,geo,S,name){
     return {home,rv,lt,dr,nx:nxm,errs:b.errs.slice(0,3)};
   }finally{await b.close();}
 }
+// TC-R439 [#553 SPD-07, jobs/speed-check-regressions-2026-11-12]: A STORED GAME'S REVIEW DOES NOT WAIT ON THE REGRADE PASS. With his 465 stored
+// reviews of an older grade version and an eval cache that is not empty, the regrade pass replays every such game (~130 ms each at 4x) from
+// Review's entry; it ran straight through a review he had just tapped, and the summary waited on the page thread (measured #553 at 4x:
+// 110-148 long tasks summing 14.6-25.4 s on d093c1ac200e, against 3 summing about 1.1 s on #549 3ab724514641). The pass now waits while a
+// review runs or is open. ABSOLUTE, NOT AGAINST MAIN, because main itself carries the defect until this lands: the long tasks (>50 ms) between
+// the tap on a stored game and its summary sum to at most 5000 ms at 4x (the fix measured 1.6-1.7 s; the defect 14.6-25.4 s).
+async function reviewSession(app,geo,S){
+  const b=await L.launch({geo,name:'speed147-review',store:S,app});
+  try{
+    const cdp=await b.page.context().newCDPSession(b.page);await cdp.send('Emulation.setCPUThrottlingRate',{rate:4});
+    await b.open();await b.settle(4000);
+    await b.page.evaluate(()=>{const e=[...document.querySelectorAll('div')].find(d=>d.children.length===0&&d.textContent.trim()==='Review'&&d.getBoundingClientRect().width>0);let x=e;while(x&&x.tagName!=='BUTTON')x=x.parentElement;if(x||e)(x||e).click();});
+    await b.page.locator('[data-ct="game-row"]').first().waitFor({state:'visible',timeout:60000});await b.settle(3000);
+    await b.page.evaluate(()=>{window.__lts=[];try{new PerformanceObserver(l=>{for(const e of l.getEntries())window.__lts.push([e.startTime,e.duration]);}).observe({type:'longtask'});}catch(e){}window.__t0=performance.now();});
+    const t=Date.now();await b.page.locator('[data-ct="game-opp"]').nth(1).click();
+    let ok=true;try{await b.page.locator('[data-ct="rev-summary"]').waitFor({state:'visible',timeout:240000});}catch(e){ok=false;}
+    const ms=Date.now()-t;const lt=await b.page.evaluate(()=>{const x=window.__lts.filter(a=>a[0]>=window.__t0);return {n:x.length,sum:Math.round(x.reduce((s,a)=>s+a[1],0)),max:Math.round(Math.max(0,...x.map(a=>a[1])))};});
+    return {ok,ms,...lt,errs:b.errs.slice(0,3)};
+  }finally{await b.close();}
+}
 // THE RULE [batch 14, jobs/gate-147-speed-is-red-at-its-limits-on-both-builds-make-it-compare-new-against-old-2026-11-21; Kunal, 21 Nov
 // 2026: "make test 147 trustworthy first in batch 14" - the new and old builds timed side by side, red only when the new is clearly
 // slower]. The bundle under test (NEW) and the reference (OLD, origin/main's app.js) are measured in ONE process, in N blocks of one
@@ -108,7 +128,14 @@ L.run(async()=>{
   const GEO=process.env.CT_G147_GEO||'kunal761';const N=Math.max(3,parseInt(process.env.CT_G147_N||'5',10)||5);
   const lab=(L.GEOS[GEO]||{}).label||GEO;
   L.say(S.ct_mymistakes.length===60&&S.ct_acctgames['cc:kunal2023'].length===465,'TC-R223 PRECONDITION his data shape is seeded: 465 stored games of grade version 1, 60 playable drill cards, 12 brilliant moves ('+S.ct_mymistakes.length+' cards)',{cards:S.ct_mymistakes.length});
-  const NEWP=path.resolve(process.env.CT_APP||path.join(L.ROOT,'app.js'));const REF=refBundle();const refOk=!!REF.path&&fs.existsSync(REF.path);
+  const NEWP=path.resolve(process.env.CT_APP||path.join(L.ROOT,'app.js'));
+  {const nStale=Object.values(S.ct_gamestats).filter(x=>x.src==='review'&&!x.gv).length,nCache=Object.keys(S.ct_evalcache).length;
+   L.say(nStale===465&&nCache>0,'TC-R439 PRECONDITION the regrade pass has work: '+nStale+' stored reviews with no grade version and '+nCache+' eval cache entry (an empty cache skips the pass)',{nStale,nCache});
+   const r=await reviewSession(NEWP,GEO,S);L.note('TC-R439 '+lab+' tap to summary '+r.ms+' ms, '+r.n+' long tasks summing '+r.sum+' ms (longest '+r.max+') at 4x');
+   L.say(r.ok&&r.sum<=5000,'TC-R439 '+lab+' a stored game\'s review does not wait on the regrade pass: the long tasks between the tap and its summary sum to '+r.sum+' ms at 4x (at most 5000; '+r.n+' tasks, summary '+(r.ok?'reached in '+r.ms+' ms':'NOT reached')+')',r);
+   L.say(r.errs.length===0,'TC-R439 '+lab+' zero app errors in the review session',r.errs);}
+  if(process.env.CT_G147_ONLY==='review')return;
+  const REF=refBundle();const refOk=!!REF.path&&fs.existsSync(REF.path);
   L.say(refOk,'TC-R223 PRECONDITION a reference bundle to time against: '+REF.how+(refOk?' md5 '+md5(REF.path):''),{new:fs.existsSync(NEWP)?md5(NEWP):null});
   if(!refOk)return;
   L.note('NEW '+NEWP+' md5 '+md5(NEWP)+'  against OLD md5 '+md5(REF.path)+' ('+REF.how+'), '+lab+', '+N+' blocks, CPU 4x');

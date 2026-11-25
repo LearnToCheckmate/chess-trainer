@@ -1,0 +1,8 @@
+--- a/chess.jsx
++++ b/chess.jsx
+@@ -9444,5 +9444,4 @@
+          had just tapped, which then waited on the page thread (measured: 110 long tasks, 15 s, against 3 on #549). The pass now waits while a
+          review is running or open, as the estimate pass above already waits for analyzingRef; its sheet only shows on the list anyway. */
+-      while(!dead&&(analyzingRef.current||regradeHoldRef.current))await new Promise(r=>setTimeout(r,200));
+       if(dead){regradeSeenRef.current.delete(k);return;}_t0=performance.now();
+       let r=null;try{const _st=pgnStart(g.pgn);/* #549 item (66): a set-up game is regraded from its [FEN] header, under its own cache key */const sans=_st.err?null:parsePGN(g.pgn);const res=sans&&sans.length?loadSANs(sans,_st.game):null;if(res){res.plyBase=_st.game?_st.plyBase:0;}if(res&&res.plies.length)r=regradeGame(res,all[revCacheKey(evalCacheKey(res.plies,_st.fen),st.dp)]||null,/* #553: the pass this tally was graded from (st.dp, its level), not always the Quick one */gameInfo(g).userColor,undefined,gradeVerOf(st));}catch(e){r=null;}
