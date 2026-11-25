@@ -1,0 +1,11 @@
+diff --git a/chess.jsx b/chess.jsx
+index a3a8162a..6769b9c7 100644
+--- a/chess.jsx
++++ b/chess.jsx
+@@ -8474,5 +8474,5 @@ function AppMain(){
+     const msg=String(e.data||'');
+     if(engMsg(slot.S,msg))return;   // #549 item (26) A2-R3: a search this slot stopped or gave up on
+-    if(msg==='readyok'&&slot.S.ping&&slot.S.ping.current>0){slot.S.ping.current--;if(slot.cb&&slot.cb.tick)slot.cb.tick();return;}   /* #553 B2: the answer to sfEvalOn's liveness ping - the worker is alive mid-search. UCI answers in order, so these come before any later isready's (engIdle's sync is never fired by one) */
++    if(msg==='readyok'&&slot.S.ping&&slot.S.ping.current>0){slot.S.ping.current--;return;}   /* #553 B2: the answer to sfEvalOn's liveness ping - the worker is alive mid-search. UCI answers in order, so these come before any later isready's (engIdle's sync is never fired by one) */
+     if(msg==='readyok'){slot.ready=true;const _s=slot.S.sync.current;if(_s){slot.S.sync.current=null;try{_s();}catch(_e){}}return;}
+     const cb=slot.cb;if(!cb)return;

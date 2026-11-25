@@ -33,7 +33,7 @@ try{rec=JSON.parse(fs.readFileSync(OUT,'utf8'));}catch(e){}
     const t0=Date.now();
     try{
       await b.page.evaluate(()=>{try{localStorage.removeItem('ct_evalcache');}catch(e){}});
-      await R.importPgn(b,g,300000);
+      await R.importPgn(b,g,+(process.env.CT_REC_TIMEOUT||300000));   // #553 B2: game 29 takes about 300 s at pool 3 here
       const got=await b.page.evaluate(()=>{const a=JSON.parse(localStorage.getItem('ct_evalcache')||'{}');const k=Object.keys(a);
         const v=window.__ctReview;return {keys:k,entry:k.length===1?a[k[0]]:null,plies:v&&v.plies?v.plies.length:null};});
       if(!got.entry){console.log('ERR',gi,link,'cache holds '+got.keys.length+' keys after the review, not 1');continue;}

@@ -3004,3 +3004,10 @@ As a player using the app from my Home Screen, every button in the bottom row of
 - The checks see the insets my phone reports and find each row's buttons. (TC-R445)
 - Every button in the row ends at or above the safe bottom, at 375x812 in the app and in Review sideways at 812x375. (TC-R446)
 - The board is no smaller, and Review's Back and More still take a tap over 44 of height. (TC-R447)
+
+### US-R257 A review of a long game finishes, however long its endgame thinks
+*Added #553 B2, jobs/one-of-his-games-never-finishes-its-review-it-stalls-at-move-68-of-103-2026-11-24. Amber: flags/amber-553-a-silent-search-is-asked-before-it-is-dropped.*
+As a player reviewing one of my long games, the review reaches its summary even when the engine thinks silently for a long time over an endgame position; only an engine that has really stopped answering is given up on.
+- The check holds one engine search silent for longer than the app's limit, and the review still reaches its summary. (TC-R448)
+- A search that is silent but still answering is waited for, not searched again. (TC-R449)
+- An engine that answers nothing is still given up on at the limit. (TC-R450)

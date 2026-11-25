@@ -1,0 +1,46 @@
+{
+ "job": "one-of-his-games-never-finishes-its-review-it-stalls-at-move-68-of-103-2026-11-24",
+ "about": "A review search on a pool worker that is silent but answers 'isready' is waited for, not abandoned at the 20 s silence ceiling; one that answers nothing is still abandoned there. Graded by gate 246 at kunal761 (pool 3), a Worker wrapper holding one search's output for 24 s, readyok let through ('alive') or held too ('dead'). NOT COVERED: his game 29 itself in the browser (about 300 s, a probe; gate 239 walks it from its recorded output); the analysis worker's sfEval1 path (unchanged); his phone.",
+ "gate": "gates/regress/246-a-silent-search-is-not-a-dead-one.js",
+ "checks": [
+  "^TC-R4(48|49|50) "
+ ],
+ "build": "always",
+ "situations": [
+  {
+   "name": "alive",
+   "match": "^TC-R4(48|49|50) alive"
+  },
+  {
+   "name": "dead",
+   "match": "^TC-R4(48|49|50) dead"
+  }
+ ],
+ "breaks": [
+  {
+   "name": "the-silent-search-is-not-asked",
+   "patch": "breaks/246-the-silent-search-is-not-asked.diff",
+   "why": "no liveness ping is ever sent, so a live search silent for 20 s is abandoned and its group retried again (the tree before)",
+   "mustFailIn": [
+    "alive"
+   ]
+  },
+  {
+   "name": "the-answer-is-not-counted-as-progress",
+   "patch": "breaks/246-the-answer-is-not-counted-as-progress.diff",
+   "why": "the ping is sent and answered, but its readyok is swallowed without counting as progress, so the live search is still abandoned",
+   "mustFailIn": [
+    "alive"
+   ]
+  },
+  {
+   "name": "asking-keeps-a-dead-worker-alive",
+   "patch": "breaks/246-asking-keeps-a-dead-worker-alive.diff",
+   "why": "sending the ping counts as progress instead of its answer, so a worker that answers nothing is never abandoned",
+   "mustFailIn": [
+    "dead"
+   ]
+  }
+ ],
+ "timeoutSec": 600
+}

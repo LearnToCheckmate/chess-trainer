@@ -20,9 +20,11 @@
 //          evaluation after the move (the fixture's evW, White-side centipawns: the input, not another output of the sentence builder).
 //  TC-R424 (C4) each side's grade counts on the summary sum to the number of moves that side played.
 // Every property prints its denominator in its own line (CLAUDE.md: before asserting a property of a collection, assert it is non-empty).
-// THE CORPUS IS 39 OF 40: game 29 (174055211202, 103 plies) never reaches its review summary - it stalls at 'Analyzing move 68 of 103'
-// with no app error, at pool 3 and pool 1 (measured 24 Nov 2026). That is a PRODUCT finding, reported, not a denominator: the fixture names it
-// under `unrecorded` and the first TC-R420 line holds that list exact, so a second game that cannot be reviewed reddens here.
+// THE CORPUS IS 40 OF 40 SINCE #553 B2 [R18: it read 39 of 40 until then]: game 29 (174055211202, 103 plies) never reached its review summary -
+// it stalled at 'Analyzing move 68 of 103' (24 Nov 2026), because sfEvalOn's silence guard abandoned live endgame searches
+// (jobs/one-of-his-games-never-finishes-its-review-it-stalls-at-move-68-of-103-2026-11-24, gate 246). Recorded on the fixed trial
+// 6b2cff176ab5 (292 s at pool 3) and walked here like the rest. The fixture's `unrecorded` is now empty and the first TC-R420 line still holds
+// that list exact, so a game that cannot be reviewed reddens here.
 // TC-R424 AND FORCED: a move with one legal choice is graded Forced and is left out of the ten totals BY DESIGN (GRADE_LADDER, #550 item
 // (20)); the first run here counted 18 of 78 sides short by exactly their Forced moves (31 in all). So the sum is held to the moves played
 // LESS the moves that had one legal move, counted from the rules - not from the analysis's own Forced label.

@@ -1,0 +1,11 @@
+diff --git a/chess.jsx b/chess.jsx
+index a3a8162a..2e2313f8 100644
+--- a/chess.jsx
++++ b/chess.jsx
+@@ -8529,5 +8529,5 @@ function AppMain(){
+        Stockfish answers at once mid-search (13-35 ms measured); the answer counts as progress (poolSlotMsg). A worker that cannot answer
+        is still abandoned at the same ceiling. */
+-    const PING=4000;let _pinged=false;
++    const PING=1e12;let _pinged=false;
+     let _last=Date.now();const _quiet=Math.max(20000,movetime*8),to=setInterval(()=>{const _q=Date.now()-_last;if(_q>_quiet){finish(null,false);return;}
+       if(_q>PING&&!_pinged&&slot.cb&&slot.S.go.current>0){_pinged=true;slot.S.ping.current++;try{slot.w.postMessage('isready');}catch(e){slot.S.ping.current--;}}},250);
