@@ -540,6 +540,7 @@ async function acctGamesSave(map,order,changed,removed){
 // iOS Safari) times out to the same fallback. [A3-R5, R18: "falls back to localStorage" is true only BEFORE the
 // migration; after it there is no localStorage copy to fall back to, and that launch is ACCT_UNREAD - see below.] A device with no IndexedDB keeps the old store: localStorage,
 // byte-bounded, ACCT_GMAX per account.
+const SF_IDLE_MS=3000;   // #553 SPD-05: how long Home may sit before the engine starts anyway
 const GLIST_FIRST=40;   // #553 SPD-06: rows drawn with the list's first frame; the rest of the page follows a tick later
 const GLIST_PAGE=ACCT_GMAX;   // #549 item (78): rows rendered before the player asks for more
 const ACCT_GMAX_STORE=2000, ACCT_IDB='ct', ACCT_IDB_OS='acctgames', ACCT_MIG='ct_acctgames_migrated';
@@ -7831,7 +7832,13 @@ function AppMain(){
         :'Could not finish deleting ('+c+'). Check your connection and tap Delete my account again; anything already removed stays removed.'));}};
   useEffect(()=>{const on=()=>{setNetOn(true);if(!sfRef.current)setSfTry(n=>n+1);},off=()=>setNetOn(false);
     window.addEventListener('online',on);window.addEventListener('offline',off);return()=>{window.removeEventListener('online',on);window.removeEventListener('offline',off);};},[]);   /* #550 errors check ERR-08 (US-R154): the app had no offline state at all */
+  /* #553 SPD-05 (jobs/speed-check-regressions-2026-11-12, amber flags/amber-553-engine-starts-after-home): the engine (5.6 MB the first time) is
+     not fetched the moment the app opens - the speed check measured it pulled 0.2-0.45 s after Home mounted, about 31 s of a saturated slow-4G link
+     straight after first paint. It starts when he leaves Home for any screen, or after Home has been open SF_IDLE_MS, whichever comes first. */
+  const [sfWant,setSfWant]=useState(false);
+  useEffect(()=>{if(sfWant)return;if(!homeScreen){setSfWant(true);return;}const t=setTimeout(()=>setSfWant(true),SF_IDLE_MS);return()=>clearTimeout(t);},[homeScreen,sfWant]);
   useEffect(()=>{
+    if(!sfWant)return;   // #553 SPD-05: not before he leaves Home or Home has been idle
     if(sfTry>0){setSfDown(false);sfReadyRef.current=false;}   // #550 ERR-08: a retry after the network came back
     try{
       const w=new Worker('./stockfish-18-lite-single.js');
@@ -7865,7 +7872,7 @@ function AppMain(){
       sfRef.current=w;
     }catch(e){/* no Stockfish — built-in engine fallback */setSfDown(true);}
     return()=>{try{sfRef.current?.terminate();}catch(e){}};
-  },[sfTry]);
+  },[sfTry,sfWant]);
   useEffect(()=>()=>{try{sfAnaRef.current?.terminate();}catch(e){}},[]);
 
   // AI auto-move (Play) — uses Stockfish WASM if available, falls back to built-in engine
