@@ -464,8 +464,8 @@ const M={
 const T={   // RE-PINNED [#553, see M above]: scaled at se and kunal730, moved down by the spread at 390 and 430
   se      :{learn:{x:12,y:262.8,w:141.2,h:128.6},  puzzle:{x:166.8,y:262.8,w:141.2,h:128.6},
             analyze:{x:12,y:401.5,w:141.2,h:128.6},play:{x:166.8,y:401.5,w:141.2,h:128.6}},
-  kunal730:{learn:{x:12,y:287.6,w:168,h:145},puzzle:{x:195,y:287.6,w:168,h:145},
-            analyze:{x:12,y:444,w:168,h:145},play:{x:195,y:444,w:168,h:145}},
+  kunal730:{learn:{x:12,y:288.2,w:168,h:145.2},puzzle:{x:195,y:288.2,w:168,h:145.2},   // RE-PINNED [#553 B3, q23 his pick A, 12px minimum; Amber: flags/amber-553-text-12px-minimum]: the
+            analyze:{x:12,y:444.7,w:168,h:145.2},play:{x:195,y:444.7,w:168,h:145.2}},   // Daily 3 'bonus' line 11->12px moves Home's fitted scale; the tiles sit 0.6 lower and 0.2 taller (trial 88f922302974; was 287.6/444, h 145)
   '390'   :{learn:{x:12,y:346.1,w:175,h:154.5},  puzzle:{x:203,y:346.1,w:175,h:154.5},
             analyze:{x:12,y:512.6,w:175,h:154.5},play:{x:203,y:512.6,w:175,h:154.5}},
   '430'   :{learn:{x:12,y:388.3,w:195,h:157.3},puzzle:{x:223,y:388.3,w:195,h:157.3},
