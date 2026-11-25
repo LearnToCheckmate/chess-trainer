@@ -295,7 +295,13 @@ const WALK_EXCUSE={
      re-titled; fixed by the fit loop staying off while analysing; gate 243 TC-R441 holds it per frame).
      No shrink excusal at 375x812, where the lesson board settles at the full 375. */
   AUD:{scroll:'the Puzzles road and the Openings list scroll by design (measured 25 Nov, see above)',shrinkFloor:{kunal:341.03-TOL}},
-  /* DSK: NONE. Measured with its excusals off: no scroll episode and no shrink but the P1 lesson-entry frame (375x812, t=243751 ms). */
+  /* DSK: NO SCROLL excusal (measured with its excusals off: no scroll episode). SHRINK is BOUNDED, at 375x679 only (the lead's ruling,
+     25 Nov): DSK's baseline is the previous card's leftover board (375) and its re-import's review settles at 341.03 there - Review's own
+     settled board at 375x679, the size EXP's own review settles at (341.03 at t=24061 in the 08:43Z whole-walk recording on the fix
+     bundle; the final run at 10:57Z read DSK 375.03 -> 341 at t=244286..245743). Before the fit loop stayed off while analysing, that
+     re-import painted the 192 floor and grew back past 341, so the sampler never read it. It may go down to that settled review board and
+     NO lower. No shrink excusal at 375x812, where the review board settles at the full 375. */
+  DSK:{shrinkFloor:{kunal:341.03-TOL}},
   /* SPD, MEASURED (07:32Z run): SCROLL earned - it ends on the Puzzles road, which scrolls by design (1115.6px at 375x812, still over at
      the end of the record because the road is its last screen: the SPD-10 glow check). No shrink: it paints one board, the stored game. */
   SPD:{scroll:'it ends on the Puzzles road, which scrolls by design (measured 25 Nov, see above)'},
