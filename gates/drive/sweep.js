@@ -20,6 +20,15 @@ const skinIdx=(key)=>{const a=src.indexOf('const SKINS=[');const keys=[...src.sl
 const SKIN={classic:{store:{ct_skin:String(skinIdx('classic'))},pro:false},playful:{store:{ct_skin:String(skinIdx('playful'))},pro:true}};
 const list=(e,d)=>(process.env[e]||d).split(',').map(s=>s.trim()).filter(Boolean);
 const GEOS=list('CT_SWEEP_GEOS','kunal761,se'),SKINS=list('CT_SWEEP_SKINS','classic,playful');const TMO=parseInt(process.env.CT_SWEEP_TIMEOUT||'90000',10);
+// CT_SWEEP_MEASURE=small: after each reached state, every visible element with its own text under 12px (svg excluded; the board's single
+// a-h / 1-8 letters counted apart), as 'SWEEP SMALL <run> {seen,coords,small:[...]}' - the q23 census (his pick A, a 12px minimum).
+const MEASURE=process.env.CT_SWEEP_MEASURE||'';
+const SMALL=`(()=>{const bd=[...document.querySelectorAll('div')].filter(d=>/repeat\\(8,/.test(d.style.gridTemplateColumns||''));let seen=0,coords=0;const out=[];
+  for(const el of document.querySelectorAll('body *')){if(el.closest('svg'))continue;const txt=[...el.childNodes].filter(c=>c.nodeType===3).map(c=>c.textContent).join('').trim();if(!txt)continue;
+    const r=el.getBoundingClientRect();if(r.width<=0||r.height<=0||r.bottom<0||r.right<0||r.left>innerWidth)continue;const cs=getComputedStyle(el);if(cs.visibility==='hidden'||+cs.opacity===0||cs.display==='none')continue;
+    seen++;const f=parseFloat(cs.fontSize);if(f>=11.95)continue;if(bd.some(g=>g.contains(el))&&/^[a-h1-8]$/.test(txt)){coords++;continue;}
+    const c=el.closest('[data-ct]');out.push(txt.slice(0,30)+' '+(Math.round(f*10)/10)+'px'+(c?' ['+c.getAttribute('data-ct')+']':''));}
+  return {seen,coords,small:out};})()`;
 const want=process.env.CT_SWEEP_STATES?new Set(list('CT_SWEEP_STATES','')):null;
 const todo=[];
 for(const m of MODS){const M=require('./'+m);const S=M.states||{};for(const s of Object.keys(S)){const id=m+'.'+s;if(!want||want.has(id))todo.push({m,s,id,fn:S[s],signedOut:(M.signedOut||[]).includes(s)});}}
@@ -35,7 +44,8 @@ const withTimeout=(p,ms,what)=>Promise.race([p,new Promise((_,rej)=>setTimeout((
       try{b=await L.launch({geo,name:'sweep',store:K.store,pro:K.pro});await b.open();await withTimeout(t.fn(b),TMO,t.id);
         const skinNow=await b.page.evaluate(()=>{try{return localStorage.getItem('ct_skin');}catch(e){return null;}});
         if(skinNow!==K.store.ct_skin)throw new Error('the run left the '+sk+' skin (ct_skin '+skinNow+')');
-        ok++;console.log('SWEEP OK   '+tag+' ('+Math.round((Date.now()-ts)/1000)+' s)');}
+        ok++;console.log('SWEEP OK   '+tag+' ('+Math.round((Date.now()-ts)/1000)+' s)');
+        if(MEASURE==='small'){await b.settle(800);const m=await b.page.evaluate(SMALL);console.log('SWEEP SMALL '+tag+' '+JSON.stringify(m));}}
       catch(e){fail++;const msg=String(e&&e.message||e).split('\n')[0].slice(0,200);fails.push(tag+': '+msg);console.log('SWEEP FAIL '+tag+' - '+msg);}
       finally{if(b)try{await b.close();}catch(e){}}}}
   for(const f of fails)console.log('SWEEP FAILED '+f);
