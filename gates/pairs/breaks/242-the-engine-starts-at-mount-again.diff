@@ -1,0 +1,8 @@
+--- a/chess.jsx
++++ b/chess.jsx
+@@ -7839,5 +7839,4 @@
+   useEffect(()=>{if(sfWant)return;if(!homeScreen){setSfWant(true);return;}const t=setTimeout(()=>setSfWant(true),SF_IDLE_MS);return()=>clearTimeout(t);},[homeScreen,sfWant]);
+   useEffect(()=>{
+-    if(!sfWant)return;   // #553 SPD-05: not before he leaves Home or Home has been idle
+     if(sfTry>0){setSfDown(false);sfReadyRef.current=false;}   // #550 ERR-08: a retry after the network came back
+     try{

@@ -13,6 +13,7 @@
 // KNOW ITS LIMIT: other screens' animations are not swept; the 600 ms fit watchdog SPD-10 also names is kept on purpose (it clears with its
 // screen and does nothing at rest unless the board overflows) and is not read here. Reduced motion is not set, so the animation exists.
 // CONTROL-RECORD: 12d4b83d 2026-11-25 total=8 red=4 scope=trial:059dfa672fd1 how=#553 B3 THE SUBJECT REMOVED: the tree before (the glow 'infinite') - both finite-repeat lines (Infinity) and both still-running lines red at kunal761 and se; the preconditions and error lines green
+// CONTROL-RECORD: 998df569 2026-11-25 total=14 red=2 scope=trial:10a45e6e4ec4 how=#553 B3 SPD-05 THE SUBJECT REMOVED: the tree before (the engine started at mount) - TC-R438 'not fetched in the first 2 s on Home' (first request 1052 ms BEFORE open() returned) and 'leaving Home for Play fetches it at once' (0 after the tap, 1 before) red; the TC-R436 lines and the 'fetched by 6 s' line green
 const L=require('../lib');const Z=require('../drive/puzzles');
 const READ=`(()=>document.getAnimations().filter(a=>a.animationName==='ctGlow').map(a=>{const t=a.effect&&a.effect.getComputedTiming?a.effect.getComputedTiming():{};return {play:a.playState,iter:t.iterations===Infinity?'Infinity':t.iterations};}))()`;
 L.run(async()=>{
