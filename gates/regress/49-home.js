@@ -485,7 +485,10 @@ const SUBS_AT=(geo)=>L.geoIs(geo,320,568)?SUBS:['Openings, tactics, endgames',..
 // #366 y3b, per glyph, identical at every width. RE-PINNED at #550 item (68): Classic (the default skin) has its own four emoji again
 // (📖 🧩 📈 👑, its pre-#366 set) instead of Playful's (🔭 🧩 🔍 ♟️, which read 1, 1, 0.99, 1.11); measured on trial t12 (f0477c0d12aa)
 // at all four widths: 📖 1.06, 🧩 1, 📈 0.99, 👑 0.99.
-const INK={learn:'1.06',puzzle:'1',analyze:'0.99',play:'0.99'};
+// RE-PINNED at #553 card 92 (his pick '(a) Pawn'; Amber: flags/amber-553-classic-play-tile-pawn): Classic's Play is the pawn ♟️ now, MEASURED
+// 1.11 at all four widths (se, kunal730, 390, 430) on trial t4 (d249426cfb0c) - the value Playful's same pawn read at #550, re-measured here
+// rather than carried. The other three are unchanged.
+const INK={learn:'1.06',puzzle:'1',analyze:'0.99',play:'1.11'};
 // The coach line's middle span is nowrap with an ellipsis, so whether the recommendation survives is a question
 // about the WIDTH. Measured with the fresh-store recommendation, "New to chess? Lock in the endgame basics":
 // 240px of text in a 193px box at 320, and 248 in 248 at 375 - which fits with ZERO slack. Pinned both ways.
@@ -591,7 +594,7 @@ if(blk('B'))for(const geo of GEOS){
   L.say(t.every(x=>near(x.boxW,ICONBOX[geo])&&near(x.boxH,ICONBOX[geo])),
     geo+': TC-HM-014 every tile\'s icon box is '+ICONBOX[geo]+'x'+ICONBOX[geo]+' - 80x80 at full size (84 until #550 AUD-H01\'s 80pt icons), scaled with the column where Home is fitted to the window (#553) - the tiles do not grow with the phone, the gaps do',t.map(x=>x.k+':'+x.boxW+'x'+x.boxH).join(' '));
   L.say(t.every(x=>x.ink===INK[x.k]),
-    geo+': TC-HM-015 and each glyph carries its measured ink scale (#366 y3b: the app measures the glyph on THIS device rather than trusting the font) - 📖 1.06, 🧩 1, 📈 0.99, 👑 0.99 (Classic, #550 item (68)), identical at all four widths',t.map(x=>x.k+':'+x.ink).join(' '));
+    geo+': TC-HM-015 and each glyph carries its measured ink scale (#366 y3b: the app measures the glyph on THIS device rather than trusting the font) - 📖 1.06, 🧩 1, 📈 0.99, ♟️ 1.11 (Classic, #550 item (68); the pawn since #553 card 92), identical at all four widths',t.map(x=>x.k+':'+x.ink).join(' '));
   L.say(t.every(x=>near(x.x,W[x.k].x)&&near(x.y,W[x.k].y)&&near(x.w,W[x.k].w)&&near(x.h,W[x.k].h,1)),
     geo+': TC-HM-016 and each tile is the rect measured for THIS geometry, before any tap - '+JSON.stringify(W),{measured:t.map(x=>x.k+' '+x.x+','+x.y+' '+x.w+'x'+x.h),want:W});
   L.say(t.every(x=>x.x>=-0.5&&x.right<=vw+0.5),
