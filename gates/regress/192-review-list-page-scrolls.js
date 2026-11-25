@@ -33,6 +33,8 @@
 // CONTROL-RECORD: 800686b5 2026-11-24 total=24 red=1 scope=trial:12f56828b9bf how=#553 pairs break short-phone-chips-inside-the-box (192-short-phone-chips-inside-the-box.diff): TC-R315 red at 320x568 only
 // CONTROL-RECORD: 800686b5 2026-11-24 total=24 red=3 scope=trial:449146aa618b how=#553 pairs break the-list-forgets-its-place (192-the-list-forgets-its-place.diff): TC-R317 red at all three sizes
 // The grading machine on 800686b5: CHECKED, real 8/8 at kunal761, 320x568 and 844x390 (bundle 9dd8fa07928d), the three breaks CAUGHT.
+// TC-R437 ON THE SPD-06-ONLY TREE (35b02b5c, src 886ccfb8f394, bundle aaea9a0d80d0), 25 Nov 2026: 34/0, and gate 61 292/0 on the same bundle;
+// pairs speed-check-regressions-2026-11-12--list-steps (base 35b02b5c) CHECKED, real 3/3 and 3/3, the break caught at both.
 // CONTROL-RECORD: 998df569 2026-11-25 total=34 red=3 scope=trial:10a45e6e4ec4 how=#553 B3 SPD-06 THE SUBJECT REMOVED: the tree before (998df569's chess.jsx, src 0346eae8ae41) - TC-R437 'first frame at most 50 rows' red at 375x761, 320x568 and 844x390 (200 rows in the first frame); every other line green
 const L=require('../lib');
 const PGN='[Event "Live Chess"]\n[Site "Chess.com"]\n[Date "2025.10.01"]\n[White "Kunal2023"]\n[Black "Opp"]\n[Result "1-0"]\n[TimeControl "180"]\n\n1. e4 e5 2. Nf3 d6 3. d4 Bg4 4. dxe5 Bxf3 5. Qxf3 dxe5 6. Bc4 Nf6 7. Qb3 Qe7 8. Nc3 c6 9. Bg5 b5 10. Nxb5 cxb5 11. Bxb5+ Nbd7 12. O-O-O Rd8 13. Rxd7 Rxd7 14. Rd1 Qe6 15. Bxd7+ Nxd7 16. Qb8+ Nxb8 17. Rd8# 1-0';
