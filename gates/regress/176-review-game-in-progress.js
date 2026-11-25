@@ -115,7 +115,42 @@ const liveLine=(b)=>b.page.evaluate(()=>{const sum=document.querySelector('[data
     m=/checked\s+\d{1,2}:\d\d(\s?[AP]M)?/i.exec(t);if(m&&!out.at){out.at=rd(n,m.index,m.index+m[0].length);out.an=n;}}
   if(out.mn&&out.an){let e=out.mn.parentElement;while(e&&!e.contains(out.an))e=e.parentElement;out.h=e?Math.round(e.getBoundingClientRect().height*10)/10:null;}delete out.mn;delete out.an;return out;});
 const liveLineOk=(x)=>!!x&&!!x.moves&&!!x.at&&x.moves.lines===1&&x.at.lines===1&&!x.moves.cut&&!x.at.cut;
+// ── k [#553 B3, job 18's item 1; orchestrator-B14-CHESSCOM-SAMPLE-FOR-JOB-18-2026-11-25]: A RECORDED CHESS.COM RESPONSE. The fixture
+// gates/fixtures/chesscom-current-daily-games-recorded-2026-11-25.json is the body of GET https://api.chess.com/pub/player/kunal2023/games
+// as Kunal pasted it on 25 Nov 2026 (tracker 20acb6cb docs/chesscom-in-progress-sample-2026-11-25, 4742 bytes, two Daily games in
+// progress), kept byte-exact but for two things, for one reason - so the other player cannot be identified from this repository: the
+// opponent's username is replaced by 'opponent-fixture' everywhere it appears (two PGN headers, two player URLs), and the two real game
+// ids by 9000000001 and 9000000002 (each in its url field and its Link header; this gate does not read them). With the switch on, at
+// kunal761 and his own account followed: both recorded games are listed, each by its players' names, Daily, its moves played and the
+// side to move as the response says; and a tap on the first opens its review, the summary naming the players and reading In progress
+// with its moves so far. CT_G176_REC=only runs this block alone (controls; never the graded run).
+const REC=JSON.parse(fs.readFileSync(path.join(__dirname,'..','fixtures','chesscom-current-daily-games-recorded-2026-11-25.json'),'utf8'));
+const REC_STORE={ct_ccuser:'kunal2023',ct_liuser:'',ct_accts:['cc:kunal2023'],ct_acctasked:{'cc:kunal2023':1},ct_acctgames:{'cc:kunal2023':[heldRow('kunal2023','oldrival')]},ct_pool:'3',ct_live_review:'1'};
+const REC_GAMES=[{re:/opponent-fixture vs Kunal2023/,np:46,turn:'White to move'},{re:/Kunal2023 vs opponent-fixture/,np:59,turn:'Black to move'}];
+async function blockK(){
+  const tag='kunal761 TC-R247k RECORDED';const S={hits:[]};const b=await L.launch({geo:'kunal761',name:'liverev-recorded',store:{...REC_STORE}});
+  await b.ctx.route(/chess\.com/,async(route)=>{const u=route.request().url();S.hits.push({u,t:Date.now()});
+    const j=(o,st)=>route.fulfill({status:st||200,contentType:'application/json',headers:{'access-control-allow-origin':'*'},body:typeof o==='string'?o:JSON.stringify(o)});
+    let m=u.match(/api\.chess\.com\/pub\/player\/([^/]+)\/games\/archives$/);if(m)return j({archives:['https://api.chess.com/pub/player/'+m[1]+'/games/2026/10']});
+    m=u.match(/api\.chess\.com\/pub\/player\/([^/]+)\/games\/2026\/10$/);if(m)return j({games:[doneGame(m[1],'oldrival',7003)]});
+    m=u.match(/api\.chess\.com\/pub\/player\/([^/]+)\/games$/);if(m)return j(m[1]==='kunal2023'?fs.readFileSync(path.join(__dirname,'..','fixtures','chesscom-current-daily-games-recorded-2026-11-25.json'),'utf8'):{games:[]});
+    return j({},404);});
+  await b.open();await b.tile('Review');
+  L.say(REC.games.length===2,tag+' PRECONDITION the recorded response holds two games in progress ('+REC.games.length+')');
+  const rowTxt=(r,re)=>{const e=(r._rows||[]).find(t=>re.test(t));return e||null;};
+  const rd=async()=>{const r=await read(b);r._rows=await b.page.evaluate(()=>[...document.querySelectorAll('button')].filter(e=>e.getBoundingClientRect().width>0).map(e=>(e.innerText||'').replace(/\s+/g,' ').trim()));return r;};
+  let r0=null,ok0=false;for(let i=0;i<25;i++){r0=await rd();if(REC_GAMES.every(g=>rowTxt(r0,g.re)))break;await b.settle(1000);}
+  const rows=REC_GAMES.map(g=>rowTxt(r0,g.re));
+  L.say(r0.games>=1&&inProg(S,'kunal2023').length>=1,tag+' DENOMINATOR the Review screen is up with his finished game ('+r0.games+') and chess.com was asked for his games in progress ('+inProg(S,'kunal2023').length+')',{requests:S.hits.map(h=>h.u.replace('https://api.chess.com/pub/player/',''))});
+  REC_GAMES.forEach((g,i)=>L.say(!!rows[i]&&/Daily/.test(rows[i])&&new RegExp('\\b'+g.np+' moves played\\b').test(rows[i])&&rows[i].indexOf(g.turn)>=0,tag+' recorded game '+(i+1)+' is listed by its players\' names, Daily, '+g.np+' moves played, '+g.turn+': "'+(rows[i]||'absent')+'"',{row:rows[i]}));
+  let tapped=false;try{const el=b.page.locator('button',{hasText:REC_GAMES[0].re}).first();await el.evaluate(e=>e.scrollIntoView({block:'center'}));await b.settle(400);const bx=await el.boundingBox();const cx=bx.x+bx.width/2,cy=bx.y+bx.height/2;
+    const hit=await el.evaluate((e,p)=>{const h=document.elementFromPoint(p[0],p[1]);return !!h&&e.contains(h);},[cx,cy]);if(hit){await b.page.mouse.click(cx,cy);tapped=true;}}catch(e){L.note(tag+' tap: '+String(e).replace(/\s+/g,' ').slice(0,200));}
+  const w=await until(b,r=>r.summary&&r.plies!=null,180000);const r=w.r;
+  L.say(tapped&&w.ok&&r.plies===46&&/opponent-fixture vs Kunal2023/i.test(r.sumText)&&/In progress/.test(r.sumText)&&/\b46 moves so far/.test(r.sumText),tag+' a tap on recorded game 1 opens its review: '+r.plies+' plies graded, the summary "'+r.sumText.slice(0,120)+'"',{tapped,ok:w.ok,plies:r.plies});
+  L.say(b.errs.length===0,tag+' zero app errors',b.errs.slice(0,3));await b.close();
+}
 L.run(async()=>{
+  if(process.env.CT_G176_REC==='only'){L.note('CT_G176_REC=only: block k alone - a control or a probe, never the graded run');await blockK();return;}
   for(const geo of (process.env.CT_G176_GEO?process.env.CT_G176_GEO.split(','):['kunal761','se'])){   // CT_G176_GEO=se runs one geometry (a rerun while fixing; never the graded run)
     const tag=geo;const full=L.geoIs(geo,375,761);
     let offBox=null;
@@ -195,5 +230,6 @@ L.run(async()=>{
     L.say(b.errs.length===0,tag+' TC-R247h zero app errors',b.errs.slice(0,3));
     await b.close();
   }
+  if(!process.env.CT_G176_GEO||process.env.CT_G176_GEO.split(',').includes('kunal761'))await blockK();
 },'176-review-game-in-progress');
 // SELECTOR-OPENED: live-section reading=presence the layout line (TC-R247h) needs the section's own box, so a missing hook reads null and reds; the two absence lines (a, b) also read the page's words and the route's request count, which no hook feeds
