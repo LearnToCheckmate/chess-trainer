@@ -1,6 +1,6 @@
 --- a/chess.jsx
 +++ b/chess.jsx
-@@ -10726,8 +10726,7 @@
+@@ -10727,8 +10727,7 @@
      const srt=[...base].sort((a,b)=>a-b);let g=srt[0],left=free,i=0;
      while(i<srt.length){let j=i;while(j+1<srt.length&&srt[j+1]===srt[i])j++;const cnt=j+1;const next=j+1<srt.length?srt[j+1]:Infinity;const need2=(next-srt[i])*cnt;
        if(need2>=left){g=srt[i]+left/cnt;left=0;break;}left-=need2;i=j+1;g=next;}
