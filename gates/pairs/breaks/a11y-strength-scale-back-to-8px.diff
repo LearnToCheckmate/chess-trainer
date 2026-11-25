@@ -1,0 +1,9 @@
+--- a/chess.jsx
++++ b/chess.jsx
+@@ -12288,5 +12288,5 @@
+             </div>
+             <input type="range" min={ELO_MIN} max={ELO_MAX} step={25} value={cpuElo} onChange={e=>{const v=+e.target.value;setCpuElo(v);setSelBot(botForElo(v)?botForElo(v).id:null);}} style={{width:'100%',accentColor:TH.accent,cursor:'pointer'}}/>
+-            <div style={{display:'flex',justifyContent:'space-between',fontSize:12,lineHeight:'10px' /* #553 q23 part 2a (his pick A, 12px minimum): was 8; its 10px line box kept so the sheet does not grow */,color:'rgba(255,255,255,.4)'}}><span>Beginner</span><span>Club</span><span>Strong</span></div>
++            <div style={{display:'flex',justifyContent:'space-between',fontSize:8,lineHeight:'10px' /* #553 q23 part 2a (his pick A, 12px minimum): was 8; its 10px line box kept so the sheet does not grow */,color:'rgba(255,255,255,.4)'}}><span>Beginner</span><span>Club</span><span>Strong</span></div>
+           </div>)}
+ 

@@ -1,6 +1,6 @@
 {
  "job": "readability-check-2026-11-12",
- "about": "A11Y-19, his q23 pick A (Desk card 95): a 12px text minimum except the board letters, on the eight screens of the A11Y-19 survey at kunal761 and 320x568. Graded by gate 144 block (i), CT_G144_ONLY=i, in Classic and Playful. NOT COVERED: screens and states outside the survey (68 sub-12 font literals stay in chess.jsx at 0316f16c, most there); the other seven sources each have their own line in the block but no break here.",
+ "about": "A11Y-19, his q23 pick A (Desk card 95): a 12px text minimum except the board letters, on the eight screens of the A11Y-19 survey at kunal761 and 320x568. Graded by gate 144 block (i), CT_G144_ONLY=i, in Classic and Playful. NOT COVERED: screens and states outside the survey (68 sub-12 font literals stay in chess.jsx at 0316f16c, most there); the other seven sources each have their own line in the block but no break here. PART 2A [#553]: the census's ten drive states outside the survey ('TC-R440 extra', Classic, kunal761 and se) - two breaks there.",
  "gate": "gates/regress/144-readable-everywhere.js",
  "env": {
   "CT_G144_ONLY": "i"
@@ -17,6 +17,10 @@
   {
    "name": "playful",
    "match": "^TC-R440 playful "
+  },
+  {
+   "name": "extra",
+   "match": "^TC-R440 extra "
   }
  ],
  "breaks": [
@@ -37,7 +41,23 @@
     "classic",
     "playful"
    ]
+  },
+  {
+   "name": "the-you-tag-back-to-8-5px",
+   "patch": "breaks/a11y-you-tag-back-to-8-5px.diff",
+   "why": "the Review summary's 'YOU' tag goes back to 8.5px",
+   "mustFailIn": [
+    "extra"
+   ]
+  },
+  {
+   "name": "the-strength-scale-back-to-8px",
+   "patch": "breaks/a11y-strength-scale-back-to-8px.diff",
+   "why": "Play setup's 'Beginner Club Strong' scale goes back to 8px",
+   "mustFailIn": [
+    "extra"
+   ]
   }
  ],
- "timeoutSec": 2400
+ "timeoutSec": 3600
 }
