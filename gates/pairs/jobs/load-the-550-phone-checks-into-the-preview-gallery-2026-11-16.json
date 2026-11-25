@@ -13,13 +13,13 @@
  ],
  "breaks": [
   {"name": "ipad-card-back-in-the-queue", "patch": "breaks/g15-ipad-card-back-in-the-queue.diff",
-   "why": "the retired IPAD card is back in the queue in DSK's place - the Parked line broken - so the queue reads SCR|EXP|AUD|IPAD|SPD against the pin",
+   "why": "the retired IPAD card is back in the queue in DSK's place - the Parked line broken - so the queue reads SCR|EXP|AUD|IPAD|SPD against the pin. Strengthened at #553 B1 (15:56Z run read BLIND): the first version changed the id only, and the pin reads the queue from the card labels, which still said DSK",
    "mustFailIn": ["375x679"]},
   {"name": "audit-picks-card-dropped", "patch": "breaks/g15-audit-picks-card-dropped.diff",
    "why": "the audit-picks card is missing, so the queue holds four cards where the pin names five",
    "mustFailIn": ["375x679"]},
   {"name": "desktop-card-walks-nothing", "patch": "breaks/g15-desktop-card-walks-nothing.diff",
-   "why": "the desktop card stays on Home instead of walking the board screens, so its caption, pinned to show a board, shows none",
+   "why": "the desktop card walks none of the board screens - it stays on Discover - so its caption, pinned to show a board, shows none. Strengthened at #553 B1 (15:56Z run read BLIND): the first version stayed on Home, where the previous card's review board under the Home layer still counted as the caption's board",
    "mustFailIn": ["375x679"]}
  ],
  "timeoutSec": 2400

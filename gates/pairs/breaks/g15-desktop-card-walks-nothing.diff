@@ -1,7 +1,7 @@
 diff --git a/chess.jsx b/chess.jsx
 --- a/chess.jsx
 +++ b/chess.jsx
-@@ -11571,15 +11571,7 @@
+@@ -11599,15 +11599,7 @@
       DSK-07, his laptop Review pick of 11:39pm Sun 15 Nov (the bottom player bar at the foot of the right column, the space beside it
       for the move list with grades and a key moments switch), is NOT built on this head (seat B2's recheck_553; this tree's Review
       has no such column), and the card says so. The walk is the retired IPAD card's, unchanged. */
@@ -14,7 +14,7 @@ diff --git a/chess.jsx b/chess.jsx
 -    _t(33000,()=>{_autogame(['e4','e5','Nf3','Nc6']);});
 -    _t(45000,()=>{setHomeScreen(false);setMode('analyze');setPlaySetup(false);pvJumpRef.current=null;setPgnText(_OPERA);importGame(_OPERA,{});});
 -    _t(100000,()=>{setReviewView('moves');setPly(19);});}, h:108000},
-+  {id:"DSK",c:"Your computer: every board and page screen at 1920x1080 and 1440x900",l:"4 · DSK · Your computer in its full window: record it at 1920 by 1080, then at 1440 by 900", n:"Open this page on your computer in its full window, about 1920 by 1080, press play and screen-record. It shows Home, Discover, Tactics, a lesson, Puzzles, a game against the computer, then a reviewed game (that one takes about 45 seconds to analyze). Then make the window about 1440 by 900 and play it again. Look for: one centered group, the board as tall as the window allows, nothing scrolling and nothing running over the edge. One pick is not built yet: Review on a laptop with the bottom player bar at the foot of the right column and the move list with grades and a key moments switch beside it (your pick of 15 Nov), so Review still shows today's layout. Then upload it in the Claude chat.", r:()=>{setHomeScreen(true);}, h:108000},
++  {id:"DSK",c:"Your computer: every board and page screen at 1920x1080 and 1440x900",l:"4 · DSK · Your computer in its full window: record it at 1920 by 1080, then at 1440 by 900", n:"Open this page on your computer in its full window, about 1920 by 1080, press play and screen-record. It shows Home, Discover, Tactics, a lesson, Puzzles, a game against the computer, then a reviewed game (that one takes about 45 seconds to analyze). Then make the window about 1440 by 900 and play it again. Look for: one centered group, the board as tall as the window allows, nothing scrolling and nothing running over the edge. One pick is not built yet: Review on a laptop with the bottom player bar at the foot of the right column and the move list with grades and a key moments switch beside it (your pick of 15 Nov), so Review still shows today's layout. Then upload it in the Claude chat.", r:()=>{setMenuOpen(false);setHomeScreen(false);setMode("learn");setOpenIdx(null);setLearnGroup(null);}, h:108000},
    /* Card 5, SPD: the speed check with his own games, on his phone (docs/speed-check-2026-11-12; jobs/speed-check-regressions-2026-11-12).
       SPD-05 (no engine in Home's first seconds), SPD-06 (the games list's first rows), SPD-07 (a stored game's summary while the regrade
       pass waits) and SPD-10 (the Puzzles glow rests after four pulses) are merged on this head; SPD-04 (load less code at start) is open,
