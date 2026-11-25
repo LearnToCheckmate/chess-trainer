@@ -82,7 +82,7 @@ L.run(async()=>{
     const m=await b.page.evaluate(read);
     {const fr=await b.page.evaluate(()=>window.__g437||[]);const first=fr.find(n=>n>0)||0,last=fr.length?fr[fr.length-1]:0,more=!!(await b.page.$('[data-ct="glist-more"]'));
      L.say(fr.length>10&&last>=200,gn+' TC-R437 DENOMINATOR '+fr.length+' frames read after the tap and the page ends with '+last+' rows drawn (the first page of 465)',{frames:fr.length,last});
-     L.say(first>0&&first<=50,gn+' TC-R437 the first frame with games draws at most 50 rows ('+first+'), the rest following in steps ('+[...new Set(fr)].slice(0,8).join(' -> ')+')',{first});
+     L.say(first>0&&first<=50,gn+' TC-R437 the first frame with games draws at most 50 rows ('+first+'), the rest of the page following ('+[...new Set(fr)].slice(0,8).join(' -> ')+')',{first});
      L.say(last===200&&more,gn+' TC-R437 the whole first page (200 rows) is drawn within 3 s, with Show more games below it ('+last+', more '+more+')');}
     L.say(ok&&!!m.box&&m.rows>0&&m.cnt==='465 loaded',gn+' TC-R310 DENOMINATOR the Review list is up with its games box and '+m.rows+' game rows, the count reading "'+m.cnt+'"',{rows:m.rows,cnt:m.cnt,box:!!m.box});
     const boxFlat=(x)=>!!x.box&&x.box.oy==='visible'&&x.box.mh==='none'&&x.box.sh<=x.box.ch+1;

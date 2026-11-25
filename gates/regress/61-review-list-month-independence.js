@@ -205,9 +205,9 @@ async function showAll(b){let n=0;
     if(!hit)break;await b.settle(120);await drawnSettled(b);}
   return n;}
 // #553 SPD-06 (amber flags/amber-553-games-list-draws-in-steps): the list DRAWS its page in steps of 40 after the first frame, so the rows a
-// player can reach are counted once the drawn count has stopped growing (two equal reads 150ms apart, at most 8 s) - the assertions below are
+// player can reach are counted once the drawn count has stopped growing (three equal reads 200ms apart, at most 12 s) - the assertions below are
 // unchanged and still compare every reachable row with the rows stored.
-async function drawnSettled(b){let last=-1;for(let i=0;i<54;i++){const n=await b.page.evaluate(()=>document.querySelectorAll('[data-ct="game-row"]').length);if(n===last)return n;last=n;await b.page.waitForTimeout(150);}return last;}
+async function drawnSettled(b){let last=-1,same=0;for(let i=0;i<60;i++){const n=await b.page.evaluate(()=>document.querySelectorAll('[data-ct="game-row"]').length);if(n===last){if(++same>=2)return n;}else same=0;last=n;await b.page.waitForTimeout(200);}return last;}
 async function READ(b){
   const pages=await showAll(b);await drawnSettled(b);
   const AG=await L.acctGames(b.page);

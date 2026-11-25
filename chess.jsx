@@ -540,7 +540,7 @@ async function acctGamesSave(map,order,changed,removed){
 // iOS Safari) times out to the same fallback. [A3-R5, R18: "falls back to localStorage" is true only BEFORE the
 // migration; after it there is no localStorage copy to fall back to, and that launch is ACCT_UNREAD - see below.] A device with no IndexedDB keeps the old store: localStorage,
 // byte-bounded, ACCT_GMAX per account.
-const GLIST_FIRST=40;   // #553 SPD-06: rows drawn with the list's first frame; the rest of the page follows in steps of this size
+const GLIST_FIRST=40;   // #553 SPD-06: rows drawn with the list's first frame; the rest of the page follows a tick later
 const GLIST_PAGE=ACCT_GMAX;   // #549 item (78): rows rendered before the player asks for more
 const ACCT_GMAX_STORE=2000, ACCT_IDB='ct', ACCT_IDB_OS='acctgames', ACCT_MIG='ct_acctgames_migrated';
 let _acctIdbP=null, ACCT_MODE='ls';
@@ -6429,7 +6429,8 @@ function AppMain(){
      the most one refresh can bring for an account, so one account that never asks for more sees the list it saw before (31). */
   const [gPage,setGPage]=useState(GLIST_PAGE);
   /* #553 SPD-06 (jobs/speed-check-regressions-2026-11-12, amber flags/amber-553-games-list-draws-in-steps): the list DRAWS its page in steps. The
-     first GLIST_FIRST rows mount with the screen and the rest of the page follows GLIST_FIRST at a time, a timer tick apart, so a tap on Review
+     first GLIST_FIRST rows mount with the screen and the rest of the page follows in ONE step a timer tick later (in steps of 40 the
+     2000-row case lagged a tap of Show more by seconds, measured in gate 61), so a tap on Review
      answers after 40 rows, not 200 (the speed check measured 0.45-0.47 s with 465 games at 4x CPU). Rows past the first 40 are below the fold on
      every phone. gPage (what the player has asked for) is unchanged; leaving the list resets the steps. */
   const [gRender,setGRender]=useState(GLIST_FIRST);
@@ -6920,7 +6921,7 @@ function AppMain(){
 
   const inReview=mode==='analyze'&&review!==null;
   const _glistOn=mode==='analyze'&&!inReview&&!analyzing;   // the screen the games list is drawn on (the import panel below)
-  useEffect(()=>{if(!_glistOn){setGRender(GLIST_FIRST);return;}if(gRender>=gPage)return;const t=setTimeout(()=>setGRender(r=>Math.min(gPage,r+GLIST_FIRST)),16);return()=>clearTimeout(t);},[_glistOn,gRender,gPage]);   /* #553 SPD-06 */
+  useEffect(()=>{if(!_glistOn){setGRender(GLIST_FIRST);return;}if(gRender>=gPage)return;const t=setTimeout(()=>setGRender(gPage),16);return()=>clearTimeout(t);},[_glistOn,gRender,gPage]);   /* #553 SPD-06 */
   revNowRef.current=review;   /* #553: the open review, read by a deeper pass when it finishes */
   const inDemo=mode==='learn'&&learnPhase==='demo'&&learnLine.length>0;
   const demoSt=useMemo(()=>inDemo?demoState(learnLine,demoPly,learnFEN):null,[inDemo,learnLine,demoPly,learnFEN]);
