@@ -7,15 +7,15 @@
  "checks": ["TC-R239"],
  "build": "auto",
  "situations": [
-  {"name": "320x568", "match": "^se TC-R239"},
+  {"name": "320x568", "match": "^se TC-R239", "why": "must PASS only, not in any break's mustFailIn (the lead's ruling on the ply-31 pair, #553, 25 Nov 2026, relayed to seat B1 after the 02:28Z run read BLIND here): since FB-07 (c0d52abf, 20 Nov, his \"Yes, full width\") the review's reason box is ONE line at this geometry and the eval graph is not drawn in it - TC-R239e reads 0 of 211-212 frames - so the pending reason already fills the box, the hold has no spare lines to keep, and no break of the hold can show here. The breaks are held to fail at kunal730 and kunal761 instead (02:42Z run: 4 red at each, 0 here)"},
   {"name": "kunal730", "match": "^kunal730 TC-R239"},
-  {"name": "short375", "match": "^short375 TC-R239"},
+  {"name": "short375", "match": "^short375 TC-R239", "why": "must PASS only, not in any break's mustFailIn (the lead's ruling on the ply-31 pair, #553, 25 Nov 2026, relayed to seat B1 after the 02:28Z run read BLIND here): since FB-07 (c0d52abf, 20 Nov, his \"Yes, full width\") the review's reason box is ONE line at this geometry and the eval graph is not drawn in it - TC-R239e reads 0 of 211-212 frames - so the pending reason already fills the box, the hold has no spare lines to keep, and no break of the hold can show here. The breaks are held to fail at kunal730 and kunal761 instead (02:42Z run: 4 red at each, 0 here)"},
   {"name": "kunal761", "match": "^kunal761 TC-R239"}
  ],
  "breaks": [
-  {"name": "pending-not-marked", "patch": "breaks/g26-band-pending-not-marked.diff", "why": "rev-why-txt no longer carries data-pending, so the band reads the one-line reason's ink and puts the graph into the box while the clause is coming", "mustFailIn": ["320x568", "kunal730", "short375", "kunal761"]},
-  {"name": "band-ignores-the-hold", "patch": "breaks/g26-band-ignores-the-hold.diff", "why": "the band's measure skips its data-pending branch, so the mark is set and nothing honours it", "mustFailIn": ["320x568", "kunal730", "short375", "kunal761"]},
-  {"name": "brilliant-not-flagged", "patch": "breaks/g26-band-brilliant-not-flagged.diff", "why": "reviewText's Brilliant answer while the refutation is due no longer says pending (the Great one still does), so plies 19 and 25 - both Brilliant - are not held", "mustFailIn": ["320x568", "kunal730", "short375", "kunal761"]}
+  {"name": "pending-not-marked", "patch": "breaks/g26-band-pending-not-marked.diff", "why": "rev-why-txt no longer carries data-pending, so the band reads the one-line reason's ink and puts the graph into the box while the clause is coming", "mustFailIn": ["kunal730", "kunal761"]},
+  {"name": "band-ignores-the-hold", "patch": "breaks/g26-band-ignores-the-hold.diff", "why": "the band's measure skips its data-pending branch, so the mark is set and nothing honours it", "mustFailIn": ["kunal730", "kunal761"]},
+  {"name": "brilliant-not-flagged", "patch": "breaks/g26-band-brilliant-not-flagged.diff", "why": "reviewText's Brilliant answer while the refutation is due no longer says pending (the Great one still does), so plies 19 and 25 - both Brilliant - are not held", "mustFailIn": ["kunal730", "kunal761"]}
  ],
  "timeoutSec": 1500
 }
