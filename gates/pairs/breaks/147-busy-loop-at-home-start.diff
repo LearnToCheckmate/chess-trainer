@@ -5,6 +5,6 @@ index d0080f5f..4cb9a86c 100644
 @@ -5385,4 +5385,5 @@ class CtErrorBoundary extends Component{
  export default function App(){return(<CtErrorBoundary><AppMain/></CtErrorBoundary>);}
  function AppMain(){
-+  useState(()=>{let _z=0;for(let _q=0;_q<8e7;_q++)_z+=Math.sqrt(_q);window.__g147z=_z;return 0;});
++  useState(()=>{let _z=0;for(let _q=0;_q<1.6e8;_q++)_z+=Math.sqrt(_q);window.__g147z=_z;return 0;});
    const [mode,setMode]=useState('learn');
    const [infoOpen,setInfoOpen]=useState(false);
