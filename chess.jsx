@@ -8844,7 +8844,7 @@ function AppMain(){
                very expression the `if` above filters on, so the card can only ever say "a mistake"
                or "a blunder". Instance 2 of
                jobs/the-sel-cls-split-migrated-selectors-but-not-every-label-consumer-2026-09-30. */
-            caps.push({fen:toFEN(_cpos),uci:u,label:_S,ts:Date.now(),last:lastOf(i),played,why:_cwhy,hint:_chint,...((out[i].altUci&&DRILL_ACCEPT.includes(out[i].altLabel))?{alt2:{uci:out[i].altUci,san:out[i].altSan,label:out[i].altLabel}}:{}),no:Math.floor((_pb+i)/2)+1/* #550 item (51): alt2 is the review's second move when it graded it Excellent or better. no is last, so gate 67's P0 anchor {fen,uci,label,ts} still reads the shape it pins */});
+            caps.push({fen:toFEN(_cpos),uci:u,label:_S,ts:Date.now(),last:lastOf(i),played,why:_cwhy,hint:_chint,...((out[i].altUci&&DRILL_ACCEPT.includes(out[i].altLabel))?{alt2:{uci:out[i].altUci,san:out[i].altSan,label:out[i].altLabel}}:{}),...(GRADES2?{wc:{g:_S,drop:Math.round((out[i].wdrop||0)*10)/10,v:1,src:'review'}}:{})/* #553 amber-553-review-cards-keep-their-grade: the review's own win-chance grade, so the Home re-check (ct_regrade550, which re-checks only a card with no wc) leaves a card the review chose by that very rule */,no:Math.floor((_pb+i)/2)+1/* #550 item (51): alt2 is the review's second move when it graded it Excellent or better. no is last, so gate 67's P0 anchor {fen,uci,label,ts} still reads the shape it pins */});
           }
           /* #550 item (18): EVERY position where he had a Brilliant and played something else goes to the brilliant-moves drill (clear or
              not: the marker's MISS_CLEAR is for the review only), the engine's best move as the answer, with the sentence the gate's own
@@ -8893,7 +8893,7 @@ function AppMain(){
         if(caps.length)setMyMistakes(prev=>{
           const fresh=new Map(caps.map(c=>[c.fen,c]));
           const up=prev.map(x=>{const f=fresh.get(x.fen);if(!f)return x;
-            const patch={};if(!x.why&&f.why)patch.why=f.why;if(!x.hint&&f.hint)patch.hint=f.hint;if(!x.line&&f.line)patch.line=f.line;
+            const patch={};if(!x.why&&f.why)patch.why=f.why;if(!x.hint&&f.hint)patch.hint=f.hint;if(!x.line&&f.line)patch.line=f.line;if(!x.wc&&f.wc)patch.wc=f.wc;/* #553: a card stored before the review carried its grade takes it on a re-review */
             return Object.keys(patch).length?{...x,...patch}:x;});
           const seen=new Set(prev.map(x=>x.fen));const add=caps.filter(c=>!seen.has(c.fen));
           const changed=add.length||up.some((x,i)=>x!==prev[i]);
