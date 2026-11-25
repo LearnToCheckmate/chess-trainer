@@ -325,7 +325,7 @@ tc(){ # <case> -> its TC id, or a loud placeholder
     H68) printf 'TC-SUITE-306' ;;
     H69) printf 'TC-SUITE-386' ;;
     H70) printf 'TC-SUITE-388' ;;  H71) printf 'TC-SUITE-389' ;;
-    H72) printf 'TC-SUITE-393' ;;  H73) printf 'TC-SUITE-394' ;;  H74) printf 'TC-SUITE-399' ;;  H75) printf 'TC-SUITE-400' ;;  H76) printf 'TC-SUITE-H76' ;;  H77) printf 'TC-SUITE-H77' ;;
+    H72) printf 'TC-SUITE-393' ;;  H73) printf 'TC-SUITE-394' ;;  H74) printf 'TC-SUITE-399' ;;  H75) printf 'TC-SUITE-400' ;;  H76) printf 'TC-SUITE-401' ;;  H77) printf 'TC-SUITE-402' ;;
     *)   printf 'TC-SUITE-UNMAPPED(%s)' "$1" ;;
   esac
 }

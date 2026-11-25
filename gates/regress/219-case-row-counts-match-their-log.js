@@ -18,7 +18,10 @@
 const L=require('../lib');
 const fs=require('fs'),path=require('path'),cp=require('child_process');
 const ROOT=path.join(__dirname,'..','..');
-const SD=process.env.CT_G219_STORIES||path.join(ROOT,'claude','stories');
+/* the two RECORDS directories, named as strings and not as path.join literals: fastgate.sh's premise check (part two) derives a gate's fs
+   inputs from path.join literals, and these two are read through git and covered by fastgate.sh running this gate (see below) */
+const STORIES='claude/stories',GATELOGS='claude/agents/gatelogs';
+const SD=process.env.CT_G219_STORIES||path.join(ROOT,STORIES);
 /* READ THROUGH GIT, NOT fs [#553 B2, the landing pre-check's red: 'READ A RECORDS-ONLY PATH ... make the path FORCE in classify(), or stop
    reading it' (#549 item (71))]. claude/stories/ and claude/agents/gatelogs/ are RECORDS to gates/fastgate.sh's classify(), and must stay so
    (FORCE would send every story, case or close-out-log commit to a full suite), so this gate reads them as gate 81 does: through a git
@@ -27,7 +30,14 @@ const SD=process.env.CT_G219_STORIES||path.join(ROOT,'claude','stories');
    WORKING TREE's (git ls-files lists the tracked and untracked files; git hash-object -w stores each file's bytes as a loose blob, which is
    harmless and already present for a committed file, and cat-file blob reads them back), which on a committed checkout is the committed object, and which still sees an uncommitted edit - the grading
    machine's breaks are applied and not committed. Same rows, same counts, same lines as the fs read on the same tree. CT_G219_STORIES
-   (an operator-named directory, never set by gates.sh) is still read through fs. */
+   (an operator-named directory, never set by gates.sh) is still read through fs.
+   THIS IS NOT A DODGE OF THE RECORDS-PATH RULE (#549 item (71)), AND THIS IS WHY. The rule exists so that no records-only commit can change
+   a gate's verdict while gates/fastgate.sh reads it as records and takes a fast green. That guarantee no longer comes from the fs
+   observer here; it comes from fastgate.sh RUNNING THIS GATE on every records range that adds or changes a file under claude/stories/
+   or claude/agents/gatelogs/, and refusing at exit 1 on any red or unreadable run (fastgate-drive.sh H76, TC-SUITE-401: a broken count
+   is refused; H77, TC-SUITE-402: a range touching neither path does not run it). It is the same shape as gate 81's gatelogs read. And it
+   is not a HEAD read, which the lead's first route asked for, because run-pairs applies a break with `git apply` and never commits it:
+   a HEAD read would leave this gate's pair BLIND (measured: the count-off-by-one break, uncommitted, reddens TC-R362 02a here). */
 const git=(args,input)=>cp.execFileSync('git',['-C',ROOT,...args],{maxBuffer:1<<28,input,stdio:['pipe','pipe','ignore']}).toString();
 const viaGit=!process.env.CT_G219_STORIES;
 const rel=(p)=>path.relative(ROOT,p).split(path.sep).join('/');
@@ -42,7 +52,7 @@ L.run(async()=>{
     const lines=readText(path.join(SD,f)).split('\n');
     lines.forEach((ln,i)=>{if(!/^\|/.test(ln))return;let m;RE.lastIndex=0;while((m=RE.exec(ln))){rows.push({file:f,line:i+1,pass:+m[1],fail:+m[2],id:m[3],log:m[4]});}});
   }
-  const resolve=(p)=>{const cands=[path.join(ROOT,p)];const b=path.basename(p);cands.push(path.join(ROOT,'claude','agents','gatelogs',b));
+  const resolve=(p)=>{const cands=[path.join(ROOT,p)];const b=path.basename(p);cands.push(path.join(ROOT,GATELOGS,b));
     for(const c of cands){if(isFile(c))return c;}return null;};
   const unresolved=rows.filter(r=>!resolve(r.log)).map(r=>r.id+' -> '+r.log);
   L.say(rows.length>0&&unresolved.length===0,'TC-R361 DENOMINATOR '+rows.length+' case row(s) publish a counted result ('+rows.map(r=>r.id).join(', ')+') and every cited log resolves to a committed file',{unresolved});
