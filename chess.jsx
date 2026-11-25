@@ -9426,6 +9426,7 @@ function AppMain(){
      is replayed; each game key is checked once per app session (regradeSeenRef); and the replays run in slices that yield to the browser
      between games, so the list paints at once and stays responsive. Same sheet, same answers. */
   const regradeSeenRef=useRef(new Set());
+  const regradeHoldRef=useRef(false);regradeHoldRef.current=inReview;   /* #553 SPD-07: the regrade pass below waits while a review is open */
   useEffect(()=>{
     if(mode!=='analyze'||homeScreen||regradeDoneRef.current||!ccGames||!ccGames.length)return;
     let dead=false;
@@ -9438,6 +9439,12 @@ function AppMain(){
       if(regradeSeenRef.current.has(k))continue;regradeSeenRef.current.add(k);
       if(_cacheEmpty){noCache++;continue;}
       if(performance.now()-_t0>12){await new Promise(r=>setTimeout(r,0));if(dead){regradeSeenRef.current.delete(k);return;}_t0=performance.now();}
+      /* #553 SPD-07 (docs/speed-check-2026-11-12: the summary of a stored game 27.2 s against 15.3 s on main at 4x): each replay below is one
+         ~130 ms task at 4x, and for his 465 stored reviews the pass ran for about a minute from Review's entry - straight through a review he
+         had just tapped, which then waited on the page thread (measured: 110 long tasks, 15 s, against 3 on #549). The pass now waits while a
+         review is running or open, as the estimate pass above already waits for analyzingRef; its sheet only shows on the list anyway. */
+      while(!dead&&(analyzingRef.current||regradeHoldRef.current))await new Promise(r=>setTimeout(r,200));
+      if(dead){regradeSeenRef.current.delete(k);return;}_t0=performance.now();
       let r=null;try{const _st=pgnStart(g.pgn);/* #549 item (66): a set-up game is regraded from its [FEN] header, under its own cache key */const sans=_st.err?null:parsePGN(g.pgn);const res=sans&&sans.length?loadSANs(sans,_st.game):null;if(res){res.plyBase=_st.game?_st.plyBase:0;}if(res&&res.plies.length)r=regradeGame(res,all[revCacheKey(evalCacheKey(res.plies,_st.fen),st.dp)]||null,/* #553: the pass this tally was graded from (st.dp, its level), not always the Quick one */gameInfo(g).userColor,undefined,gradeVerOf(st));}catch(e){r=null;}
       if(!r){noCache++;continue;}
       if(!r.changes.length){recordGameStats(k,{...st});continue;}   // restamp: the same tally under the new version

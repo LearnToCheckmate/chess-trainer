@@ -1,0 +1,29 @@
+{
+ "job": "speed-check-regressions-2026-11-12",
+ "about": "SPD-07: the regrade pass waits while a review runs or is open, so a stored game's summary does not wait on the page thread. Graded by gate 147 TC-R439 at kunal761 (CT_G147_ONLY=review runs that block alone). NOT COVERED: 320x568 (one geometry; the pass is not layout), and the new-against-old blocks of the same gate (TC-R223, its own pairs file).",
+ "gate": "gates/regress/147-speed-with-his-data.js",
+ "env": {
+  "CT_G147_ONLY": "review"
+ },
+ "checks": [
+  "TC-R439 "
+ ],
+ "build": "always",
+ "situations": [
+  {
+   "name": "kunal761",
+   "match": "^TC-R439 "
+  }
+ ],
+ "breaks": [
+  {
+   "name": "the-regrade-pass-runs-through-the-review",
+   "patch": "breaks/147-the-regrade-pass-runs-through-the-review.diff",
+   "why": "the regrade pass no longer waits for a running or open review, so its replays of his stored games hold the page thread through the review again",
+   "mustFailIn": [
+    "kunal761"
+   ]
+  }
+ ],
+ "timeoutSec": 1500
+}
