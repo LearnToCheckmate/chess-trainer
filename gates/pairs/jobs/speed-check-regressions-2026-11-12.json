@@ -1,0 +1,31 @@
+{
+ "job": "speed-check-regressions-2026-11-12",
+ "about": "SPD-10: the Puzzles roadmap's active tier glow pulses four times and rests. Graded by gate 242 at kunal761 and 320x568. NOT COVERED: SPD-04..07 (still open); other screens' animations.",
+ "gate": "gates/regress/242-nothing-pulses-for-ever-at-rest.js",
+ "checks": [
+  "^TC-R436 "
+ ],
+ "build": "always",
+ "situations": [
+  {
+   "name": "kunal761",
+   "match": "^TC-R436 kunal761 "
+  },
+  {
+   "name": "320x568",
+   "match": "^TC-R436 se "
+  }
+ ],
+ "breaks": [
+  {
+   "name": "the-roadmap-glow-pulses-for-ever",
+   "patch": "breaks/242-the-roadmap-glow-pulses-for-ever.diff",
+   "why": "the glow goes back to an infinite repeat, so the roadmap keeps recalculating styles at rest",
+   "mustFailIn": [
+    "kunal761",
+    "320x568"
+   ]
+  }
+ ],
+ "timeoutSec": 600
+}

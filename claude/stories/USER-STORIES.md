@@ -2968,3 +2968,8 @@ As a player reviewing my own games, every explanation is right about the move I 
 As a player, I can read the 'New here? Start here' label on Home and see where every text box and picker begins and ends.
 - The 'New here? Start here' label reads at least 4.5:1 on its card. (TC-R425a)
 - Every text box and picker edge reads at least 3:1 against the card behind it, with no box changing size. (TC-R425b)
+
+### US-R252 A screen I leave alone stops animating
+*Added #553 B3, jobs/speed-check-regressions-2026-11-12 (SPD-10 of docs/speed-check-2026-11-12). Amber: flags/amber-553-roadmap-glow-stops.*
+As a player who leaves the Puzzles roadmap open, the active tier's glow pulses a few times on arrival and then rests, so the phone is not kept busy.
+- The glow repeats at most four times and has stopped 11 seconds after the roadmap opens. (TC-R436)
