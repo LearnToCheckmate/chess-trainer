@@ -1,0 +1,9 @@
+--- a/chess.jsx
++++ b/chess.jsx
+@@ -8910,5 +8910,5 @@
+     const _sideStats=(side)=>{const c={};GRADE_LADDER.forEach(g=>{c[g[0]]=0;});   /* #549 item (1): the buckets come from the one ladder, not a hand-typed list */let sl=0,n=0;const _accs=[],_idxs=[];/* #440: the game's Win% series from WHITE's point of view at every position, length plies+1. It is the
+    input to the volatility weighting, and it spans the WHOLE game rather than one side's moves, because a
+-   move's weight comes from how sharp the position was, which both players share. */const _winsW=out.length?[winPct((out[0].evalBefore||0)*100)].concat(out.map(o=>winPct((o.evalAfter||0)*100))):[];out.forEach((o,i)=>{const mc=res.positions[i].turn;if(mc!==side)return;const L=effLabel(o.cls,i,bookN);if(L==='Book'){c.Book++;return;}if(Object.prototype.hasOwnProperty.call(c,L))c[L]++;sl+=Math.max(0,o.loss||0);n++;_accs.push(typeof o.macc==='number'?o.macc:moveAcc(o.wdrop||0));_idxs.push(i);});const acpl=n?sl/n:0;
++   move's weight comes from how sharp the position was, which both players share. */const _winsW=out.length?[winPct((out[0].evalBefore||0)*100)].concat(out.map(o=>winPct((o.evalAfter||0)*100))):[];out.forEach((o,i)=>{const mc=res.positions[i].turn;if(mc!==side)return;const L=effLabel(o.cls,i,bookN);if(L==='Book'){c.Book++;return;}if(L!=='Excellent'&&Object.prototype.hasOwnProperty.call(c,L))c[L]++;sl+=Math.max(0,o.loss||0);n++;_accs.push(typeof o.macc==='number'?o.macc:moveAcc(o.wdrop||0));_idxs.push(i);});const acpl=n?sl/n:0;
+     /* #491 R45 RESOLUTION, and the two halves of this line were built four days apart by two runs that
+        could not see each other. #440 (this pile) replaced the ACCURACY aggregation; #464 (already on main)

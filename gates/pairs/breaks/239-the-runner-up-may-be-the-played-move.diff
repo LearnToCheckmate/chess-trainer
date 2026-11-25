@@ -1,0 +1,9 @@
+--- a/chess.jsx
++++ b/chess.jsx
+@@ -3638,5 +3638,5 @@
+       else if((_selL==='Mistake'||_selL==='Blunder')&&_bm>=200&&_pm<=(_bm-160)&&_pm<130)cls={label:'Miss',c:'#f08a5d',i:'×'};}
+     let altSan='',altDrop=null,altUci='',altLabel=null;
+-    try{const au=auI;if(au){const am=uciToMove(pos,au);if(am&&!(bestMv&&am.fr===bestMv.fr&&am.fc===bestMv.fc&&am.tr===bestMv.tr&&am.tc===bestMv.tc)&&!(am.fr===pl.fr&&am.fc===pl.fc&&am.tr===pl.tr&&am.tc===pl.tc)){altSan=toSAN(pos,am,applyMove(pos.board,am));altUci=au;}}
++    try{const au=auI;if(au){const am=uciToMove(pos,au);if(am&&!(bestMv&&am.fr===bestMv.fr&&am.fc===bestMv.fc&&am.tr===bestMv.tr&&am.tc===bestMv.tc)){altSan=toSAN(pos,am,applyMove(pos.board,am));altUci=au;}}
+       if(ev2!=null){const _b=mover==='w'?before:-before,_s2=mover==='w'?ev2:-ev2;altDrop=Math.max(0,Math.round(_b-_s2));}
+       /* #550 item (51): the review's OWN grade of its second line, on the same win-probability ladder the played move is graded on */

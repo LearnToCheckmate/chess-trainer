@@ -31,6 +31,9 @@
 // mate', 'White could play 27.Rad1, and taking it with ...Qxd1 loses Black's queen to 28.Qxd1', 'Black plays ...Bg4, threatening ...Be2').
 // So a quoted move may also be legal before the ply, after it, as a threat (the same side again) or stopped threat, or on a line that
 // continues a quoted move - and in each it must carry the number and side that position has.
+// PINNED TO THE PHRASE SINCE THE MERGE (the lead's ruling on 6ebc5b9a): each of those positions is allowed only after the exact words
+// measured to introduce it (19 rows, PRE / POST / CONN below, each with a sentence that prints it), and a TC-R422 line holds that every row is
+// met in the corpus. The structural form it replaces let K2 through at 38 of its misnumbered moves; the pinned form reddens 157.
 // ON THE REAL TREE: 13 pass, 0 fail on trial 3b7d2a2cc4bb (chess.jsx fdc6353e3c7f, branch at d6e7af51 on 5ae809ee), 24 Nov 2026, 4 min 17 s
 // (the 39 imports 122 s, the sentences about 2 min in node) - one run alone, under the lead's 15-minute line.
 // CONTROL-RECORD: d6e7af51 2026-11-24 total=13 red=6 scope=trial:b116fa772958 how=#553 B3 K0 the seam removed (all three window.__ctReview writes in chess.jsx): TC-R420 PRECONDITION 'readReview null: the seam is absent' at 0 of 39, the cache-path line and every DENOMINATOR red; the four property lines PASS over nothing, which is why each has its own denominator
@@ -38,6 +41,7 @@
 // CONTROL-RECORD: d6e7af51 2026-11-24 total=13 red=1 scope=env:CT_G239_FROM=g239dump2.json how=(CT_SRC the K2 chess.jsx, md5 b8ffe9e533c2) #553 B3 K2 a slip's better move quoted under the next move number (rtN num+1 in reviewText): TC-R422 red, 38 of 4782 (the rest stay legal under a later number, so the line is a floor, not a census). Node half alone: the break touches only the sentence, which this gate reads from CT_SRC
 // CONTROL-RECORD: d6e7af51 2026-11-24 total=13 red=1 scope=env:CT_G239_FROM=g239dump2.json how=(CT_SRC the K3 chess.jsx, md5 9a4eacbe8019) #553 B3 K3 rtStand names the wrong side: TC-R423 red at 1604 of 1687 standing clauses. Node half alone, for K2's reason
 // CONTROL-RECORD: d6e7af51 2026-11-24 total=13 red=1 scope=trial:171bfd424d60 how=#553 B3 K4 the summary's _sideStats drops Excellent from the counts (the missing Excellent row the job's brief names for C4): TC-R424 red at 78 of 78 sides
+// CONTROL-RECORD: 6ebc5b9a 2026-11-24 total=13 red=2 scope=env:CT_G239_FROM=g239dump2.json how=(CT_SRC the K2 chess.jsx, md5 b8ffe9e533c2) #553 B3 K2 again over the phrase-pinned C2: TC-R422 red at 157 of 4782, and the rows line red (the two 'other try' rows it misnumbers are met by nothing); the real tree's dump 13/0 (the browser run adds lib's font-pin line, 14)
 // CT_G239_GAMES=n runs the first n games only and SAYS so (controls); gates.sh never sets it. CT_G239_DUMP=<file> writes the reviews read.
 const L=require('../lib');const RV=require('../drive/review');const E=require('../engine-extract');
 const fs=require('fs'),path=require('path');
@@ -57,25 +61,65 @@ const OTHER=[/([^\s:]+), the next best, throws the win away\./g,/Nothing else ca
 const stripNo=(t)=>String(t).replace(/^(?:\d+)?(?:\.\.\.|…|\.)/,'');
 // a move as reviewText quotes one (rtN, rtRun): '12.Nxe5' (White), '12...Qa5' or '12…Qa5' (Black), '...Qa5' (Black, the very next move,
 // no number). rtSay drops the + and #. A bare White move with no number is not parsed: it cannot be told from prose.
+// C2's ALLOWANCES ARE PINNED TO THE EXACT PHRASINGS MEASURED IN THE CORPUS, ONE ROW EACH, AND EVERY ROW MUST BE MET AT LEAST ONCE (TC-R422
+// rows line). A NEW HYPOTHETICAL PHRASING IS ADDED HERE BY HAND, AS ITS OWN ROW WITH THE SENTENCE THAT PRINTS IT QUOTED BESIDE IT - NEVER BY
+// WIDENING A ROW TO A PATTERN - so a real illegal move cannot slip in under a broadened rule (the lead's ruling, #553). A quoted move no row
+// covers is checked in the game position its number names only.
 const QUOTED=/(?:^|[\s(“"'])(\d+)?(\.\.\.|…|\.)((?:O-O(?:-O)?)|(?:[KQRBN][a-h]?[1-8]?x?[a-h][1-8])|(?:[a-h](?:x[a-h])?[1-8](?:=[QRBN])?))(?![\w])/g;
-// THE POSITIONS A QUOTED MOVE MAY LIVE IN, each with the ply index its number and side must agree with. Measured over the corpus (#553):
-// a sentence quotes the game's own moves, the move before the ply (the alternative, 'X was the steadier move'), the reply after it ('White
-// could play X'), a THREAT ('It threatens X', the mover's next move as if the opponent passed: the position after the ply, the mover to
-// move), a threat STOPPED ('It stops X', the opponent's move as if the mover passed), and a LINE that continues one of those ('and taking
-// it with ...Y loses the queen to Z'): each quoted move that is legal starts a chain the next quoted move may continue.
-const flip=(P)=>P?Object.assign({},P,{turn:P.turn==='w'?'b':'w',ep:null}):null;
-const noOf=(rv,idx)=>Math.floor((E.revBase(rv)+idx)/2)+1;
-function quotedLegal(rv,ai,txt){   // -> {n, bad:[...]}
-  const P=rv.positions,cands=[[P[ai],ai],[P[ai+1],ai+1],[flip(P[ai+1]),ai+2],[flip(P[ai]),ai+1]].filter(c=>c[0]);
-  let chain=[];const bad=[];let n=0;QUOTED.lastIndex=0;let q;
+const PIECE='(?:king|queen|rook|bishop|knight|pawn)';
+// WHERE A QUOTED MOVE MAY LIVE BESIDES THE GAME POSITION ITS NUMBER NAMES, by the words around it. Each row is a phrasing measured in
+// the corpus (#553), with a sentence that prints it. 'before' = the position before the ply (another move the mover could have played),
+// 'after' = the position after it (the reply), 'threat' = after the ply with the mover to move again, 'stopped' = before the ply with
+// the opponent to move (a threat the ply stops).
+const PRE=[
+  ['reply: best reply is', /best reply is the PIECE move $/,['after']],                       // "Black’s best reply is the pawn move ...bxc6."
+  ['reply: could play', /could play (?:the PIECE move )?$/,['after']],                          // "White could play the rook move 27.Rad1, and taking it with ..."
+  ['reply: plays', /plays (?:the PIECE move )?$/,['after']],                                     // "White plays 11.Bxf6, threatening 12.Bxg7."
+  ['reply: taken straight back', /can be taken straight back: $/,['after']],                    // "White’s rook takes a rook but can be taken straight back: ...Qxf2 with check."
+  ['reply: taken for nothing', /can be taken for nothing: $/,['after']],                        // "Black’s rook on g8 can be taken for nothing: 11.Bxg8."
+  ['reply: allows mate', /allows mate in two: $/,['after']],                        // "It allows mate in two: 32.Rd8 with check, Rxd8 33.Rxd8 mate."
+  ['reply: is mate next', /only legal move, and $/,['after']],                                  // "The only legal move, and 33.Rxd8 is mate next."
+  ['reply: mates at once', /mates at once: $/,['after']],                                       // "White’s blunder. Black mates at once: ...Rd1 mate."
+  ['threat: it threatens', /[Ii]t threatens $/,['threat']],                                     // "It threatens 4.Qxf7 mate, and brings a bishop out."
+  ['threat stopped: it stops', /[Ii]t stops $/,['stopped']],                                    // "It stops 4.Qxf7 mate, and attacks White’s queen"
+  ['other try: could take', /could take (?:White|Black)’s PIECE: $/,['before']],               // "Black’s pawn could take White’s pawn: 16...bxa4."
+].map(([k,re,kinds])=>[k,new RegExp(re.source.replace(/PIECE/g,PIECE)),kinds]);
+const POST=[
+  ['other try: was the steadier move', /^(?: with check)? was the steadier move\./,['before']], // "26...h5 was the steadier move."
+  ['other try: was better', /^(?: with check)? was better: /,['before']],                       // "33...Rf5 was better: it attacks White’s knight on e5."
+  ['other try: was a little stronger', /^(?: with check)? was a little stronger\./,['before']], // "5.Ne2 was a little stronger."
+  ['other try: dropTxt', /^(?: with check)?(?:, the next best, throws| was \d| was the only other try| was as good on paper)/,['before']],
+];
+// A LINE: the next quoted move continues the previous one when the words between them are one of these (measured).
+const CONN=[
+  ['line: and taking it with', /^(?: with check)?, and taking it with $/,'chain'],               // "27.Rad1, and taking it with ...Qxd1 loses Black’s queen to 28.Qxd1"
+  ['line: loses ... to', new RegExp('^(?: with check)? loses (?:White|Black)’s '+PIECE+' to $'),'chain'],
+  ['line: threatening', /^(?: with check)?, threatening $/,'chainthreat'],                       // "Black plays ...Bg4, threatening ...Be2."
+  ['line: it threatens', /^(?: with check)?: it threatens $/,'chainthreat'],                     // "White plays the pawn move 16.b4: it threatens 17.Ne5"
+];
+function quotedLegal(E,rv,ai,txt){
+  const cs=(s)=>E.cleanSAN(String(s||''));
+  const legal=(pos)=>{try{return new Set(E.getLegal(pos).map(m=>cs(E.toSAN(pos,m,E.applyMove(pos.board,m)))));}catch(e){return new Set();}};
+  const flip=(P)=>P?Object.assign({},P,{turn:P.turn==='w'?'b':'w',ep:null}):null;
+  const noOf=(idx)=>Math.floor((E.revBase(rv)+idx)/2)+1;
+  const P=rv.positions,K={before:[P[ai],ai],after:[P[ai+1],ai+1],threat:[flip(P[ai+1]),ai+2],stopped:[flip(P[ai]),ai+1]};
+  const use={},bad=[];let n=0,prev=null;QUOTED.lastIndex=0;let q;
   while((q=QUOTED.exec(txt))){const num=q[1]?+q[1]:null,side=q[2]==='.'?'w':'b',san=cs(q[3]);
-    if(!num&&side==='w')continue;   // a lone '.' before a move is a sentence end, not a quote
-    n++;const k=num?((num-1)*2+(side==='b'?1:0)-E.revBase(rv)):null;
-    const all=cands.concat(chain).concat(k!=null&&P[k]?[[P[k],k]]:[]);
-    const fit=all.filter(([pos,idx])=>pos.turn===side&&(num==null||noOf(rv,idx)===num)&&legalSans(pos).has(san));
-    if(!fit.length){bad.push({quoted:q[0].trim(),at:k,said:txt.slice(Math.max(0,q.index-40),q.index+40)});chain=[];continue;}
-    chain=[];for(const [pos,idx] of fit){try{const mv=E.getLegal(pos).find(m=>cs(E.toSAN(pos,m,E.applyMove(pos.board,m)))===san);if(mv){const nx=E.makeMove(pos,mv);chain.push([nx,idx+1],[flip(nx),idx+2]);}}catch(e){}}}   // the line goes on, or the quoted move THREATENS the next one (the same side again)
-  return {n,bad};}
+    if(!num&&side==='w')continue;
+    n++;const start=q.index+(q[0].length-q[0].trimStart().length),end=q.index+q[0].length;
+    const k=num!=null?((num-1)*2+(side==='b'?1:0)-E.revBase(rv)):null;
+    const cand=[];
+    const pre=txt.slice(0,start),post=txt.slice(end);
+    for(const [name,re,kinds] of PRE)if(re.test(pre))for(const kd of kinds)if(K[kd][0])cand.push([name,K[kd][0],K[kd][1]]);
+    for(const [name,re,kinds] of POST)if(re.test(post))for(const kd of kinds)if(K[kd][0])cand.push([name,K[kd][0],K[kd][1]]);
+    if(prev){const mid=txt.slice(prev.end,start);for(const [name,re,how] of CONN)if(re.test(mid))for(const [nx,idx] of prev.after)cand.push([name,how==='chain'?nx:flip(nx),how==='chain'?idx:idx+1]);}
+    if(k!=null&&P[k])cand.push(['game: the position its number names',P[k],k]);
+    const fit=cand.filter(([nm,pos,idx])=>pos&&pos.turn===side&&(num==null||noOf(idx)===num)&&legal(pos).has(san));
+    if(!fit.length){bad.push({quoted:q[0].trim(),at:k,said:txt.slice(Math.max(0,start-50),end+40)});prev=null;continue;}
+    const nm=fit[0][0];use[nm]=(use[nm]||0)+1;
+    const after=[];for(const [nm2,pos,idx] of fit){try{const mv=E.getLegal(pos).find(m=>cs(E.toSAN(pos,m,E.applyMove(pos.board,m)))===san);if(mv)after.push([E.makeMove(pos,mv),idx+1]);}catch(e){}}
+    prev={end,after};}
+  return {n,bad,use};}
 const STAND=/(?:^|\. )(?:(White|Black) is (winning|clearly better|a little better)|(The game is about even))\./;
 const cat=(t)=>{const m=STAND.exec(t||'');if(!m)return null;if(m[3])return {side:0,k:'even'};return {side:m[1]==='White'?1:-1,k:m[2]==='winning'?'winning':m[2]==='clearly better'?'clear':'little'};};
 // gate 234's category rule (the bar there, the recorded engine number here), in pawns, White's side; a mate is 99
@@ -131,7 +175,7 @@ L.run(async()=>{
   // ---- C1 ----
   let c1Alt=0,c1Drop=0;const c1Bad=[];
   // ---- C2 ----
-  let c2Named=0,c2Quoted=0;const c2Bad=[];
+  let c2Named=0,c2Quoted=0;const c2Bad=[],c2Use={};
   // ---- C3 ----
   let c3With=0;const c3Bad=[];const c3Kinds=new Set();
   // ---- C4 ----
@@ -149,7 +193,7 @@ L.run(async()=>{
       const L0=legalSans(pos);
       for(const k of ['altSan','bestSan'])if(a[k]){c2Named++;if(!L0.has(cs(a[k])))c2Bad.push({gi:x.gi,ply:noTxt+pl.san,field:k,val:a[k]});}
       // C2: every move a sentence quotes is legal in a position the sentence can be talking about, under the number and side it prints
-      {const r=quotedLegal(rv,ai,txt);c2Quoted+=r.n;for(const z of r.bad)c2Bad.push(Object.assign({gi:x.gi,ply:noTxt+pl.san},z));}
+      {const r=quotedLegal(E,rv,ai,txt);c2Quoted+=r.n;for(const k in r.use)c2Use[k]=(c2Use[k]||0)+r.use[k];for(const z of r.bad)c2Bad.push(Object.assign({gi:x.gi,ply:noTxt+pl.san},z));}
       // C3: the standing clause against the recorded engine number after the move
       const c=cat(txt);if(c){c3With++;c3Kinds.add(c.k);const v=cpToPawns(evW[ai+1]);const why=disagree(c,v);if(why)c3Bad.push({gi:x.gi,ply:noTxt+pl.san,why,said:txt.slice(0,90)});}
     }
@@ -165,6 +209,8 @@ L.run(async()=>{
   L.say(c1Alt>=2700&&c1Drop>=600,'TC-R421 DENOMINATOR the data names '+c1Alt+' other tries (altSan, bestSan) and the sentences print '+c1Drop+' comparisons',{c1Alt,c1Drop});
   L.say(c1Bad.length===0,'TC-R421 (C1) no ply of '+plies+' offers the played move as its own alternative, in the data or in the sentence ('+c1Bad.length+')',c1Bad.slice(0,4));
   L.say(c2Named>=2700&&c2Quoted>=1100,'TC-R422 DENOMINATOR '+c2Named+' named other tries and '+c2Quoted+' numbered moves quoted in the sentences',{c2Named,c2Quoted});
+  {const rows=PRE.concat(POST).concat(CONN).map(r=>r[0]),unmet=rows.filter(k=>!c2Use[k]);
+   L.say(NG<GAMES.length||unmet.length===0,'TC-R422 every allowance row of C2 is met in the corpus, so none stands unmeasured ('+(rows.length-unmet.length)+' of '+rows.length+(unmet.length?'; unmet: '+unmet.join(', '):'')+')',c2Use);}
   L.say(c2Bad.length===0,'TC-R422 (C2) every move named is legal where it is named ('+c2Bad.length+' of '+(c2Named+c2Quoted)+' are not)',c2Bad.slice(0,4));
   L.say(c3With>=1350&&c3Kinds.has('winning')&&(c3Kinds.has('clear')||c3Kinds.has('little')),'TC-R423 DENOMINATOR '+c3With+' plies carry a standing clause ('+[...c3Kinds].join(', ')+')',{c3With});
   L.say(c3Bad.length===0,'TC-R423 (C3) the standing clause never disagrees in category with the recorded engine number after the move ('+c3Bad.length+' of '+c3With+')',c3Bad.slice(0,4));
