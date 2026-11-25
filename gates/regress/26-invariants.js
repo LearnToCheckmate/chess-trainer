@@ -681,22 +681,8 @@ const ICON_PIN={320:[16,19,20,21,21.1,22,23.5,24,24.5,25,25.9,26,26.6,27,28,29.3
                   // #550 a21: 375x568 is under the header row's 700px, so no 23 (t76)
                   // 16 added at #550 H01: the compact Home's 44px dev buttons' glyphs, now on the first screen at 375x730 (they were below the fold)
                 390:[17,18,19,20,21,22,25,27,28]};   // 23 dropped at #549 A3-R3: it was the lesson footer's pre-FootBtn glyph, measured gone at 390 on bb925b8d210d
-// TC-INV-03b's PINNED SETS [#549 item (74)]: the icon heights over the unswept states listed at TC-INV-03b, measured on this run's
-// trial bundle by this gate. Same width keying as ICON_PIN, and an unpinned width reports rather than asserts. MEASURED on
-// aac698bd851a (#549 trial), identical at se, kunal730 and short375, and at kunal761 and 390 on bb925b8d210d once ROWS re-probes an off-screen centre (below): 17 the sheets' close x (home-newhere, feedback, menu, Look),
-// 22 the roadmap's tab bar, 26 the Play setup opponent tiles (Online, Computer, Pass & Play), 30 'More opponents', 40 the bot
-// avatars and the menu's coach hair chips. Of antagonist B's five heights 26 and 40 remain; 26.8 (home-newhere) and 36.3
-// (feedback-home) no longer occur on this bundle, and 112 (the roadmap illustration) is out by the 48 x 48 svg cap.
-// #550 helper B RE-PINNED for Kunal's q44 (08f5354): the 30 was 'More opponents' (bot-row-more), the chevron painted only while the bot row
-// scrolled sideways. The opponents now wrap on their own 'Choose your opponent' screen, so the row never overflows and the chip never renders -
-// the 30 left with the thing it measured, not with a drifted glyph. Measured by app A on a207ea6 (efa1ab05dd72): 17,20,22,26,40 at se,
-// kunal730 and short375. Was {320:[17,20,22,26,30,40], 375:[17,20,22,26,30,40]}.
-const ICON_PIN_EXTRA={320:[17,20,22,24.5,25.9,26,32,40], 375:[17,20,22,24.5,25.9,26,40]};   /* RE-PINNED [batch 13 red repair; 1cc57a16, the menu Share row as RowBtn icons]: 24.5 the share icon, 25.9 the feedback bubble (a developer's row), measured on 6e02e303 (trial 0075dfcc49e3) at se, kunal730 and short375. WAS {320:[17,20,22,26,32,40], 375:[17,20,22,26,40]} */   /* #550 helper B, Kunal's q50 (1fe66f4): at 320x568 the Look picker's chips lose their names, so the Symbol set's chip is a bare 32px ♞ glyph - an icon button now, by his design; 375 keeps its names, so its set is unchanged */   /* #550 re-keyed: formatting audit FMT-A-02/A-05/B-03, Kunal's pick 12 Nov (one top row; X left and one ⋯ in the lesson bar; a42 short-phone fold; 20 is the Play setup sheet's new top-right ☰ */
-// TC-INV-03c [#550 test-system helper A; jobs/tc-inv-03b-does-not-visit-choose-your-opponent-2026-11-14]: since q44 the bot row lives only
-// on 'Choose your opponent', which TC-INV-03b's play-setup state never reached (P.states['setup'] taps Computer, then Back). The state
-// setup-bots stays there and joins EXTRA; and because a union over all the unswept states would hide a height that some OTHER state
-// already uses (40 is also the menu's coach chips), that screen's own set is pinned too. MEASURED on 17c48e4 (see the CONTROL-RECORD).
-const ICON_PIN_BOTS={320:[20,40], 375:[20,40]};   /* 20 the top bar menu button, 40 the bot faces (BotFace); measured at se, kunal730, short375 and kunal761 (width 375, so this pin; CT_INV_GEOS=kunal761 126 pass 0 fail) on 2031e0351c9d */
+// TC-INV-03b's AND TC-INV-03c's PINNED SETS (ICON_PIN_EXTRA, ICON_PIN_BOTS) moved with their blocks to
+// gates/regress/247-invariants-unswept-states-every-ply-and-the-band.js at #553 (B2), where they are read.
 
 // ── THE TWO POPULATION PINS THE ANTAGONIST'S VACUITY PROOF FORCED ──────────────────────────────────────────────
 // V1: the headline assertion ("no unpinned row spreads more than 1px") was checked against ZERO rows on Home at
@@ -1494,13 +1480,7 @@ L.run(async()=>{
     WALK.push([name,go]);
     if(NC_DUP.includes(name)) WALK.push([name,go]);
   }
-  // CT_INV_ONLY=band runs ONLY the TC-R239 block at the foot of this run (the grading machine's pair for
-  // jobs/gate-26-goes-red-at-ply-31-...-2026-11-18 uses it, about a minute a geometry). Opt-in, printed loudly, never set by gates.sh, and
-  // like CT_INV_GEOS it skips the default-run guards, so such a run is never a coverage run.
-  const ONLY=process.env.CT_INV_ONLY||'';
-  if(ONLY&&ONLY!=='band'){L.say(false,'CT_INV_ONLY names a block this gate has ("band"), so a typo cannot read as a narrowed pass',{ONLY});}
-  if(ONLY) L.note('!! CT_INV_ONLY='+ONLY+' - ONE BLOCK OF THIS GATE, NOT a coverage run: the screen walk and every other block are skipped.');
-  if(!ONLY){
+  {
   for(const g of GEOS){
     const visits=new Map();
     // TC-INV-04c's MEMBER AT kunal730 [#553 B2; Amber: flags/amber-553-home-phone-fit-and-spread]. Until #553 the only ellipsed text the
@@ -2046,147 +2026,10 @@ L.run(async()=>{
     L.say(ivSignalled>0, g+': TC-INV-04c measured a non-empty population of ellipsed (signalled) cuts - over none, "no unreadable label" would be an empty set, not a reading',{signalledMeasured:ivSignalled});
     await b.close();
   }
-  // TC-INV-03b [#549 item (74); jobs/invariant-2-and-3-sheets-and-unswept-screens, part (3)]. INVARIANT 3's DRIFT GUARD ONLY
-  // GUARDED THE SCREENS IN SCREENS. antagonist B (#423) ran this file's own icon rule over seventeen unswept states and found five
-  // heights outside the pinned set (26 Play setup, 26.8 home-newhere, 36.3 feedback-home, 40 menu coach-hair chips, 112 the
-  // roadmap illustration), so a new icon size could arrive anywhere outside the walk and TC-INV-03 stayed green. These states
-  // are swept HERE, for invariant 3 ONLY, each from a fresh launch: adding them to SCREENS would put them under every per-screen
-  // row, occlusion and pin assertion, which part (1) of the job ties to the ink redesign (jobs/invariant-2-measures-the-box-not-
-  // the-ink) - under the box method the menu sheet's rows all read spread 0, so they would add counts and no assertion that
-  // can fire. The set asserted is the set over THESE states alone, not unioned with TC-INV-03's: a union would let a height
-  // already used somewhere in the walk appear on a sheet unseen. Non-empty is its own line first (a sweep that reached nothing
-  // would match an empty pin by construction). A width with no pinned set is reported, never asserted, exactly as TC-INV-03.
-  {
-    const H=require('../drive/home'), M=require('../drive/menu');
-    const EXTRA=[['play-setup',P.states['setup']],['home-newhere',H.states['home-newhere']],['feedback-home',M.states['feedback-home']],
-                 ['menu-discover',M.states['menu-discover']],['menu-coach',async(b)=>{await M.states['menu-discover'](b);await M.openCoach(b);}] /* #550 build-menu-one-screen: the Coach look portraits open in place under their row near the TOP of the sheet, so menu-bottom (scrolled to the end) no longer has them on screen */,['menu-bottom',M.states['menu-bottom']],['menu-look',M.states['menu-look']],
-                 ['pz-roadmap',PZ.states['roadmap']],['setup-bots',P.states['setup-bots']]];
-    for(const g of GEOS){
-      const set={}; const reached=[]; const menuRows=[]; const bots={};
-      for(const [name,go] of EXTRA){
-        const b=await L.launch({geo:g,store:R.SEED,name:'inv3b-'+name+'-'+g}); await b.open();
-        try{ await go(b); await b.settle(450);
-          const iv=await b.page.evaluate(ROWS,{probeVisible:true}); reached.push(name);
-          if(/^menu-/.test(name)) for(const r of iv.rows) menuRows.push({state:name,r});
-          for(const k of Object.keys(iv.iconH)){ if(!set[k])set[k]=new Set(); iv.iconH[k].forEach(x=>set[k].add(name+':'+x)); if(name==='setup-bots')bots[k]=iv.iconH[k]; }
-        }catch(e){ L.say(false,g+' TC-INV-03b '+name+': the state could not be reached, so its icons are UNRUN, not green',String(e.message||e).slice(0,140)); }
-        await b.close();
-      }
-      const keys=Object.keys(set).map(Number).sort((a,b)=>a-b);
-      L.note('    TC-INV-03b, '+g+': '+keys.length+' distinct ICON glyph heights over '+reached.length+' unswept states ('+reached.join(', ')+'): '+keys.join(', '));
-      for(const k of keys) L.note('        '+k+'px  '+[...set[String(k)]].slice(0,4).join(' ; '));
-      L.say(reached.length===EXTRA.length&&keys.length>0, g+' TC-INV-03b PRECONDITION every one of the '+EXTRA.length+' unswept states was reached and between them carried at least one icon',{reached,heights:keys.length});
-      const want=ICON_PIN_EXTRA[widthOf(g)];
-      if(want){
-        L.say(JSON.stringify(keys)===JSON.stringify(want), g+': TC-INV-03b the set of distinct ICON glyph heights over the unswept sheets and states (Play setup, home-newhere, feedback, the menu sheet top, bottom and Look picker, the puzzle roadmap) is exactly what #549 measured at '+widthOf(g)+'px wide - a drift guard over the states TC-INV-03 does not walk, not a target',
-          {width:widthOf(g), want, got:keys, added:keys.filter(x=>!want.includes(x)), gone:want.filter(x=>!keys.includes(x))});
-      } else L.note('    TC-INV-03b, '+g+': width '+widthOf(g)+' carries NO pinned set, so this is REPORTED and NOT asserted here');
-      {const bk=Object.keys(bots).map(Number).sort((a,b)=>a-b);const bw=ICON_PIN_BOTS[widthOf(g)];
-        L.note('    TC-INV-03c, '+g+': Choose your opponent carries '+bk.length+' distinct ICON glyph heights: '+bk.map(k=>k+' ('+bots[String(k)].slice(0,3).join(' ; ')+')').join(', '));
-        if(bw) L.say(reached.includes('setup-bots')&&JSON.stringify(bk)===JSON.stringify(bw), g+': TC-INV-03c the distinct ICON glyph heights on the Choose your opponent screen are exactly what #550 measured at '+widthOf(g)+'px wide - its own set, so a height another unswept state already uses cannot hide a change here',
-          {width:widthOf(g), want:bw, got:bk, added:bk.filter(x=>!bw.includes(x)), gone:bw.filter(x=>!bk.includes(x))});
-        else L.note('    TC-INV-03c, '+g+': width '+widthOf(g)+' carries NO pinned set, so this is REPORTED and NOT asserted here');}
-      // TC-INV-02g [#550; jobs/invariant-2-and-3-sheets-and-unswept-screens, part (1), after the orchestrator's answer a5 (11 Nov)
-      // made INK the measure invariant 2 is promoted on]. THE MENU SHEET'S ROWS UNDER INVARIANT 2, read from the same menu-discover,
-      // menu-bottom and menu-look launches as TC-INV-03b above (not added to SCREENS: those states would then come under every
-      // per-screen occlusion and pin assertion, and the sheets are mounted-but-hidden layers with their own occlusion question).
-      // MEASURED on trial 45cf62b1a07a at se and kunal761 before this was written: menu-bottom carries the piece-style chips
-      // (5 x 14, not a side-by-side row at 320 where they wrap), the coach-hair chips (5 svgs, box 40) and the footer links
-      // (4 x 16); menu-look carries the five 52px piece previews at 375; box spread 0 on every row, ink spread 0 on every row
-      // but the HAIR chips, whose painted ink is 35 / 33.75 / 31.56 / 34.38 / 37.5 - portraits of a coach, not icons in a row of
-      // controls, so that row is PINNED to those readings (a pin that moves either way is red, as TC-INV-02b) rather than held
-      // to the 1px ceiling; whether pictures count as icons is jobs/invariant-3-icon-size-target-set's call, not taken here.
-      // Part (2) of the job (the Review more-sheet contributing no rows) no longer holds on this tree: rev-more-sheet is in
-      // SCREENS and carries 2 rows at every geometry (ROW_PIN, a21), both under TC-INV-02a/02e already.
-      const HAIR_SIG='Balding|Combed back|Owl|Receding|Side part', HAIR_INK={'Side part':35,'Receding':33.75,'Balding':31.56,'Combed back':34.38,'Owl':37.5};
-      // PINNED [batch 13 red repair; 1cc57a16, jobs/every-button-row-is-icons-only-in-one-style-with-two-kinds-of-arrows-2026-11-18, Kunal's Q24]:
-      // the menu's Share row (Share, and for a developer Send feedback) is RowBtn icons since that commit, and the two icons cannot meet both
-      // 1px ceilings at once - the share arrow paints 19.5 tall in a 24.5 box, the chat bubble (a squat shape) 15.1 in 25.9; scaling the bubble
-      // to 19.5 of ink grows its box to ~33.5. So the row is pinned, both measures, exactly (moves either way is red), like the hair row; whether
-      // the bubble should paint taller is the question in this repair's reply. Measured on the head 6e02e303 (trial 0075dfcc49e3) at se,
-      // kunal730 and short375, in menu-discover and menu-coach.
-      const SHARE_SIG='Send feedback|Share Chess Trainer', SHARE_BOX={'Share Chess Trainer':24.5,'Send feedback':25.9}, SHARE_INK={'Share Chess Trainer':19.5,'Send feedback':15.1};
-      if(L.say(menuRows.length>=2, g+': TC-INV-02g PRECONDITION the menu sheet\'s states gave invariant 2 at least two control rows to measure ('+menuRows.length+': '+menuRows.map(x=>x.state+' '+x.r.sig).join(' ; ')+')',{rows:menuRows.map(x=>({state:x.state,sig:x.r.sig}))})){
-        const sharePin=menuRows.filter(x=>x.r.sig===SHARE_SIG), shareMoved=[];
-        for(const {state,r} of sharePin) for(const k of r.kids){ if(Math.abs(k.gh-SHARE_BOX[k.lab])>0.6||typeof k.ink!=='number'||Math.abs(k.ink-SHARE_INK[k.lab])>0.6) shareMoved.push({state,lab:k.lab,box:k.gh,ink:k.ink,wantBox:SHARE_BOX[k.lab],wantInk:SHARE_INK[k.lab]}); }
-        L.say(sharePin.length>=1&&shareMoved.length===0, g+': TC-INV-02g the menu Share row (Share 24.5 box / 19.5 ink, Send feedback 25.9 / 15.1) was measured ('+sharePin.length+'x) and reads exactly its pin within 0.6px - a pin that moves either way is red',{seen:sharePin.length,shareMoved});
-        const boxBad=menuRows.filter(x=>x.r.rawSpread>1.0&&x.r.sig!==SHARE_SIG);
-        L.say(boxBad.length===0, g+': TC-INV-02g every menu-sheet control row has ONE glyph box height within 1px (the box method TC-INV-02a asserts on the walked screens)',
-          boxBad.map(x=>({state:x.state,sig:x.r.sig,spread:x.r.rawSpread,kids:x.r.kids.map(k=>k.lab+' '+k.gh)})));
-        const inkBad=[], hairMoved=[]; let hairSeen=0;
-        for(const {state,r} of menuRows){
-          const ik=r.kids.map(k=>k.ink).filter(x=>typeof x==='number'); if(ik.length<2)continue;
-          if(r.sig===SHARE_SIG) continue;   // pinned above
-          if(r.sig===HAIR_SIG){ hairSeen++; for(const k of r.kids){ const want=HAIR_INK[k.lab]; if(typeof want!=='number'||typeof k.ink!=='number'||Math.abs(k.ink-want)>0.6) hairMoved.push({state,lab:k.lab,want,got:k.ink}); } continue; }
-          const isp=Math.max(...ik)-Math.min(...ik);
-          if(isp>1.0) inkBad.push({state,sig:r.sig,isp:+isp.toFixed(2),kids:r.kids.map(k=>k.lab+' '+k.via+' '+k.ink)});
-        }
-        L.say(inkBad.length===0, g+': TC-INV-02g every menu-sheet control row (the coach-hair portraits excepted, pinned on the next line) PAINTS one height - INK spread within 1px',inkBad);
-        L.say(hairSeen>=1&&hairMoved.length===0, g+': TC-INV-02g the coach-hair portrait row was measured ('+hairSeen+'x) and its painted ink still reads exactly the pinned 35 / 33.75 / 31.56 / 34.38 / 37.5 within 0.6px - a pin that moves either way is red',{hairSeen,hairMoved});
-      }
-    }
-  }
-  // TC-INV-09 [#548 item (82); jobs/gate-26-rev-best-ply30-pin-covers-one-ply-of-a-class-that-cuts-at-plies-12-20-and-30-2026-10-12].
-  // THE rev-best PIN IS A CLASS, NOT ONE PLY. antagonist-b-422 measured the best-move pill cut at EVERY ply that carries it at
-  // 320x568 (12, 20 and 30), and this file pinned only rev-best-ply30. So: walk the reference game's 34 positions at each
-  // swept geometry, assert the pill appears at EXACTLY the plies it is pinned for (a count moving either way is red), and
-  // assert each of those plies separately cuts nothing (scrollWidth against clientWidth of [data-ct="rev-best"], the same
-  // reading the pinned residual takes). CONTROL, recorded below: #546's bundle 049b41dfb6f1 at se reads ply 12 client 44 /
-  // scroll 44, ply 20 29/59 and ply 30 45/56 - so the per-ply lines go red at 20 and 30 while 12 stays green, which a ply-30
-  // pin alone could never report. 375x730 is clean at all three (acceptance C) and is asserted here, not excluded.
-  {
-    const BEST_PLIES=[12,20,30];
-    for(const g of GEOS){
-      const b=await L.launch({geo:g,store:R.SEED,name:'inv-revbest-'+g});await b.open();
-      const seen=[],hitWalk=[];let drove=true;
-      try{
-        await R.states['moves-ply0'](b);
-        for(let p=0;p<=33;p++){
-          await R.goPly(b,p);await b.settle(450);
-          const r=await b.page.evaluate(()=>{const e=document.querySelector('[data-ct="rev-best"]');if(!e)return null;const q=e.getBoundingClientRect();
-            if(q.width<1||q.height<1)return null;return {cw:e.clientWidth,sw:e.scrollWidth};});
-          if(r)seen.push(Object.assign({ply:p},r));
-          // TC-INV-10 [#548 item (85); jobs/the-review-move-strip-overflows-with-no-scroller-so-a-move-chip-is-unreachable-on-main-
-          // 2026-10-07, part (1)]: every move chip's PAINTED region is hittable. The chip rect is intersected with its CLIP box (the
-          // nearest ancestor that clips x), not the viewport - a chip past the strip's edge is scrolled to, not lost - and every
-          // integer x across what is painted, at the chip's vertical centre, must return the chip from elementFromPoint.
-          const hm=await b.page.evaluate(()=>{const st=document.querySelector('[data-mstrip]');if(!st)return null;
-            const ptr=(e)=>getComputedStyle(e).cursor==='pointer';
-            const chips=[...st.querySelectorAll('*')].filter(e=>{if(!ptr(e))return false;for(let a=e.parentElement;a&&a!==st;a=a.parentElement)if(ptr(a))return false;return true;});
-            let painted=0,samples=0;const bad=[];
-            for(const c of chips){const q=c.getBoundingClientRect();if(q.width<1||q.height<1)continue;
-              let l=Math.max(0,q.left),r=Math.min(innerWidth,q.right);
-              for(let a=c.parentElement;a&&a!==document.body;a=a.parentElement){const cs=getComputedStyle(a);
-                if(cs.overflowX!=='visible'){const aq=a.getBoundingClientRect();l=Math.max(l,aq.left);r=Math.min(r,aq.right);}}
-              if(r-l<1)continue;painted++;const y=(Math.max(q.top,0)+Math.min(q.bottom,innerHeight))/2;
-              // ONE PIXEL IS DROPPED AT EACH EDGE, MEASURED: the first run of this went red on every position at ONE column per chip -
-              // at 375x730, d4 spans 250.48..279.34 and elementFromPoint(278.5) returns the NEXT chip (Bg4, left 279.34), because hit
-              // testing works on device-pixel-snapped boxes. That is the boundary between two chips, not a covered chip. The control
-              // this assertion was proved on covers 10px, so it is unaffected.
-              for(let x=Math.ceil(l)+1;x<=Math.floor(r)-2;x++){samples++;const h=document.elementFromPoint(x+0.5,y);
-                if(!(h&&(h===c||c.contains(h)))){bad.push({chip:(c.innerText||'').trim().slice(0,10),x,hit:h?(h.tagName+(h.getAttribute('data-ct')?'['+h.getAttribute('data-ct')+']':'')):null});}}}
-            return {chips:chips.length,painted,samples,bad:bad.slice(0,6),nbad:bad.length};});
-          if(hm)hitWalk.push(Object.assign({ply:p},hm));
-        }
-      }catch(e){drove=false;L.say(false,g+' TC-INV-09 the 34-position walk drove to its end',String(e.message||e));}
-      if(drove){
-        const plies=seen.map(x=>x.ply);
-        L.say(plies.length===BEST_PLIES.length&&BEST_PLIES.every((p,i)=>plies[i]===p),
-          g+' TC-INV-09 the best-move pill appears at exactly plies '+BEST_PLIES.join(', ')+' of the reference game - the class the per-ply pins below cover, so a pill gained or lost at any ply is red',{plies});
-        for(const p of BEST_PLIES){
-          const x=seen.find(s=>s.ply===p);
-          L.say(!!x&&x.sw<=x.cw+0.5,g+' TC-INV-09 ply '+p+': the best-move pill cuts nothing (scrollWidth within clientWidth)',x||{absent:true});
-        }
-        // TC-INV-10: non-empty first, in its own line - a strip that painted no chip would pass the hit test over nothing.
-        const painted=hitWalk.reduce((a,h)=>a+h.painted,0),samples=hitWalk.reduce((a,h)=>a+h.samples,0);
-        L.say(hitWalk.length>=30&&painted>0&&samples>0,g+' TC-INV-10 PRECONDITION the move strip was found at '+hitWalk.length+' of 34 positions and painted '+painted+' chip(s) across '+samples+' sampled x',{positions:hitWalk.length,painted,samples});
-        const badAt=hitWalk.filter(h=>h.nbad>0);
-        L.say(painted>0&&badAt.length===0,g+' TC-INV-10 every painted pixel column of every move chip hit-tests to that chip, measured against the strip\'s clip box and not the viewport',
-          badAt.length?{positions:badAt.length,first:badAt.slice(0,3).map(h=>({ply:h.ply,nbad:h.nbad,bad:h.bad}))}:{painted,samples});
-      }
-      await b.close();
-    }
-  }
+  // #553 B2 (jobs/gate-26-runs-at-846-of-its-900-seconds-make-it-finish-well-inside-its-limit-2026-11-25): THE THREE BLOCKS THAT
+  // STOOD HERE - TC-INV-03b/03c/02g (the unswept states), TC-INV-09/10 (rev-best at every ply) and TC-R239 (the band) - and the
+  // TC-INV-03b default-run guard moved, byte for byte, to gates/regress/247-invariants-unswept-states-every-ply-and-the-band.js. This gate ran 895 s of
+  // gates.sh's 900; the two now carry the same checks between them (PASS(26) + PASS(247) = 630 on one bundle).
   // THE GRACEFUL PATH MUST NOT BECOME THE NORMAL PATH. Invariant 3 and the population pins report instead of
   // asserting at an unpinned width, which is right for an ad-hoc run and would be a silent hole if the suite's
   // own geometries ever drifted out of the pin table. So: every geometry this suite sweeps by DEFAULT must be
@@ -2194,8 +2037,6 @@ L.run(async()=>{
   if(!process.env.CT_INV_GEOS){
     const unpinnedW=ALL_GEOS.filter(g=>!ICON_PIN[L.GEOS[g].w]);
     const unpinnedPop=[]; for(const g of ALL_GEOS) for(const [n] of SCREENS) if(!Object.prototype.hasOwnProperty.call(ROW_PIN,g+'/'+n)) unpinnedPop.push(g+'/'+n);
-    const unpinnedX=ALL_GEOS.filter(g=>!ICON_PIN_EXTRA[L.GEOS[g].w]);
-    L.say(unpinnedX.length===0, 'TC-INV-03b every geometry the suite sweeps by default carries a pinned unswept-state icon set, so TC-INV-03b never silently downgrades to a report on a full run',{unpinnedWidths:unpinnedX});
     L.say(unpinnedW.length===0, 'TC-R409 (was a TC-INV-03 line, split at #553) every geometry the suite sweeps by default carries a pinned icon set, so invariant 3 never silently downgrades to a report on a full run',{unpinnedWidths:unpinnedW});
     L.say(unpinnedPop.length===0, 'TC-R407 (was a TC-INV-02d line, split at #553) every (geometry, screen) the suite sweeps by default carries a pinned row and occlusion count, so the population guard never silently downgrades to a report on a full run',{unpinned:unpinnedPop});
     // AND THE SAME GUARD FOR THE PIN-LOCATION ASSERTION, added with the width-keying above: that assertion
@@ -2209,86 +2050,7 @@ L.run(async()=>{
     // the run is a control run and its green means nothing.
     L.say(NC_SKIP.length===0&&NC_DUP.length===0, 'no screen-walk negative control was left switched on, so this run walked the full declared screen list rather than a narrowed one',{CT_INV_NC_SKIP:NC_SKIP,CT_INV_NC_DUP:NC_DUP});
   }
-  }   // end if(!ONLY)
-  // TC-R239 [batch 13; jobs/gate-26-goes-red-at-ply-31-on-the-small-phone-while-the-explanation-is-still-coming-2026-11-18].
-  // THE EVAL GRAPH NEVER SITS OVER THE MOVE'S EXPLANATION, IN ANY FRAME. Gate 26 went red 1 in 20 at se rev-ply31 on main ffc8fa2 with
-  // one core busy: the centre of the explanation (rev-why-txt, a button when it has more to say) hit an SVG rect of the eval graph. The
-  // checker's frame probe on c58695d found why: from the jump until the refutation clause arrived 1.3 to 1.5 s later the reason was one
-  // line, and the band (data-ink) put the graph into the box's empty lines over its centre; then, when the clause landed, the graph stayed
-  // over the NEW text for one frame, because the band followed the text through a MutationObserver and a requestAnimationFrame. A screen
-  // walk scanning at a fixed moment caught whichever of the two its scan landed in. The fix is in the app (chess.jsx, revBandRef and the
-  // pending flag reviewText returns): while the clause is coming the reason box is held whole (data-pending), and the band is re-measured in
-  // a layout effect, in the frame the text changes. So this block samples EVERY animation frame from the jump until 2 s after the text is
-  // final, at each swept geometry, at every ply of the reference game whose reason waits for a clause, and at the last ply - whose
-  // one-word final reason ('Checkmate.') must still give its empty lines to the graph (gate 77 TC-S04's case), which is what shows the
-  // detector can see a graph in the box at all.
-  // The plies: PEND_PLIES are the plies whose first frame carries data-pending (asserted, so a ply that stopped pending is red, not
-  // silently easier). 16.Qb8+ (ply 31) pended on c58695d; since c71cd95e (HEX-R-06) it states its mate in two at once and does not pend,
-  // so it is walked as a final-at-once ply: its frames are held to the same rule.
-  {
-    const PEND_PLIES=[19,25];const FINAL_PLIES=[31];const SHORT_PLY=R.OPERA_PLIES;
-    const frames=async(b,n,hold,cap,grow)=>b.page.evaluate(async({n,hold,cap,grow})=>{const out=[];const t0=performance.now();let stop=false,lastTxt=null,changedAt=null,changes=0;
-      const samp=()=>{const tx=document.querySelector('[data-ct="rev-why-txt"]');const g=document.querySelector('[data-ct="eval-graph"]');
-        let ink=null;if(tx){const rg=document.createRange();rg.selectNodeContents(tx);const tb=tx.getBoundingClientRect().bottom;for(const q of rg.getClientRects())if(q.height>0)ink=Math.max(ink==null?-1e9:ink,Math.min(q.bottom,tb));}
-        const xr=tx?tx.getBoundingClientRect():null;const gr=g?g.getBoundingClientRect():null;
-        let hit=null;if(xr&&xr.height>0){const h=document.elementFromPoint(xr.left+xr.width/2,xr.top+xr.height/2);hit=h?(h.closest('[data-ct="eval-graph"]')?'graph':(h.closest('[data-ct="rev-why-txt"]')?'txt':(h.getAttribute('data-ct')||h.tagName))):null;}
-        const pend=tx?tx.getAttribute('data-pending')==='1':false;const t=Math.round(performance.now()-t0);
-        const tt=tx?(tx.textContent||'').trim():'';if(lastTxt!==null&&tt!==lastTxt){changedAt=t;changes++;}lastTxt=tt;
-        out.push({t,txt:tx?(tx.textContent||'').trim():'',pend,ink:ink==null?null:+ink.toFixed(1),xTop:xr?+xr.top.toFixed(1):null,xBot:xr?+xr.bottom.toFixed(1):null,gTop:(gr&&gr.height>0)?+gr.top.toFixed(1):null,hit});
-        if(!stop)requestAnimationFrame(samp);};
-      requestAnimationFrame(samp);
-      const s=document.querySelectorAll('[data-mstrip] span[style*="cursor: pointer"]');if(!s.length||n>s.length)throw new Error('ply '+n+' is past the strip ('+s.length+' moves)');s[n-1].click();
-      /* the window ends HOLD ms after the reason last changed (and not before 3.5s), and on a ply whose reason must grow, not before it has - read from the text, not from the app's mark */
-      const T0=performance.now();await new Promise(res=>{const tick=()=>{const t=performance.now()-T0;const quiet=t>=Math.max(3500,(changedAt==null?0:changedAt)+hold);if(t>=cap||(quiet&&(!grow||changes>0)))res();else setTimeout(tick,50);};tick();});
-      stop=true;return out;},{n,hold,cap,grow});
-    // BAND_GEOS [#553 B1, the lead's ruling on the ply-31 pair, 25 Nov 02:4xZ]: THIS BLOCK ALONE ALSO WALKS kunal761 (his own phone, 375x761).
-    // Since FB-07 (c0d52abf, 20 Nov) the review's reason box is ONE line at 320x568 and 375x568 and the graph is not drawn in it (TC-R239e),
-    // so the pending hold has no spare lines to keep there and no break of it can show: only kunal730 was left where this block can go red.
-    // kunal761 has spare reason lines too, so the hold is exercised on two geometries again. se and short375 stay walked (must pass).
-    // CT_INV_GEOS still narrows it, as everywhere in this gate.
-    const BAND_GEOS=process.env.CT_INV_GEOS?GEOS:[...ALL_GEOS,'kunal761'];
-    for(const g of BAND_GEOS){
-      const b=await L.launch({geo:g,store:R.SEED,name:'inv-band-'+g});await b.open();
-      try{
-        await R.states['moves-ply0'](b);
-        for(const n of [...PEND_PLIES,...FINAL_PLIES,SHORT_PLY]){
-          await R.goPly(b,0);await b.settle(400);
-          const fr=await frames(b,n,2000,9000,PEND_PLIES.includes(n));
-          const first=fr[0]||{},last=fr[fr.length-1]||{};
-          // "STILL COMING" IS READ FROM THE TEXT, NOT FROM THE APP'S OWN data-pending MARK: a frame is in the window when its reason is
-          // not yet the reason the ply ends on. data-pending is the fix's hook, and a precondition keyed to it would go red on the very
-          // bundle that lacks the fix for the wrong reason (CLAUDE.md, #432: a check that reads only what the fix added cannot see the
-          // defect the fix removes). The mark is reported beside it (markN) and not asserted.
-          const pendN=fr.filter(f=>f.txt!==last.txt).length,markN=fr.filter(f=>f.pend).length,graphN=fr.filter(f=>f.gTop!=null).length;
-          const overTxt=fr.filter(f=>f.gTop!=null&&f.ink!=null&&f.gTop<f.ink-0.5);
-          const inPend=fr.filter(f=>f.txt!==last.txt&&f.gTop!=null&&f.xBot!=null&&f.gTop<f.xBot-0.5);
-          const onCentre=fr.filter(f=>f.hit==='graph');
-          const finalAt=(fr.find(f=>f.txt===last.txt)||{}).t;
-          L.say(fr.length>=60&&last.t>=2000,g+' TC-R239 PRECONDITION ply '+n+': '+fr.length+' animation frames sampled from the jump over '+(last.t||0)+'ms, the reason final from '+finalAt+'ms - the verdicts below are over every frame of that window',{frames:fr.length,ms:last.t,finalAt,firstTxt:first.txt,lastTxt:last.txt});
-          if(PEND_PLIES.includes(n)){
-            L.say(pendN>0&&first.txt!==last.txt&&String(last.txt).indexOf(String(first.txt))===0,g+' TC-R239a PRECONDITION ply '+n+': the reason WAS still coming at the jump ('+pendN+' frames before it reached its final text, which it then grew to) - the window this block exists for was reached',{pendFrames:pendN,markedPending:markN,pendingTxt:first.txt,finalTxt:last.txt,finalAt});
-            L.say(inPend.length===0,g+' TC-R239b ply '+n+': in NO frame while the reason is still coming does the eval graph sit inside the reason\'s box - the box is held whole for the text that is coming',inPend.slice(0,3));
-          }
-          if(FINAL_PLIES.includes(n)) L.say(pendN===0&&markN===0,g+' TC-R239a ply '+n+': the reason is final from the first frame (16.Qb8+ states its mate in two at once, HEX-R-06) - so this ply has no pending window, and a pending one appearing again is red here first',{pendFrames:pendN,markedPending:markN,txt:last.txt});
-          L.say(overTxt.length===0,g+' TC-R239c ply '+n+': in NO frame, from the jump to 2s after the reason is final, does the eval graph\'s top sit above the last painted line of the reason - including the frame the longer text lands in',overTxt.slice(0,3));
-          if(n!==SHORT_PLY) L.say(onCentre.length===0,g+' TC-R239d ply '+n+': in NO frame does the centre of the reason hit the eval graph, so a tap on the explanation never jumps the review to another move (the gate 26 red of 17 Nov)',onCentre.slice(0,3));
-          // 15d is not asked at the last ply: there a one-word final reason gives its empty lines to the graph BY DESIGN (gate 77 TC-S04), and
-          // the box's centre lies in those lines - measured on ca53d655 at 320x568, 'Checkmate.' inks to 457 and the graph starts at 463. That
-          // the graph is there and stays there is 15e's claim; what this block forbids is a graph that comes and goes over a reason.
-          if(n===SHORT_PLY){
-            const ins=fr.filter(f=>f.gTop!=null&&f.xBot!=null&&f.gTop<f.xBot-0.5);
-            /* batch 13 (jobs/short-upright-boards-sized-to-height-2026-11-12, FB-07 "full width ... the rows under it giving way"): at 320x568 and
-               375x568 the board is now the width and the explanation's box is ONE line (it was three), so there are no empty lines for the
-               graph to take and it is not drawn there - the graph gives way to the board. Re-keyed for those two geometries only; the claim
-               that the graph never sits over a reason (15c) is unchanged everywhere. */
-            if(L.geoIs(g,320,568)||L.geoIs(g,375,568)) L.say(graphN===0,g+' TC-R239e ply '+n+' (a one-line final reason): on this short phone the board is the full width, the reason box is one line, and the eval graph is NOT drawn in it ('+graphN+' of '+fr.length+' frames) - it gives way to the board (batch 13, FB-07)',{graphFrames:graphN,txt:last.txt});
-            else L.say(graphN>0&&ins.length>0,g+' TC-R239e ply '+n+' (a one-line final reason): the eval graph IS drawn, and inside the reason box\'s empty lines ('+ins.length+' of '+fr.length+' frames) - the short reason still gives its unused lines to the graph (gate 77 TC-S04), and the detector above can see a graph in the box',{graphFrames:graphN,inBox:ins.length,txt:last.txt,gTop:last.gTop,xBot:last.xBot,ink:last.ink});
-          }
-        }
-      }catch(e){L.say(false,g+' TC-R239 the band walk drove to its end',String(e.message||e));}
-      await b.close();
-    }
-  }
+  }   // end of the screen walk and its default-run guards
 },'26-invariants');
 // THE CONTROL RECORDS gates/control-audit.js READS [#546 item (89)]. #545 measured both trials and deferred these lines so its
 // gated tree would not change; neither bundle survived its container, so both were REBUILT from their recipes at #546 and
