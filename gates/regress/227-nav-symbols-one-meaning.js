@@ -43,6 +43,11 @@ const MEAN={
   play:/^(Auto-play|Pause|Play or pause|Play the line|Play this line)$/,
   reset:/^(Reset|Try again|Replay from start|Back to the card's position|Back to the position after your move)$/,
 };
+// #553 card 90: helpers for the NAMED routes below - scroll the first button whose words match into view; the lesson's More sheet in practice;
+// its 'Watch it explained' box opened (a div with a disclosure caret, tapped by its words)
+const toWords=async(b,re)=>{await b.page.evaluate((src)=>{const r=new RegExp(src.s,src.f);const e=[...document.querySelectorAll('button,a')].find(x=>r.test((x.innerText||'').replace(/\s+/g,' ').trim()));if(e)e.scrollIntoView({block:'center'});},{s:re.source,f:re.flags});await b.settle(400);};
+const lessonSheet=async(b)=>{await D.states['practice-correct'](b);await b.page.locator('button[aria-label="More for this lesson"]').click();await b.settle(600);};
+const openVideo=async(b)=>{await b.page.evaluate(()=>{const e=[...document.querySelectorAll('div')].find(x=>x.children.length<=1&&/^📺 Watch it explained/.test((x.innerText||'').trim()));if(e){e.scrollIntoView({block:'center'});e.click();}});await b.settle(600);};
 // TC-R411: the worded buttons of his pick A, each reached by its words (never a data-ct this build added), at 375x761
 const NAMED=[
   ['play-setup',b=>P.states['setup'](b),/^Start game$/],
@@ -51,6 +56,12 @@ const NAMED=[
   ['lesson-intro',b=>D.states['intro'](b),/^Got it, play$/],
   ['lesson-more',async b=>{await D.states['practice-correct'](b);await b.page.locator('button[aria-label="More for this lesson"]').click();await b.settle(600);await b.page.evaluate(()=>{const e=[...document.querySelectorAll('button')].find(x=>/^Play this position/.test((x.innerText||'').trim()));if(e)e.scrollIntoView({block:'center'});});},/^Play this position vs Computer$/],   // the sheet scrolls; the button is found by its words
   ['review-why',b=>R.states['why-open'](b),/^why$/],
+  /* #553 card 90 (his pick A, run-answers orchestrator-B14-DESK-ANSWERS-Q17-Q18-Q19-Q20-Q23-2026-11-24 (a)): the last worded buttons lose the
+     sign too. Each is reached by its words and scrolled into view by them (the sheets scroll), never by a data-ct this build added. */
+  ['play-resume',async b=>{await P.states['pp-m0'](b);await b.move('f2','f3');await b.move('e7','e5');await b.move('g2','g4');await b.tapCt('play-home').catch(()=>{});await b.settle(400);await b.tile('Play');await b.settle(800);await toWords(b,/^Resume your game in progress/);},/^Resume your game in progress/],
+  ['lesson-demo-again',async b=>{await lessonSheet(b);await toWords(b,/^Watch the demo again$/);},/^Watch the demo again$/],
+  ['lesson-video',async b=>{await lessonSheet(b);await openVideo(b);await toWords(b,/^Watch in app$/);},/^Watch in app$/],
+  ['coach-run',async b=>{await b.home();await b.settle(500);await b.tapText(/^your coach$/i,{wait:900});await toWords(b,/^Run$/);},/^Run$/],
   ['gallery',async b=>{await b.home();await b.settle(500);await b.page.evaluate(()=>{const e=document.querySelector('[data-ct="home-preview"]');if(e)e.scrollIntoView({block:'center'});});await b.settle(300);await b.tapCt('home-preview',900);},/^Play( all \d+)? \(screen-record this\)$/],
 ];
 // key -> [enter, meanings the state must show, geometries (default kunal761 and se), extra store]
@@ -139,5 +150,15 @@ L.run(async()=>{
     const bad=hit.filter(x=>x.sym.glyph||x.sym.solid||x.sym.hollow||x.sym.circle||x.sym.bluePoly);
     L.say(ok&&hit.length>0&&bad.length===0,'TC-R411 '+tag+' the worded button '+re+' is on screen by its words and carries no play sign, text or drawn ('+(hit.length?hit.map(x=>JSON.stringify(x.text)+(x.shapes?' paints '+x.shapes:'')).join('; '):'NOT FOUND among '+bs.map(x=>JSON.stringify(x.text)).join(', ').slice(0,300))+(err?'; '+err:'')+')',{err,bad});
     L.say(b.errs.length===0,'TC-R411 '+tag+' zero app errors',b.errs.slice(0,3));
+    await b.close();}
+  /* #553 card 90: the three coach links under 'Watch it explained' are LINKS, not buttons, so READ does not see them: each is found by its
+     words and must carry no text triangle and draw no shape. A denominator first, in its own line. */
+  if(!ONLY.length||ONLY.includes('lesson-video')){
+    const b=await L.launch({geo:'kunal761',name:'g227n-coach-links'});await b.open();let ok=true,err='';
+    try{await lessonSheet(b);await openVideo(b);await toWords(b,/^(▶ )?Chess Vibes$/);}catch(e){ok=false;err=e.message;}
+    const ls=await b.page.evaluate(()=>[...document.querySelectorAll('a')].map(a=>({t:(a.innerText||'').replace(/\s+/g,' ').trim(),svg:a.querySelectorAll('svg').length})).filter(x=>/(Remote Chess Academy|GothamChess|Chess Vibes)$/.test(x.t)));
+    L.say(ok&&ls.length===3,'TC-R411 375x761 lesson-video DENOMINATOR the three coach links are on the page by their words ('+ls.length+': '+ls.map(x=>JSON.stringify(x.t)).join(', ')+(err?'; '+err:'')+')',{err});
+    const badL=ls.filter(x=>/[▶◀⏮⏭⏸▸◂►]/.test(x.t)||x.svg>0);
+    L.say(ls.length===3&&badL.length===0,'TC-R411 375x761 lesson-video every coach link carries no play sign, text or drawn ('+(badL.length?badL.map(x=>JSON.stringify(x.t)).join(', '):'3 of 3')+')',badL);
     await b.close();}
 });
