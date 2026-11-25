@@ -6781,8 +6781,8 @@ function AppMain(){
     let fb=0;const walk=(e,d)=>{for(const c of e.children){const cs=getComputedStyle(c);if(cs.position==='fixed'||cs.position==='absolute')continue;if(!c.contains(el)){const q=c.getBoundingClientRect();if(q.height>0)fb=Math.max(fb,q.bottom);}if(d<4)walk(c,d+1);}};if(rt)walk(rt,0);
     let pb=0;for(let a=el.parentElement;a&&a!==rt;a=a.parentElement)pb+=parseFloat(getComputedStyle(a).paddingBottom)||0;   /* the holding boxes' own bottom padding comes after it all */
     const room=Math.min(lim-8-(r.bottom+sy),window.innerHeight-(Math.max(fb,r.bottom)+pb+sy));const key=[vp.w,vp.h,anaView?anaView.plies.length:0].join('x');
-    const f=anaFitRef.current;const n=(f&&f.key===key)?f.n:0;if(n>=4||Math.abs(room)<=2){anaFitRef.current={key,n:4};return;}anaFitRef.current={key,n:n+1};
-    const want=Math.floor(Math.max(112,cur+room));if(Math.abs(want-cur)>1)setAnaBs(want);},[analyzing,mode,homeScreen,vp.w,vp.h,anaFail,anaBs,anaView]);
+    const f=anaFitRef.current;const n=(f&&f.key===key)?f.n:0;if(n>=4||(room>=0&&room<=2)){anaFitRef.current={key,n:4};return;}anaFitRef.current={key,n:n+1};   /* #553 jobs/gate-15-exp-card-leaves-review-20px-over-for-11-to-13-seconds-at-375x679-2026-11-25: it stopped at |room|<=2, so a room of -1.8 kept the page 1.8px over for the whole review at 375x679 (680.75 in 679); a negative room is never close enough */
+    const want=Math.floor(Math.max(112,cur+room));if(room<0?want<cur:Math.abs(want-cur)>1)setAnaBs(want);},[analyzing,mode,homeScreen,vp.w,vp.h,anaFail,anaBs,anaView]);
   const opponentRef=useRef(opponent); opponentRef.current=opponent;
   const onlineGameRef=useRef(onlineGame); onlineGameRef.current=onlineGame;
   const myColorRef=useRef(myColor); myColorRef.current=myColor;

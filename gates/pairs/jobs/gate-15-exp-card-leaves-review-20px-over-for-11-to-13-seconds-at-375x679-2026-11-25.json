@@ -1,0 +1,34 @@
+{
+ "job": "gate-15-exp-card-leaves-review-20px-over-for-11-to-13-seconds-at-375x679-2026-11-25",
+ "about": "Gate 15's 'no card leaves the page scrolling' at 375x679, where the Review waiting screen (ana-wait) ran 1.8px over for the whole review because its pre-paint fit stopped on |room|<=2. Graded on the walk alone (CT_G15_ONLY=WALK) at 375x679 and 375x761. NOT COVERED: 320x568 and 375x812 (the wait screen fitted there before the fix; the sibling job's pairs file runs them); blocks S, F, M and HM.",
+ "gate": "gates/regress/15-gallery-playall.js",
+ "env": {
+  "CT_G15_ONLY": "WALK",
+  "CT_G15_GEOS": "kunal,kunal761"
+ },
+ "checks": [
+  "^(kunal|kunal761): no card leaves the page scrolling"
+ ],
+ "build": "auto",
+ "situations": [
+  {
+   "name": "375x679",
+   "match": "^kunal: "
+  },
+  {
+   "name": "kunal761",
+   "match": "^kunal761: "
+  }
+ ],
+ "breaks": [
+  {
+   "name": "the-wait-fit-stops-on-a-negative-room",
+   "patch": "breaks/g15-wait-fit-stops-on-a-negative-room.diff",
+   "why": "the waiting screen's fit goes back to stopping at |room|<=2, so a room of -1.8 keeps the page 1.8px over for the whole review at 375x679",
+   "mustFailIn": [
+    "375x679"
+   ]
+  }
+ ],
+ "timeoutSec": 2400
+}
