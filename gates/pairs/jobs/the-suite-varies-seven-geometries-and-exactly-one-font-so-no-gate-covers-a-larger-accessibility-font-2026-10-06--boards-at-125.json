@@ -1,0 +1,22 @@
+{
+ "job": "the-suite-varies-seven-geometries-and-exactly-one-font-so-no-gate-covers-a-larger-accessibility-font-2026-10-06",
+ "about": "Gate 241 (browser): the puzzle board at the other four of the drill seven, and the mistakes drill and lesson boards at 320x568, 375x667 and kunal761, at text x1 and x1.25 (his bar: orchestrator-B13-Q25-2026-11-19 part 2 and orchestrator-B13-TEXT-FIXED-2026-11-19), with gates/drive/textscale.js as the input. Graded here on the drill at 320x568 and kunal761 and the puzzle trainer at 360x640 (CT_G241_ONLY); the whole gate is the suite's. A second pairs file for the job beside gate 205's. NOT COVERED: gate 48's control-row budget (not exported), a real iOS Larger Text.",
+ "gate": "gates/regress/241-boards-at-larger-text.js",
+ "env": {"CT_G241_ONLY": "^(drill (se|kunal761)|puzzle w360)$"},
+ "checks": ["TC-R4(29|30[a-d]) "],
+ "build": "always",
+ "situations": [
+  {"name": "drill 320x568", "match": "^TC-R4(29|30[a-d]) (PRECONDITION )?drill se "},
+  {"name": "drill kunal761", "match": "^TC-R4(29|30[a-d]) (PRECONDITION )?drill kunal761 "},
+  {"name": "puzzle 360x640", "match": "^TC-R4(29|30[a-d]) (PRECONDITION )?puzzle w360 "}
+ ],
+ "breaks": [
+  {"name": "drill-board-ignores-its-text", "patch": "breaks/241-drill-board-ignores-its-text.diff",
+   "why": "the drill board no longer gives way to the text around it (pzStackH dropped from the height cap and the fit loop skipped for the drill), so at 125% text the 320x568 screen runs past its foot",
+   "mustFailIn": ["drill 320x568"]},
+  {"name": "board-ignores-its-text-and-the-loop-is-blind", "patch": "breaks/241-board-ignores-its-text-and-the-loop-is-blind.diff",
+   "why": "the puzzle screens' height cap drops the text's height and the fit loop runs but reads no overflow, so at 125% text the drill on the small phone scrolls",
+   "mustFailIn": ["drill 320x568"]}
+ ],
+ "timeoutSec": 1500
+}

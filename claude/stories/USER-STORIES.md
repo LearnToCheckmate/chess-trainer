@@ -2851,6 +2851,12 @@ As a player reviewing a game on a 320x568 phone from its Home Screen icon, the b
 - There the board is at least 313 wide and centred (it was 301), and the four buttons (previous move, key move, Analyze, next move) are 32 tall, at least 44 wide, icons only, the move arrows the solid triangles, ending on screen. (TC-R382, TC-R383)
 - Every other phone, including 320x568 in Safari and my own phone, keeps the 44 tall row and a full-width board. (TC-R384, TC-R381)
 
+### US-R249 At 125% text the puzzle, drill and lesson boards still fit the screen
+*Added in batch 14 (#553, builder seat B1), jobs/the-suite-varies-seven-geometries-and-exactly-one-font-so-no-gate-covers-a-larger-accessibility-font-2026-10-06, the part gate 205 named as not covered. His bar for text size: orchestrator-B13-Q25-2026-11-19 part 2 ("125 percent (Recommended)") and orchestrator-B13-TEXT-FIXED-2026-11-19 (the Home Screen app keeps its text fixed; 125% for Safari users). The job's own x1.6 and x2.4 predate those picks.*
+As a player reading the app at 125% text, the board on the Puzzles screen, the mistakes drill and a lesson is still wholly on screen and nothing makes me scroll.
+- At text x1 and x1.25 the board's right edge is inside the screen, it ends above the tab bar (in a lesson, above the lesson's bar), it does not move between two looks, and the screen holds its content without scrolling: the puzzle board at 360x640, 390x844, 414x896 and 440x956; the drill and lesson boards at 320x568, 375x667 and my phone. (TC-R430)
+- The larger text really reaches the screen in each case: the text grows and, where the board is sized from the text, the board moves or shrinks. (TC-R429)
+
 ### US-R188 A wrong try on Tactics gets a longer, friendlier line that still fits my screen
 *Added in batch 13, jobs/tactics-strategy-wrong-chess-and-messages-2026-11-12. Kunal's Desk answer to run-question q23, 11:20pm EST Thu 19 Nov 2026: "Longer, friendlier wrong try lines" (the option that said it "needs a taller box or smaller text on short phones"). It widens US-R172's wrong-try clause.*
 As a player who just tried the wrong move, the card tells me warmly what to look for, in one or two sentences, and the screen around it stays still.
