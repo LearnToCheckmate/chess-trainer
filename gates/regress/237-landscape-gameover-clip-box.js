@@ -38,6 +38,8 @@
 //     after the flag at 730x375 and 761x375 (the bottom player bar cut 11px, the rail 393 against 375), and TC-R431 red at all three sizes;
 //   the rail runs below the fold (marginBottom 140 under the four buttons): 22/6, TC-R415 red after both endings at all three sizes (the
 //     strength pill and the bottom bar below the window, the rail 497 against 375).
+// CONTROL-RECORD: 6f64fe5e 2026-11-25 total=28 red=6 scope=trial:04bd8507ee29 how=the result card 36px taller when it reads Time (the lead job's mechanism) - TC-R415 red after the flag at 730x375 and 761x375 (bottom bar cut 11px, rail 393 against 375), TC-R431 red at all three sizes
+// CONTROL-RECORD: 6f64fe5e 2026-11-25 total=28 red=6 scope=trial:a1b1d39bc7a7 how=marginBottom 140 under the four buttons, the rail running below the fold - TC-R415 red after both endings at 730x375, 761x375 and 730x350 (the strength pill and the bottom bar below the window)
 const L=require('../lib');const P=require('../drive/play');
 const ALL=[{w:730,h:375},{w:761,h:375},{w:730,h:350}];
 const SIZES=process.env.CT_G237_SIZES?process.env.CT_G237_SIZES.split(',').map(s=>{const [w,h]=s.split('x').map(Number);return {w,h};}):ALL;
