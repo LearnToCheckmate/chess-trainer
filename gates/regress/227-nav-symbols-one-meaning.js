@@ -168,9 +168,18 @@ L.run(async()=>{
      sign. A denominator first (the button is in the bundle at all), then the sign. */
   if(!ONLY.length||ONLY.includes('coach-run')){
     const src=require('fs').readFileSync(process.env.CT_APP||require('path').join(L.ROOT,'app.js'),'utf8');
-    const runs=/Mastery plan/.test(src)?(src.match(/"(\\u25B6 |\u25b6 )?Run"/gi)||[]):[];   // esbuild writes the sign as an escape ("\u25B6 Run") and minifies coachRun's name, so the button is its string literal
+    // esbuild writes the sign as an escape ("\u25B6 Run") and minifies coachRun's name, so the button is its string literal. The forms the sign can
+    // take in a bundle: the escape (all esbuild emits for non-ASCII, measured: 5 escapes and 0 literal characters in t2), the literal character
+    // (a bundle built without escaping), and either one followed by the emoji variation selector U+FE0F. Each form is in both patterns below.
+    const runs=/Mastery plan/.test(src)?(src.match(/"(\\u25B6(\\uFE0F)? |\u25b6\ufe0f? )?Run"/gi)||[]):[];
     L.say(runs.length>=1,'TC-R411 bundle coach-run DENOMINATOR the Mastery plan Run button is in the bundle ('+runs.length+')',{n:runs.length});
+    const signed=/\\u25B6(\\uFE0F)?\s*Run\b|\u25b6\ufe0f?\s*Run\b/i;
+    // THE PATTERN'S OWN BOTH-WAYS CORPUS (the negated-regex-guards rule for a pattern bound to a name, as gates 16, 29, 33 and 65 do): it must
+    // match every form the sign can take before Run, and reject Run without it and the sign before other words.
+    const SGN_YES=['"\\u25B6 Run"','"\\u25b6 Run"','"\\u25B6\\uFE0F Run"','"\u25b6 Run"','"\u25b6\ufe0f Run"'],SGN_NO=['"Run"','"Running"','"\\u25B6 Watch"','"\\u25B6 Runs"'];
+    const sgnBad=[...SGN_YES.filter(x=>!signed.test(x)).map(x=>'missed '+x),...SGN_NO.filter(x=>signed.test(x)).map(x=>'matched '+x)];
+    L.say(sgnBad.length===0,'TC-R411 bundle coach-run the play-sign pattern matches all '+SGN_YES.length+' forms of the sign before Run (escaped, literal, each with and without U+FE0F) and none of '+SGN_NO.length+' look-alikes',sgnBad);
     L.note('TC-R411 coach-run is read from the bundle, not a screen: the Mastery plan sheet is not reachable by a player on this tree (nothing renders the Home coach card)');
-    L.say(runs.length>=1&&!/\\u25B6\s*Run\b|\u25b6\s*Run\b/i.test(src),'TC-R411 bundle coach-run the Run button carries no play sign',{n:runs.length});
+    if(runs.length>=1)L.say(!signed.test(src),'TC-R411 bundle coach-run the Run button carries no play sign ('+runs.length+' Run literal(s) found; the sign '+(signed.test(src)?'IS before Run: '+(src.match(signed)||[''])[0]:'before none')+')',{n:runs.length});   // over nothing it does not run: the DENOMINATOR line above is red then
   }
 });
