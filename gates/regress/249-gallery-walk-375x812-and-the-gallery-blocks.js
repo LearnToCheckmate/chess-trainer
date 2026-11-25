@@ -1,0 +1,1279 @@
+// regress/249-gallery-walk-375x812-and-the-gallery-blocks.js  THE OTHER HALF OF GATE 15 (#553 split, B1; gate number 249 issued by the lead).
+// gates.sh kills a gate at 900 s, and gates/regress/15-gallery-playall.js ran 948.8 s (168/0, bundle 1982df233185, 18:57-19:13Z on
+// 25 Nov, every line timestamped: units 0.1 s, the walk at kunal 367 s, the walk at 375x812 367 s, block S 117 s, F 17, M 32, Q and
+// TC-GL-007/009 42, HM 18). The two walks are 734 of the 949 s, so the cut is by geometry: THIS file walks 375x812 and carries blocks
+// F, M, Q, TC-GL-007, TC-GL-009 and HM, moved byte for byte; gate 15 keeps the units, the walk at kunal and block S. No assertion,
+// geometry, settle or wait changed. Everything above L.run is gate 15's header code, copied whole (the walk and the blocks read it); its
+// THE WALK LOOP IS IN BOTH FILES AND MUST STAY BYTE-IDENTICAL between the WALK-BODY markers. This gate reads both files and reds
+// (WALK-TWIN) if the md5 of the text between the markers differs; when they agree it prints a NOTE, not a PASS, so the count stays
+// exactly gate 15's lines moved. CT_G15_GEOS and CT_G15_ONLY=WALK|HM keep their meanings here.
+// uat372-headless-run, 2026-09-12 22:30 ET: "the whole Play-all runs headlessly in real Chromium ... this is the
+// shape the daily UAT check now takes: Playwright, not a phone recording ... worth committing under gates/").
+// Drives "▶ Play all N" from Home at his geometry and at 375x812, sampling every 700 ms: every card's caption is
+// reached in order with its item id, no card leaves a page scroll, the board (where a card shows one) never shrinks
+// within a card, the run ends on the green RECORDING COMPLETE frame, and there are no app errors beyond the one
+// allowed engine trap (#356). A phone is slower than this container, so the gate asserts ORDER and COMPLETION,
+// never wall-clock; the per-card checkpoints live in 14-uat-review-card.js.
+//
+// #416: THE BASELINE USED TO BE THE UNSETTLED FRAME, AND THAT IS WHY THIS GATE REDDENED A GOOD BUILD ABOUT ONE
+// FULL RUN IN SEVEN (flag gate15-baseline-is-the-unsettled-frame-2026-09-18, six green and one red on one
+// verified-identical bundle). The old loop did `if(cap!==cur){cur=cap;curBoard=null;}` and then took curBoard from
+// the FIRST sample under the new caption - systematically the frame least likely to be settled, because the caption
+// changes at the moment the card sets its state up. Re-measured here at 40ms on the #415 bundle in ONE atomic
+// evaluate per sample, card 1/8 (k10) at 375x679: the board is 375.03 with over=12 at the first post-caption sample
+// and 351.03 with over=0 from 88ms on, holding for the remaining 296 samples of that card; every other card in the
+// walk holds ONE width for its whole duration. So the transient is real - a ~130ms, 24px painted jump on ENTERING
+// that card, which is the gallery mounting a pre-set-up state, and the #415 antagonist measured the only
+// user-reachable analogue (playing into mate) and found NO jump there - and reading a baseline out of it made the
+// settled value look like a shrink. Both reds came from that one frame: `over 12` and `375 -> 351`.
+// THE SAME WALK AT 375x812 HAS NO TRANSIENT AT ALL: card 1/8 is 375.03 with over=0 from its first frame, because
+// at 812 there is height enough that the pre-setup width IS the settled one. So the flake this fixes was only ever
+// reachable at the shorter geometry, on the one card whose board is fit to a height that binds. Two other facts
+// out of the same 3336-sample sweep, both of which the fix has to respect: card 6/8 US-R01 shows NO BOARD for the
+// first 11.5s of its 52s (so an entry-window baseline alone would silently stop covering that card, which is why
+// the late baseline below exists), and cards 7/8 and 8/8 report 349.03 - the review board still mounted UNDER the
+// Home overlay, since this app keeps several screens mounted at once (#393). Every other card holds one width.
+//
+// WHAT REPLACED IT. On every caption change the gate reads the board every 50ms for a FIXED 900ms and takes the
+// baseline from the TAIL of that series: the last run of reads agreeing within 0.6px must span at least 250ms. It
+// deliberately does NOT stop at the first value that holds for 250ms - that is the same thing as trusting the first
+// stable-looking value, and a transient LONGER than the hold would then be taken as settled. Reading to the end of
+// the window instead sees through any transient shorter than 900-250 = 650ms, and a card still moving at 900ms is
+// REPORTED by its own assertion rather than silently baselined. tailStable() is a pure function over the read
+// series and FIXTURE unit-tests it against the shapes this walk can produce including the ones it must reject (the
+// #391 rule) - which is how the alternative the flag proposed was ruled out: "require the shrink to persist across
+// two consecutive samples" DOES NOT FIX THIS, because the transient is the BASELINE and the shrink to the settled
+// value persists for ever, so a persistence filter keeps the false red. Every run also NOTES what the old baseline
+// would have said, taken from reads[0] of the same series, so the log carries the before-and-after rather than an
+// argument about it. And the sample that feeds an assertion is now bracketed by two caption reads: b.metrics() is
+// two evaluates, so without that guard a caption change between them attributes card N+1's setup frame to card N.
+//
+// WHY THE CAPTION IS NOW POLLED EVERY 60ms AND NOT EVERY 700. The first version of this fix kept the 700ms poll,
+// and its first run showed why that will not do: it recorded card 1/8's first read as 351.03, the SETTLED value,
+// because a 700ms-quantised poll detects the caption change up to 700ms after it happens and so usually starts
+// reading after the transient has gone. That is the lucky six-in-seven, and a gate that dodges the state it
+// guards against six times in seven is not evidence about the seventh (#385: when an assertion is about a state,
+// prove the state was entered). Polling at 60ms means reads[0] lands inside the ~130ms transient every time, so
+// at 375x679 the log shows "first read 375.03, settled baseline 351.03" on EVERY run - the old baseline and the
+// new one side by side, on the same series, from the same run. The 700ms cadence of the assertion samples is
+// unchanged; only the caption watch is fast.
+//
+// AND THE HEADLINE ASSERTION WAS ASSERTING NOTHING. "Every card was reached in order" was `seen.length>=N`,
+// which checks neither reaching nor order: card 6/8 alone emits SEVEN sub-captions, so this walk's 16 captions
+// clear a bar of 8 with six of the eight cards missing. It is the alternation-that-matches-every-branch fault
+// (#388) in arithmetic form, on the claim this gate exists to make. walkOk() now parses the n/N token out of
+// every caption and requires the totals to agree with the gallery's own card count, the numbers to be
+// non-decreasing, and every card 1..N to appear; WFIX unit-tests it against five lists it must REJECT, one of
+// which (W4) is exactly the nine-caption list that satisfied the old bar.
+//
+// WHAT THIS GATE STILL CANNOT SEE, stated rather than left to be discovered as a fresh defect - and the first
+// version of this paragraph got its own coverage claim wrong, which the #416 antagonist measured.
+// (i) A shrink INSIDE the 900ms entry window is invisible: brief, and the tail absorbs it; sustained for 250ms at
+// the end of the window, and it BECOMES the baseline. That is the unavoidable price of not reading the expected
+// value out of an unsettled frame, and it is bounded - 900ms of a card that runs 5 to 52s.
+// (ii) A board that is the WRONG SIZE for its whole card passes everything here, because every assertion is
+// relative to the card's own settled width. This paragraph used to say that absolute board size "is pinned in
+// 35-width-containment, 46-play and 48-lesson-flow" - and NONE OF THOSE THREE GATES RUNS AT EITHER OF THIS
+// GATE'S GEOMETRIES: 35 runs se/short375/kunal730, 46 se/kunal730/390, 48 se/kunal730/390 plus four short
+// columns, and `812` appears in gate 35 only inside a comment. That is the "it is covered elsewhere" excuse
+// CLAUDE.md warns about, written by the session that had just added the rule about it. What DOES pin an absolute
+// board width at 375x679, checked file by file: 10-gameover.js:25 `WANT={kunal:351}` (card 1/8's state),
+// 13-play-after-moves.js:27 `PIN={kunal:{card:{w:351}}}` (card 2/8), 11-lesson.js:13 demo end 375 wide (cards
+// 3/8 and 4/8), 12-hint.js:16 `WANT={kunal:375}` (card 5/8), and 20-review.js:80 with 14-uat-review-card.js:21
+// both at 349 (card 6/8). AT 375x812 NOTHING IN THE SUITE PINS AN ABSOLUTE BOARD WIDTH - this gate is the only
+// file under gates/regress/ that visits that viewport at all. So (ii) is genuinely uncovered there, and saying
+// so is the point. The numbers to pin if the next session wants to close it are in the header above (375x679:
+// card 1/8 351.03, cards 3-5 375.03, cards 6-8 349.03; 375x812: 375.03 then 349.03).
+// (iii) What (ii) does NOT excuse, and what the population assertion below now catches: a board that is ABSENT.
+// Every board check here is conditioned on `m.board` existing, so `display:none` on the grid used to give
+// 24 pass / 0 fail with the log printing "2 of 15 captions had a board" and nothing reading that number -
+// the count-with-no-assertion fault, measured by the #416 antagonist with a control it wrote itself.
+// `CT_G15_NC=hide` and `=hideEntry` are that control, kept. The assertion is pinned to the MECHANISM (the only
+// boardless caption is the one whose text is "Starting...") rather than to a count with slack, because "at
+// least 13 of 15" was the first draft and one caption of slack is how a frozen denominator starts.
+// (iv) The shrink check is ONE-SIDED (`w < base - TOL`), so a board that GROWS mid-card and returns is
+// invisible, and CLAUDE.md's rule is that the board must never JUMP. A running max over each card's settled
+// samples would catch it; nothing in this walk grows (one width per caption, measured over 32,000+ samples at
+// 1x/4x/6x throttling across both geometries), so it is a gap in the argument rather than a missed defect.
+// (v) Latent: `tailStable` reports `why:'no board'` when the LAST read is null even if the board was present
+// for the rest of the window, and such a card lands in `noBase` and reds with a misleading reason. Not
+// reachable here - no caption group in five 40ms sweeps has a board present early and null later.
+//
+// every one of these numbers was produced by the command in the block below, on this file at 955501e. `scope`
+// is mandatory and is why the format exists: all SEVEN ran at 375x679 only, where this gate runs 25 of its 36
+// assertions, and a count without its scope is not evidence (#411, where two of six published control counts
+// turned out to be subset runs nobody could reproduce).
+// ── A KNOWN DISAGREEMENT WITH gates/control-audit.js, RECORDED RATHER THAN WORKED AROUND (#451). That tool
+//    requires `total` to lie inside 1..<number of L.say SITES in the file> and reports FAULT otherwise. No gate that
+//    LOOPS can satisfy it: gate 15 has always run its sites over two geometries, so its runtime total exceeds its
+//    site count, and the EIGHT PRE-EXISTING records below violate the bound too (total=25 against 13 sites at the
+//    time) - they were only ever reported FAULT for the earlier reason, so nobody noticed. The totals in the rows
+//    below are the MEASURED runtime counts, which is what a reader needs to reproduce them; publishing a smaller
+//    number to satisfy the bound would be inventing a figure. So gate 15 reads ASSERTIONS-MOVED until the tool's
+//    bound is fixed, and that is the honest state:
+//    jobs/control-audit-bounds-total-by-the-L-say-SITE-count-so-no-looping-gate-can-be-covered-2026-10-01.
+// ── #451's controls. SEVEN runs, every count MEASURED at one walk geometry and the scope published with it
+//    [#411/#412: publish the command with the count]. Block F is NOT governed by CT_G15_GEOS - its two widths are
+//    the acceptance condition - so every row below includes both F geometries. Totals differ between rows because
+//    F2's three readout assertions are CONDITIONAL on the readout line existing, so they do not run on a bundle
+//    without it; that is why the #450 row totals 56 and the baseline 62.
+// A TRIAL-BUNDLE CONTROL IS RECORDED SEPARATELY BELOW because its scope is a bundle rather than an env var:
+//
+// THE CONTROLS, each with the command that reproduces its count (#412: publish the command with the number).
+// Measured on the shipped #415 bundle (app.js md5 6f42b141eac4), 2026-09-18, all at 375x679:
+//   CT_G15_GEOS=kunal node gates/regress/15-gallery-playall.js                     -> 24 pass, 0 fail  (shipped)
+//   CT_G15_GEOS=kunal CT_G15_NC=shrink    node gates/regress/15-gallery-playall.js -> 24 pass, 1 fail
+//        the fail is "no board shrinks inside a card", card 2/8, base 351.03 -> 327 on three consecutive samples
+//   CT_G15_GEOS=kunal CT_G15_NC=over      node gates/regress/15-gallery-playall.js -> 24 pass, 1 fail
+//        the fail is "no card leaves the page scrolling", card 2/8, over 14 on three consecutive samples
+//   CT_G15_GEOS=kunal CT_G15_NC=unsettled node gates/regress/15-gallery-playall.js -> 23 pass, 2 FAILS, and both
+//        of them are right: the settle assertion goes red ("settled only 0ms", reads alternating 351.03/327.03),
+//        and so does the baseline-population one, because a card whose width never settles gets no baseline while
+//        its board plainly WAS on screen. The two are coupled on purpose - that is the pairing that stops an
+//        unsettled card from being quietly dropped from the shrink check instead of reported.
+//   CT_G15_GEOS=kunal CT_G15_NC=hide       ... -> the population assertion reds ("2 of 15 captions had a board")
+//   CT_G15_GEOS=kunal CT_G15_NC=hideEntry  ... -> the same, "1 of 15"
+//   CT_G15_GEOS=kunal CT_G15_NC=pagescroll ... -> the page-scroll assertion reds (body position:static)
+//   With no CT_G15_GEOS the gate runs both geometries.
+//
+// INDEPENDENTLY REPRODUCED by the #416 antagonist on its own instrument (an in-page 40ms sampler recording
+// [performance.now(), width, caption] in one synchronous callback, 32,000+ samples over five sweeps): the
+// transient's end at 89ms against the 88ms in this header; 113ms under 4x CPU throttling and 134ms under 6x, so
+// the worst transient anywhere in the walk is 134ms against this window's 650ms limit; card 6/8's board first
+// appearing at 13.1s (1x), 22.6s (4x), 14.4s (6x) of its 51.9s, which is what the late baseline exists for; and
+// every other caption holding exactly one width at every geometry and every throttle rate. Runtime, back to
+// back on the same machine: this gate 294s against the old one's 296s for the same walk, because the wall clock
+// is set by the app's own 5-88s holds and the read windows happen inside them.
+// THE MARGIN ON reads[0] IS ABOUT 60ms and that is worth knowing: detection is within one 60ms TICK of the
+// caption change and the transient runs to 89-134ms, so the note is not guaranteed for ever - but the failure
+// mode is a missing LOG NOTE, never a red, and it held on 5 of 5 runs plus the suite's own.
+//
+// WHY ct_pool IS FORCED TO 3 HERE (asked and answered at #416, not left for the next reader to re-derive):
+// determinism on card 6/8, which is a 52-second engine-bound review. The branch it skips is covered where it
+// matters - 33-reproducible-review.js run C forces ct_pool=1 and asserts the single-worker review returns the
+// same verdicts, and 23-full-walk.js drives this same gallery with NO override, so the device-chosen branch
+// runs there. Measured at #416: forcing ct_pool=1 here gives 24 pass / 0 fail with the transient still caught,
+// because pool size changes analysis speed, not geometry.
+// Each NC injects a REAL layout change AT card CT_G15_NC_CARD (default 2) and then LEAVES IT IN PLACE for the rest
+// of the run - the injected `<style id="ct-nc">` is never removed - so these are global from that card on, not
+// per-card. That wording matters, because it is why only card 2/8 ever reds for `shrink` and `over`: every later
+// card takes its baseline AFTER the injection and so measures the broken board as its own settled width. That is
+// blind spot (ii) above, demonstrated by the controls themselves rather than argued.
+// `shrink` takes 24px off the board's width, height and squares, which is the persistent shrink this gate exists
+// to catch; `over` appends a laid-out 14px child to #root; `unsettled` flips the board's width every 60ms so the
+// 900ms read window never has a settled tail; `hide` and `hideEntry` remove the board entirely, after and before
+// the entry window, which is the control for the population assertion; `pagescroll` forces `body` out of
+// `position:fixed` and appends 3000px to it, which is the control for the page-scroll mechanism. The first draft of `shrink`
+// overrode only `grid-template-columns` and the board's rect did not move at all - the box is fixed by an inline
+// `width:boardPx` on the same element - so the control injected something real and measured nothing, which is
+// #384's rule ("the numbers moved" is not enough) failing one step earlier still: the numbers had not moved.
+'use strict';
+const L=require('../lib');
+
+const TOL=0.6, HOLD=250, WIN=900, STEP=50, TICK=60;
+/* #451: THE PIN MOVES WITH THE CARDS, IN THE SAME COMMIT, AND IT STAYS EXTERNAL.
+   jobs/preview-gallery-flush-and-load-current-asks flushed the eight obsolete cards and loaded the two that are
+   due, so this pin changes with them. THREE THINGS DELIBERATELY NOT DONE, because each is a trap this repo has
+   already paid for:
+   (1) NOT DERIVED FROM SC AT RUNTIME. That is the obvious fix and it is the one costume this file must not wear -
+       the check and the thing checked become the same object (CLAUDE.md records it six times: clip-intersection,
+       #393's "the covering element is big", #394's grid.contains, #398's flex-shrink, #419's log footer, #432's
+       own-build selector). A gate that reads SC to check SC cannot see a card silently removed.
+   (2) THE COUNT IS PARAMETERISED, NOT DROPPED. `N===8` becomes `N===EXPECTED_N`, and EXPECTED_N is asserted to be
+       what this commit says it is, so a drift of one card is still RED. A bare count with no scope is what
+       #411/#412 charged.
+   (3) W1 TO W6 AND CAPS8 ARE UNTOUCHED. CAPS8 is a pure FIXTURE for unit-testing walkOk() against caption shapes
+       it must accept and reject; it is not an assertion about the live card set, and it carries gate 15's real
+       invariant - that every card actually played, in order, with a coherent n/N token. Nothing here weakens it. */
+/* #547 item (53): PHONE removed from the ask queue (Kunal's phone is settled at 375x761), so KEV is card 1 and the
+   queue holds one card. */
+/* #550 item (1): SCR, his phone check of the full-screen shell, joins as card 2. */
+/* #550 answer a29 (the orchestrator, 11:37am ET: the Kevitsch screenshot is held, 'remove the KEV card as provided'): KEV leaves, so SCR
+   is card 1 and EXP card 2. */
+/* #553 B1 (jobs/load-the-550-phone-checks-into-the-preview-gallery-2026-11-16; the orchestrator's q26 ruling, run-answers
+   orchestrator-B14-Q26-RULING-2026-11-24): IPAD leaves the queue under CLAUDE.md's Parked line ("The iPad, entirely, until the phone
+   layout is settled. Do not spend a run on it and do not ask about it again."), and three cards join: 3 AUD (his page picks of 14 Nov),
+   4 DSK (his desktop look at 1920x1080 and 1440x900, on the retired IPAD card's walk) and 5 SPD (speed with his own games). */
+const PINNED_IDS='1 SCR|2 EXP|3 AUD|4 DSK|5 SPD';   /* #550 hold-landing (6): his iPad card, every screen the desktop and tablet rule touches */ //   /* #550 item (11): EXP, the plain-words engine reading, joined as card 3 (card 2 since a29) */
+const EXPECTED_N=5;   // #550 hold-landing (6): + 3 IPAD; #553 B1: IPAD out, AUD, DSK and SPD in
+/* #451: WHICH PINNED CARDS SHOW A BOARD, AS AN EXPLICIT TWO-SIDED PIN - and this is the assertion that would
+   otherwise have gone quietly vacuous when the card set changed, which is the fault this file is full of warnings
+   about. Until #451 every SC card drove a board screen, so "every caption except Starting showed a board" was a
+   real assertion. The flush replaced them with two cards that legitimately have NO board: PHONE is the menu sheet
+   over home, KEV is the Review ENTRY screen before a game is imported. Three ways to get this wrong and the one
+   that is right:
+     - leaving the old assertion: RED on a healthy build, a false defect on two cards that correctly have no board.
+     - deleting it: the board invariants vanish silently the moment the queue changes again.
+     - a count with slack ("at least N boardless are allowed"): the frozen denominator this file already rejects
+       for exactly this line, in the comment below.
+   So the expectation is NAMED per card id and asserted IN BOTH DIRECTIONS: a card in this set must show a board,
+   and a card NOT in it must NOT. That is strictly stronger than what it replaces - it reds if a board stops
+   appearing where one is expected AND if one starts appearing where none is, so a card whose state silently
+   changes cannot pass either way. Empty today, and the empty case is asserted rather than skipped.
+   WHERE THE REMOVED CARDS' BOARD COVERAGE LIVES, so this is a relocation and not a loss [R06, and build-run's
+   "if you move a UI element the assertion moves WITH it"]: the comment at the head of this file already measured
+   it file by file, and all six gates are present on main - 10-gameover.js (the old card 1/8 k10 state),
+   13-play-after-moves.js (2/8 k8), 11-lesson.js (3/8 and 4/8 k11), 12-hint.js (5/8 A-06), and 20-review.js with
+   14-uat-review-card.js (6/8 US-R01).
+   **AND THE SENTENCE THAT STOOD HERE IS WITHDRAWN [R18], BY THE SUITE, BEFORE IT COULD REACH MAIN.** It read "The
+   states are still pinned; what changed is which gate drives them." The first half is true and the second is false
+   in the way that matters: those six gates do not merely pin those states, they REACH them by tapping these very
+   gallery cards through gates/lib.js b.card(). Deleting the cards therefore took 10, 11, 12, 13 and 14 RED inside
+   six minutes of the full suite, every one on `locator.waitFor: Timeout 8000ms exceeded`. What I had removed was
+   the ROUTE IN, not a duplicate assertion. The cards are consequently kept as a SEPARATE fixture list (chess.jsx,
+   const TS) with byte-identical labels, so EXPECT_BOARD being empty is a statement about Kunal's ask queue only,
+   and the board states above are still both pinned AND reachable. The assertions that would have caught this -
+   the total card population and STATE_IDS - are below, and their control is a bundle built with TS empty. */
+const EXPECTED_STATES=8;      /* the fixed states the harness drives (chess.jsx const TS), NOT asks */
+/* THE IDS THE HARNESS REACHES ITS STATES THROUGH, via b.card(). RE-MEASURED AFTER ANTAGONIST A DISPUTED THE FIRST
+   VERSION OF THIS COMMENT, AND IT WAS RIGHT ON BOTH COUNTS [R18]. The first version said "five gates and two
+   drivers" and listed five ids. MEASURED with `grep -rn 'b\.card(' gates/regress/ gates/drive/ gates/vocab.js`:
+   **24 call sites in 14 files**, and inside gates/regress/ alone NINE files - the five this build discovered by
+   breaking them (10-gameover, 11-lesson, 12-hint, 13-play-after-moves, 14-uat-review-card) PLUS 30-p1-fixes.js,
+   31-antagonist373.js, 35-width-containment.js and this file. The "five" was a count taken from the first six
+   minutes of a suite that was still running, published as the complete set - #405's lesson running backwards.
+   Outside gates/regress/: drive/play.js (k10), drive/puzzles.js (A-06), drive/lesson.js (cards 3 and 4),
+   drive/menu.js (card 7) and vocab.js (k8, k10, k11, A-06).
+   **y3 IS IN THIS LIST BECAUSE OF drive/menu.js:104**, which taps card 7 - `7 · y3 · Layout readout`. The first
+   version of STATE_IDS omitted it, so the assertion written precisely to name "the ids the harness reaches its
+   states through" did not name one a committed driver reaches by number. Found by antagonist A.
+   Pinned BY NAME because deleting these cards took five gates red in one suite this run and nothing in gate 15
+   could see it coming - this is the assertion that would have, and it would have named the card rather than
+   leaving the next reader with eight `locator.waitFor` timeouts to diagnose. */
+const STATE_IDS=['k10','k8','k11','A-06','US-R','y3'];
+/* #451: the fixture cards block S samples, with the hold each one declares in chess.jsx's TS array, re-read from
+   source rather than remembered. THREE OF THE EIGHT ARE EXCLUDED AND EACH FOR ITS OWN MEASURED REASON:
+     - US-R: hold 88000ms, and 14-uat-review-card and 20-review drive that state directly. Cost, not coverage.
+     - CARDS 7 AND 8 (both y3): THEY HAVE NO BOARD OF THEIR OWN - 7 is the menu sheet over home, 8 is home. I caught
+       this writing block S, and it corrects my reading of the assertion I was replacing. The old walk's
+       "every caption except Starting showed a board (14 of 15)" DID count these two, at 349.03 - and this file's own
+       header says why: "cards 7/8 and 8/8 report 349.03 - the review board still mounted UNDER the [home overlay]".
+       That reading was an artefact of WALK ORDER: cards 7 and 8 follow card 6's Review journey, so what they
+       reported was the PREVIOUS card's board, still mounted beneath a fixed overlay. Block S taps each card from a
+       fresh gallery, so no stale board exists and these two are honestly boardless. Worth stating plainly: for two
+       of its fifteen captions, the assertion I inherited was measuring a board that did not belong to the screen
+       under test - which is the same family as #394's bubble satisfying grid.contains(), one costume over.
+   So block S drives the five cards that own a board: 44s per geometry, 88s for both. */
+const STATE_CARDS=[{id:'k10',hold:13000},{id:'k8',hold:8000},{id:3,hold:7000},{id:4,hold:9000},
+  {id:'A-06',hold:7000}];
+/* #550 item (11): the gallery's EXP card ('explanations on the Review board', self-driving: the Opera import, then plies 9, 19 and 25 with the
+   engine line and its why) is a REVIEW card, so all four of its captions paint the review board. Measured on trial t6: the walk's only
+   board-painting captions are EXP, EXP-1, EXP-2 and EXP-3, at both geometries. Pinned, so the board-conditioned checks stop being inert
+   for this walk and a caption of EXP that LOSES its board reds rather than passing as 'boardless'. */
+const EXPECT_BOARD=['EXP','EXP-1','EXP-2','EXP-3','AUD','DSK','SPD'];   /* #550: IPAD walked screens with boards; #553 B1: AUD (a puzzle, a lesson, the review) and DSK (IPAD's walk) do, and so does SPD - measured 25 Nov (07:32Z run): its row tap opens the stored Opera game that EXP, AUD and DSK imported earlier in the walk, so 'no caption painted a board where this commit pins none' read red on SPD until it was pinned here */
+/* #553 B1: THE WALK EXCUSALS, EARNED BY MEASUREMENT AND PINNED PER CARD ID (the lead's condition). IPAD, a walk across screens under one
+   caption, was excused from two checks: the board's size across the walk (SHRINK) and pages that may scroll on the way (SCROLL). A card
+   gets an excusal here only if gate 15 run with it OFF (CT_G15_NO_EXCUSE=<ids>, a measurement switch, printed loudly) reds exactly that
+   walk check for that card, on screens where the board legitimately changes size or a page legitimately scrolls; the run is named in the
+   reason. No pattern: the lookup is by the card id read out of the caption, and a card with no entry is excused from nothing. */
+const WALK_EXCUSE={
+  /* AUD, MEASURED with its excusals off (CT_G15_NO_EXCUSE=AUD,DSK,SPD; 06:56-07:07Z and 07:32-07:48Z on 25 Nov, bundle a5c973667137):
+     SCROLL earned - its two over-episodes are pages that scroll by design, the Puzzles road (about 1140px over, 7 s into the card) and
+     the 8.8-screen Openings list (about 5700px, 21 s in; jobs/bench-97-lesson-list-is-5934px-...), each cleared when the next screen came.
+     SHRINK is BOUNDED, at 375x679 only (the lead's ruling): AUD's baseline is the previous card's leftover board (375, EXP's review
+     under the Home overlay, taken when AUD's caption appears) and the lesson it opens settles at 341.03 there (07:32Z run: 375.03 -> 341
+     at t=140901..142311 ms) - a legitimate size of another screen. It may go down to that settled lesson board and NO lower, so a
+     board at the fit loop's 192 floor stays red. R18 [#553 B1, 25 Nov]: this comment first called that 192 frame a LESSON-entry frame;
+     measured per frame it is Review's analysis-wait board on AUD's re-import of the already-analysed Opera Game, trimmed to the floor
+     because a review was still in state (jobs/the-lesson-board-paints-half-width-for-its-first-half-second-on-entry-2026-11-25,
+     re-titled; fixed by the fit loop staying off while analysing; gate 243 TC-R441 holds it per frame).
+     No shrink excusal at 375x812, where the lesson board settles at the full 375. */
+  AUD:{scroll:'the Puzzles road and the Openings list scroll by design (measured 25 Nov, see above)',shrinkFloor:{kunal:341.03-TOL}},
+  /* DSK: NO SCROLL excusal (measured with its excusals off: no scroll episode). SHRINK is BOUNDED, at 375x679 only (the lead's ruling,
+     25 Nov): DSK's baseline is the previous card's leftover board (375) and its re-import's review settles at 341.03 there - Review's own
+     settled board at 375x679, the size EXP's own review settles at (341.03 at t=24061 in the 08:43Z whole-walk recording on the fix
+     bundle; the final run at 10:57Z read DSK 375.03 -> 341 at t=244286..245743). Before the fit loop stayed off while analysing, that
+     re-import painted the 192 floor and grew back past 341, so the sampler never read it. It may go down to that settled review board and
+     NO lower. No shrink excusal at 375x812, where the review board settles at the full 375. */
+  DSK:{shrinkFloor:{kunal:341.03-TOL}},
+  /* SPD, MEASURED (07:32Z run): SCROLL earned - it ends on the Puzzles road, which scrolls by design (1115.6px at 375x812, still over at
+     the end of the record because the road is its last screen: the SPD-10 glow check). No shrink: it paints one board, the stored game. */
+  SPD:{scroll:'it ends on the Puzzles road, which scrolls by design (measured 25 Nov, see above)'},
+};
+const NO_EXCUSE=(process.env.CT_G15_NO_EXCUSE||'').split(',').map(x=>x.trim()).filter(Boolean);
+const capId=(cap)=>{const m=/\s\d+\/\d+\s\u00b7\s([A-Z][A-Z0-9]*)(?:-\d+)?\s/.exec(String(cap||''));return m?m[1]:null;};   // the caption is '🎬 #553 · 3/5 · AUD · 375x679 ...'
+const excused=(cap,check)=>{const id=capId(cap);if(!id||NO_EXCUSE.includes(id))return null;const e=WALK_EXCUSE[id];return e&&e[check]?id:null;};
+// a bounded shrink: excused only down to the card's measured floor at this geometry; below it, or at a geometry with no floor, it counts
+const shrinkExcused=(cap,lab,w)=>{const id=capId(cap);if(!id||NO_EXCUSE.includes(id))return false;const e=WALK_EXCUSE[id];const f=e&&e.shrinkFloor&&e.shrinkFloor[lab];return f!=null&&w>=f;};
+
+// tailStable(reads,hold,tol): reads are [{w,ms}] in poll order. The baseline is the value at the END of the read
+// window, and it counts as settled only if the run of reads agreeing with it within tol spans >= hold ms.
+// Pure, so FIXTURE below can test it against the shapes the walk produces and the ones it must reject.
+function tailStable(reads,hold,tol){
+  if(!reads.length)return {ok:false,why:'no reads'};
+  const last=reads[reads.length-1];
+  if(last.w===null||!isFinite(last.w))return {ok:false,why:'no board'};
+  let i=reads.length-1;
+  while(i>0&&reads[i-1].w!==null&&isFinite(reads[i-1].w)&&Math.abs(reads[i-1].w-last.w)<=tol)i--;
+  const heldMs=last.ms-reads[i].ms;
+  return {ok:heldMs>=hold,w:last.w,fromMs:reads[i].ms,heldMs,why:heldMs>=hold?null:'settled only '+heldMs+'ms'};
+}
+const mk=(pairs)=>pairs.map(p=>({w:p[0],ms:p[1]}));
+const ser=(w,a,b,step)=>{const o=[];for(let t=a;t<=b;t+=step)o.push({w,ms:t});return o;};
+// Each fixture is a read series at 50ms and what tailStable MUST say about it. F1 is the shape measured on card
+// 1/8; F3 is why the window is read to its end; F4/F5/F7 are what must never be silently baselined.
+const FIXTURE=[
+  ['F1 the measured card-1/8 shape: 375 for three reads then 351 to the end',
+   mk([[375.03,0],[375.03,50],[375.03,100]]).concat(ser(351.03,150,900,50)),{ok:true,w:351.03,fromMs:150}],
+  ['F2 already settled for the whole window',ser(351.03,0,900,50),{ok:true,w:351.03,fromMs:0}],
+  ['F3 a transient LONGER than the hold (300ms) is still seen through, because the tail is what counts',
+   ser(375.03,0,300,50).concat(ser(351.03,350,900,50)),{ok:true,w:351.03,fromMs:350}],
+  ['F4 a width still moving at the end of the window is NOT settled',
+   mk([[375,0],[351,50],[375,100],[351,150],[375,200],[351,250],[375,300],[351,350],[375,400],[351,450],[375,500],[351,550],[375,600],[351,650],[375,700],[351,750],[375,800],[351,850],[375,900]]),{ok:false}],
+  ['F5 a tail that has only held 100ms is NOT settled',ser(375,0,800,50).concat(mk([[351,850],[351,900]])),{ok:false}],
+  ['F6 sub-pixel jitter inside the tolerance IS settled',
+   mk([[351.03,0],[351.5,50],[351.03,100],[350.9,150]]).concat(ser(351.03,200,900,50)),{ok:true,w:351.03,fromMs:0}],
+  ['F7 a card with no board on screen yields no baseline rather than a zero one',ser(null,0,900,50),{ok:false}],
+  ['F8 the settled value is the LAST one even when an earlier value held longer',
+   ser(375,0,600,50).concat(ser(351,650,900,50)),{ok:true,w:351,fromMs:650}],
+];
+
+// walkOk(caps,N): the captions this walk produced, in order, against the gallery's own card count. The old
+// assertion for "every card was reached in order" was `seen.length>=N`, which checks NEITHER: card 6/8 alone
+// emits seven sub-captions, so nine captions out of two cards satisfied it and the gate could go green having
+// skipped most of the gallery. W4 below is exactly that list. Pure, so the FIXTURE tests it against lists it
+// must reject as well as the one this walk really produces (#391).
+function walkOk(caps,N){
+  const ns=[];
+  for(const c of caps){const m=String(c||'').match(/·\s*(\d+)\/(\d+)\s*·/);if(!m)continue;
+    if(Number(m[2])!==N)return {ok:false,why:'caption says '+m[1]+'/'+m[2]+' but the gallery holds '+N,ns};
+    ns.push(Number(m[1]));}
+  if(!ns.length)return {ok:false,why:'no caption carried an n/N token',ns};
+  for(let i=1;i<ns.length;i++)if(ns[i]<ns[i-1])return {ok:false,why:'card '+ns[i]+' came after card '+ns[i-1],ns};
+  for(let n=1;n<=N;n++)if(!ns.includes(n))return {ok:false,why:'card '+n+' never appeared',ns};
+  return {ok:true,ns};
+}
+/* #553 jobs/gate-15-reddened-on-a-review-entry-frame-2px-over-that-clears-in-ms-2026-11-21: "LEAVES THE PAGE SCROLLING" IS DECIDED
+   ON THE SETTLED FRAME, BY A RECORDER THAT SEES EVERY FRAME, NOT BY A 700ms SAMPLE AND ONE RE-READ.
+   WHAT THE APP DOES, traced frame by frame (an in-page requestAnimationFrame recorder, the same overflow rule as lib's b.over(), on the
+   #553 trial bundle 41cb9b63624a): when Review mounts under the EXP caption the first painted frame has the board at the full 375.03
+   and the shell (#root's first child) 699 tall in a 679 viewport - over 20 - for one frame (~37ms); the fit loop's first pass trims 16
+   (board 357.03, shell 681, over 2) for one more frame (~33ms); its second pass lands on 341.03 and over 0, which then holds. Two
+   painted frames, about 70ms. At 320x568 the same mount paints ONE frame over 45 (board 320 -> 265.03, ~26ms); at 375x761 (his phone)
+   and 375x812 the first frame already fits, so there is no transient at all. The cause is that the fit loop (chess.jsx, the effect
+   that measures `over` and calls setBoardTrim from a requestAnimationFrame tick) runs AFTER paint, so the frames it corrects are
+   painted. Sizing the board before the first paint is a change to the Review fit, which another seat owns this batch; it is not
+   made here, so the close condition's branch (3) applies: the gate keeps a settle window, and this is why.
+   THE OLD RE-READ (b7317056) HAD TWO HOLES, and they are why it is replaced rather than lengthened. (a) It decided on ONE more
+   sample 250ms later: an overflow that flickers (over in some frames, not in others - a fit loop oscillating between two trims,
+   which is a real board jump) passes whenever that one read lands in a clear frame. (b) A re-read that found the caption changed
+   was NOTED and not counted whatever it read, so a persistent overflow sampled near the end of a card escaped. And it saw the
+   transient only by luck - a 70ms window under a 700ms sampler - which is why the red was random (1 of 2, 1 of 1) and why no
+   control could show the settle wait was doing anything.
+   WHY A PERSISTENCE RULE IS RIGHT HERE WHEN CLAUDE.md SAYS ONE WAS WRONG FOR THIS SAME GATE (gate15-baseline-is-the-unsettled-
+   frame, "THE FIX A FLAG PROPOSES IS A HYPOTHESIS"): that flag's transient was the BASELINE, so the shrink from it to the settled
+   width persisted for ever and a two-sample filter kept the false red. Overflow has no baseline - its bound is the viewport, which
+   does not move - so "is it still over once the frame has settled" is a question with a fixed reference, and a transient really
+   does end. The rule: an episode (over > 0.5) is a TRANSIENT only if it clears within OV_WIN of its onset AND the clear then holds
+   for OV_HOLD (the same 900ms and 250ms as tailStable's window). Anything else PERSISTS and is counted: still over at the end of
+   the record, cleared too late, or back over before the clear has held (a flicker is one episode, not two transients).
+   Episodes are followed ACROSS a caption change on purpose: an overflow that lasts until the card changes has lasted longer than
+   the window and so persists anyway, and one that starts just before a change is judged by its own duration, not by the caption. */
+const OV_WIN=900, OV_HOLD=250;
+function ovEpisodes(ev,tEnd,win,hold){
+  const eps=[];let ep=null;
+  const close=(why)=>{ep.why=why;ep.persists=!!why;ep.ms=(ep.clearAt===null?null:Math.round(ep.clearAt-ep.onset));eps.push(ep);ep=null;};
+  for(const e of ev){
+    const isOver=e.over>0.5;
+    if(isOver){
+      if(!ep){ep={cap:e.cap,onset:e.t,peak:e.over,clearAt:null,flicks:0};continue;}
+      if(ep.clearAt!==null){
+        if(e.t-ep.clearAt>=hold){close(ep.clearAt-ep.onset<=win?null:'took '+Math.round(ep.clearAt-ep.onset)+'ms to clear, past the '+win+'ms window');
+          ep={cap:e.cap,onset:e.t,peak:e.over,clearAt:null,flicks:0};continue;}
+        ep.clearAt=null;ep.flicks++;}
+      ep.peak=Math.max(ep.peak,e.over);
+    }else if(ep&&ep.clearAt===null)ep.clearAt=e.t;
+  }
+  if(ep){
+    if(ep.clearAt===null)close('still over at the end of the record');
+    else if(tEnd-ep.clearAt<hold)close('the record ended '+Math.round(tEnd-ep.clearAt)+'ms after it cleared, before the clear had held '+hold+'ms');
+    else close(ep.clearAt-ep.onset<=win?null:'took '+Math.round(ep.clearAt-ep.onset)+'ms to clear, past the '+win+'ms window');
+  }
+  return eps;
+}
+// Each fixture is a recorder event list (only the frames where the value changed, as the recorder stores them), the time the record
+// was read, and the verdicts ovEpisodes MUST give. O1 is the trace measured at 375x679; O3, O4, O5 and O7 are what must never be
+// waved through as a transient.
+const OVE=(a)=>a.map(x=>({t:x[0],cap:x[1]||'c',over:x[2]}));
+const OVFIX=[
+  ['O1 the measured 375x679 Review entry: over 20 for a frame, 2 for a frame, then 0 to the end - one TRANSIENT',
+   OVE([[0,'c',0],[19790,'c',20],[19827,'c',2],[19860,'c',0]]),64000,[false]],
+  ['O2 nothing ever over - no episodes',OVE([[0,'c',0],[500,'d',0]]),9000,[]],
+  ['O3 a persistent overflow (NC=over, 14px for good) PERSISTS',OVE([[0,'c',0],[1000,'c',14],[2000,'d',14]]),9000,[true]],
+  ['O4 a flicker - over, clear 100ms, over again, clear for good - is ONE episode that did not clear inside the window: PERSISTS',
+   OVE([[0,'c',0],[1000,'c',6],[1100,'c',0],[1200,'c',6],[1300,'c',0],[1400,'c',6],[1500,'c',0],[1600,'c',6],[1700,'c',0],[1800,'c',6],[1950,'c',0]]),9000,[true]],
+  ['O5 an overflow that takes 1200ms to clear PERSISTS (past the 900ms window)',OVE([[0,'c',0],[1000,'c',9],[2200,'c',0]]),9000,[true]],
+  ['O6 two separate transients, each cleared fast and held, are two TRANSIENTS',
+   OVE([[0,'c',0],[1000,'c',20],[1060,'c',0],[5000,'d',45],[5030,'d',0]]),9000,[false,false]],
+  ['O7 a clear the record ends before it has held PERSISTS (not yet proved settled)',OVE([[0,'c',0],[1000,'c',3],[1040,'c',0]]),1100,[true]],
+  ['O8 an overflow that lasts until the caption changes and clears on the next card: judged by its duration (3s), PERSISTS',
+   OVE([[0,'c',0],[1000,'c',5],[4000,'d',5],[4020,'d',0]]),9000,[true]],
+];
+/* The recorder itself. Installed in the page before Play-all; every requestAnimationFrame it computes `over` by the rule lib's
+   b.over() uses (bottom-most laid-out child of #root to depth 4, fixed and absolute children skipped, minus innerHeight) and stores
+   an event only when the value or the caption changes, so a 100s walk is a few hundred events. frames[cap] counts the frames it ran
+   under each caption (its denominator, asserted non-empty per caption below); cur/since are the current value and when it last
+   changed, which the walk compares against b.over() at every steady sample so the recorder is shown to measure what the harness
+   measures rather than trusted to. */
+const OVREC=(b)=>b.page.evaluate(()=>{
+  const R=window.__g15ov={ev:[],frames:{},cur:null,since:0,cap:null};
+  const tick=()=>{
+    const t=performance.now();
+    const ce=document.querySelector('[data-ct="rec-cap"]');const cap=ce?(ce.innerText||'').replace(/\s+/g,' ').trim():null;
+    const root=document.getElementById('root');let bottom=0;
+    const walk=(el,depth)=>{for(const c of el.children){const st=getComputedStyle(c);if(st.position==='fixed'||st.position==='absolute')continue;const r=c.getBoundingClientRect();if(r.height>0)bottom=Math.max(bottom,r.bottom);if(depth<4)walk(c,depth+1);}};
+    if(root)walk(root,0);
+    const over=Math.round((bottom-innerHeight)*10)/10;
+    if(cap)R.frames[cap]=(R.frames[cap]||0)+1;
+    if(over!==R.cur||cap!==R.cap){if(R.ev.length<50000)R.ev.push({t:Math.round(t),cap,over});if(over!==R.cur)R.since=t;R.cur=over;R.cap=cap;}
+    requestAnimationFrame(tick);
+  };
+  requestAnimationFrame(tick);return true;
+});
+const OVREAD=(b)=>b.page.evaluate(()=>{const R=window.__g15ov;return R?{cur:R.cur,steadyMs:Math.round(performance.now()-R.since),now:Math.round(performance.now())}:null;});
+const CAPS8=['🎬 #415 · 375x679 Starting…','🎬 #415 · 1/8 · k10 · 375x679 game over','🎬 #415 · 2/8 · k8 · 375x679 four plies',
+  '🎬 #415 · 3/8 · k11 · 375x679 demo end','🎬 #415 · 4/8 · k11 · 375x679 practice','🎬 #415 · 5/8 · A-06 · 375x679 hint',
+  '🎬 #415 · 6/8 · US-R01 · 375x679 Review','🎬 #415 · 6/8 · US-R03 · 375x679 Summary','🎬 #415 · 6/8 · US-R04 · 375x679 Move',
+  '🎬 #415 · 6/8 · US-R06 · 375x679 10.Nxb5','🎬 #415 · 6/8 · k12 · 375x679 17.Rd8#','🎬 #415 · 6/8 · US-R07 · 375x679 Analysis',
+  '🎬 #415 · 6/8 · US-R09 · 375x679 Exit','🎬 #415 · 7/8 · y3 · 375x679 Layout','🎬 #415 · 8/8 · y3 · 375x679 Home',
+  '🎬 #415 · 8/8 · END · 375x679 RECORDING COMPLETE'];
+const WFIX=[
+  ['W1 the list this walk really produces, sub-captions and the END frame included',CAPS8,8,true],
+  ['W2 a gallery card that never played is rejected',CAPS8.filter(c=>!/·\s*5\//.test(c)),8,false],
+  ['W3 cards out of order are rejected',[CAPS8[1],CAPS8[3],CAPS8[2]].concat(CAPS8.slice(4)),8,false],
+  ['W4 THE HOLE THE OLD `seen.length>=N` LEFT: nine captions from two cards satisfied it and must not satisfy this',
+   [CAPS8[1]].concat(CAPS8.slice(6,13),[CAPS8[15]]),8,false],
+  ['W5 a caption whose total disagrees with the gallery count is rejected',CAPS8.map(c=>c.replace('/8 ·','/9 ·')),8,false],
+  ['W6 no n/N token anywhere is rejected rather than passing vacuously',[CAPS8[0],CAPS8[0]],8,false],
+];
+// the page CANNOT scroll, and the reason is not the one this gate used to give. index.html sets
+// `body{position:fixed;inset:0}`, so documentElement has no scrollable content whatever anyone adds to it -
+// measured by the #416 antagonist: 3000px injected into #root gives over=3000 and docScroll STILL 0, and
+// docScroll only moves once `body{position:static}` is forced. So asserting docScroll===0 is inert by
+// construction and cannot be controlled; assert the MECHANISM instead, which is a positive claim and flips
+// under CT_G15_NC=pagescroll.
+const PAGEFIX=(b)=>b.page.evaluate(()=>{const r=document.getElementById('root');
+  return {bodyPos:getComputedStyle(document.body).position,rootOv:r?getComputedStyle(r).overflowY:null,
+    docScroll:Math.round(document.documentElement.scrollHeight-document.documentElement.clientHeight)};});
+const CAP=(b)=>b.page.evaluate(()=>{const e=document.querySelector('[data-ct="rec-cap"]');return e?(e.innerText||'').replace(/\s+/g,' ').trim():null;});
+// read the board every STEP ms for exactly WIN ms, then take the tail. Uses b.board() so the width is measured by
+// the one harness library and cannot drift from what the assertions compare against.
+async function settleBoard(b){
+  const reads=[];const t0=Date.now();
+  for(;;){
+    const bd=await b.board();
+    reads.push({w:bd?Math.round(bd.w*100)/100:null,ms:Date.now()-t0});
+    if(Date.now()-t0>=WIN)break;
+    await b.settle(STEP);
+  }
+  return {st:tailStable(reads,HOLD,TOL),reads};
+}
+const NC=process.env.CT_G15_NC||'';
+const NC_CARD=process.env.CT_G15_NC_CARD||'2';
+async function inject(b,kind){
+  return b.page.evaluate((k)=>{
+    const els=[...document.querySelectorAll('div')].filter(d=>/repeat\(8,/.test(d.style.gridTemplateColumns||''));
+    let best=null;for(const e of els){const r=e.getBoundingClientRect();if(r.width<40)continue;if(!best||r.width>best.getBoundingClientRect().width)best=e;}
+    if(k==='over'){const d=document.createElement('div');d.style.height='14px';d.textContent='.';document.getElementById('root').appendChild(d);return 'appended a laid-out 14px child to #root';}
+    if(k==='pagescroll'){const st2=document.createElement('style');st2.id='ct-nc';
+      st2.textContent='body{position:static!important;height:auto!important}html,body{overflow:auto!important}';document.head.appendChild(st2);
+      const d=document.createElement('div');d.style.height='3000px';d.textContent='.';document.body.appendChild(d);
+      return 'body forced out of position:fixed and 3000px appended to it - the page really can scroll now';}
+    if(k==='hide'||k==='hideEntry'){const st3=document.createElement('style');st3.id='ct-nc';
+      st3.textContent='div[style*="repeat(8"]{display:none!important}';document.head.appendChild(st3);
+      return 'the board grid is display:none from here on - no board at all, not merely a smaller one';}
+    if(!best)return 'NO BOARD TO INJECT INTO';
+    const w0=best.getBoundingClientRect().width, sq=w0/8;
+    // the board carries BOTH `grid-template-columns:repeat(8,SQpx)` AND an inline `width:boardPx` (chess.jsx:6537),
+    // and it is the WIDTH that fixes its rect - overriding the columns alone left the box at 375.03 and the first
+    // version of this control injected nothing measurable. So set the box and the squares together.
+    const rule=(w)=>'div[style*="repeat(8"]{width:'+w+'px!important;height:'+w+'px!important;'+
+      'grid-template-columns:repeat(8,'+(w/8)+'px)!important;grid-template-rows:repeat(8,'+(w/8)+'px)!important}';
+    const st=document.createElement('style');st.id='ct-nc';document.head.appendChild(st);
+    if(k==='shrink'){st.textContent=rule(w0-24);return 'board '+w0.toFixed(2)+' -> '+(w0-24).toFixed(2)+'px, squares '+sq.toFixed(2)+' -> '+((w0-24)/8).toFixed(2)+'px, and it STAYS there';}
+    if(k==='unsettled'){let f=0;setInterval(()=>{f++;st.textContent=rule(f%2?w0-24:w0);},60);return 'board flipping '+w0.toFixed(2)+'/'+(w0-24).toFixed(2)+'px every 60ms';}
+    return 'unknown NC '+k;
+  },kind);
+}
+
+/* HM TC-GL-012 [#550; jobs/the-gallery-held-bars-hide-control-covers-the-review-tabs-menu-button-at-three-geometries-2026-11-07]:
+   WHILE A CARD'S INSTRUCTION IS HELD, THE SCREEN UNDER IT STAYS USABLE - its header ☰ above all. #548 item (112) moved the held bar
+   to the top, and its ‹ and ✕ (44px rounds) hung 16px above the bar's corners, so the ✕ landed on the Review screen's top-right ☰
+   ([data-ct="top-menu"], 323..367 x 2..46 at 375x761) and its centre hit-tested to rec-cap-done: the menu could not be opened
+   while a card was held. M6c printed it at 730x375 as notChecked; this block asserts it at 375x761, 320x568 and 730x375.
+   THE ROUTE: since #550 a29 no ☞ YOUR TAPS card is in the queue, so chess.jsx's ct_schold=1 seam marks every ask card held, and
+   the EXP card (it opens a game in Review) is tapped. Each state is proven reached first [#385]: the held bar with its ✕ is up,
+   and the ☰ is on screen. HM1 asks the hit test at the ☰'s centre, HM2 asks it of EVERY on-screen button (so moving the ✕ onto
+   another control cannot pass), HM3 asks that the controls lie inside the bar's own box, and HM4 is a real mouse tap at the ☰'s
+   centre that must open the menu sheet with the bar still held. CT_G15_ONLY=HM runs this block alone. */
+async function blockHM(){
+  for(const [glab,ggeo] of [['375x761','kunal761'],['320x568','se'],['730x375',{w:730,h:375,safe:''}]]){
+    const b=await L.launch({geo:ggeo,name:'held-menu-'+glab,store:{ct_pool:'3',ct_schold:'1'}});await b.open();
+    await b.home();await b.page.locator('button[title="Preview gallery (dev)"]').click();await b.settle(500);
+    const card=b.page.locator('button[data-ct="ask-card"]',{hasText:'EXP'}).first();
+    const found=await card.count();
+    L.say(found>0,'HM '+glab+': TC-GL-012 PRECONDITION the EXP card (it opens a game in Review) is on the gallery to tap',{found});
+    if(!found){await b.close();continue;}
+    await card.click();await b.settle(3000);
+    const st=await b.page.evaluate(()=>{const R=e=>{const q=e.getBoundingClientRect();return {l:+q.left.toFixed(1),t:+q.top.toFixed(1),r:+q.right.toFixed(1),b:+q.bottom.toFixed(1)};};
+      const bar=document.querySelector('[data-ct="rec-cap"]'),d=document.querySelector('[data-ct="rec-cap-done"]'),bk=document.querySelector('[data-ct="rec-cap-back"]'),m=document.querySelector('[data-ct="top-menu"]')||[...document.querySelectorAll('button')].filter(x=>(x.innerText||'').trim()==='☰'&&!(bar&&bar.contains(x))).map(x=>({x,q:x.getBoundingClientRect()})).filter(o=>o.q.width>1&&o.q.top<innerHeight/3).sort((u,v)=>v.q.right-u.q.right).map(o=>o.x)[0]||null;   // 730x375 draws the Review ☰ in the side rail, with no data-ct: the top-most-right painted ☰
+      const mine=(h)=>!!h&&((d&&d.contains(h))||(bk&&bk.contains(h)));
+      let menuHit=null;if(m){const q=m.getBoundingClientRect();const h=document.elementFromPoint(q.left+q.width/2,q.top+q.height/2);menuHit=h?((h===m||m.contains(h))?'top-menu':(h.getAttribute('data-ct')||h.tagName)):null;}
+      const taken=[...document.querySelectorAll('button')].filter(x=>!(bar&&bar.contains(x))).map(x=>({x,q:x.getBoundingClientRect()}))
+        .filter(o=>o.q.width>1&&o.q.height>1&&o.q.left+o.q.width/2>=0&&o.q.left+o.q.width/2<=innerWidth&&o.q.top+o.q.height/2>=0&&o.q.top+o.q.height/2<=innerHeight)
+        .filter(o=>mine(document.elementFromPoint(o.q.left+o.q.width/2,o.q.top+o.q.height/2))).map(o=>(o.x.getAttribute('data-ct')||(o.x.innerText||o.x.getAttribute('aria-label')||'').trim().slice(0,20)));
+      return {up:!!bar,done:!!d,back:!!bk,bar:bar&&R(bar),doneR:d&&R(d),backR:bk&&R(bk),menu:m&&R(m),menuHit,taken,vw:innerWidth,vh:innerHeight};});
+    L.say(st.up&&st.done&&st.back,'HM '+glab+': TC-GL-012 PRECONDITION the held instruction bar is up with its ‹ and ✕ controls',st);
+    L.say(!!st.menu&&st.menu.t>=0&&st.menu.r<=st.vw,'HM '+glab+': TC-GL-012 PRECONDITION the Review screen\'s header ☰ ([data-ct="top-menu"], or the side rail\'s ☰ in landscape) is on screen under the held bar',st.menu);
+    if(st.up&&st.done&&st.menu){
+      L.say(st.menuHit==='top-menu','HM1 '+glab+': TC-GL-012 the header ☰\'s centre hit-tests to the ☰ itself while a card is held (read '+st.menuHit+')',{menu:st.menu,done:st.doneR});
+      L.say(st.taken.length===0,'HM2 '+glab+': TC-GL-012 the bar\'s ‹ and ✕ take the centre of NO other on-screen button ('+st.taken.length+' taken)',{taken:st.taken,done:st.doneR,back:st.backR});
+      const inside=(c)=>!!c&&c.l>=st.bar.l-0.5&&c.r<=st.bar.r+0.5&&c.t>=st.bar.t-0.5&&c.b<=st.bar.b+0.5;
+      L.say(inside(st.doneR)&&inside(st.backR),'HM3 '+glab+': TC-GL-012 the ‹ and ✕ lie inside the bar\'s own box - nothing protrudes past its edges',{bar:st.bar,done:st.doneR,back:st.backR});
+      await b.page.mouse.click((st.menu.l+st.menu.r)/2,(st.menu.t+st.menu.b)/2);await b.settle(600);
+      const after=await b.page.evaluate(()=>({sheet:!!document.querySelector('[data-ct="menu-sheet"]'),bar:!!document.querySelector('[data-ct="rec-cap"]')}));
+      L.say(after.sheet&&after.bar,'HM4 '+glab+': TC-GL-012 a real tap at the ☰\'s centre opens the menu sheet, and the held bar is still up (the tap did not land on Hide)',after);
+    }
+    L.say(b.errs.filter(e=>!/RuntimeError: unreachable/.test(e)).length===0,'HM '+glab+': TC-GL-012 zero app errors',b.errs.slice(0,2));
+    await b.close();
+  }
+}
+
+L.run(async()=>{
+  {const _fs=require('fs'),_c=require('crypto'),_p=require('path');
+   const _twin=f=>{const t=_fs.readFileSync(_p.join(__dirname,f),'utf8').split('\n');const a=t.findIndex(l=>l.startsWith('  // WALK-BODY-BEGIN')),z=t.indexOf('  // WALK-BODY-END');
+     return a<0||z<a?null:_c.createHash('md5').update(t.slice(a+1,z).join('\n')).digest('hex');};
+   const m15=_twin('15-gallery-playall.js'),m249=_twin(_p.basename(__filename));
+   if(m15&&m15===m249)L.note('WALK-TWIN: the walk loop is byte-identical in gates 15 and 249 (md5 '+m15.slice(0,12)+')');
+   else L.say(false,'WALK-TWIN: the walk loop between the WALK-BODY markers must be byte-identical in gates 15 and 249',{m15,m249});}
+  if(process.env.CT_G15_ONLY==='HM'){await blockHM();return;}   // #550: the HM block alone (a subset; never a push gate)
+  const ALL=[['kunal','kunal'],['375x812',{w:375,h:812,safe:'',label:'375x812'}]];
+  /* #553: his phone and the narrowest screen, SELECTABLE (CT_G15_GEOS=kunal761,se) and not in the default walk, so the suite's run time
+     does not change in this commit; the pairs file for this job grades all four. 375x761 paints no transient at Review entry, 320x568
+     paints one frame over 45 - which is why both are worth walking. */
+  const OPT=[['kunal761','kunal761'],['se','se']];
+  const pick=(process.env.CT_G15_GEOS||'').split(',').map(s=>s.trim()).filter(Boolean);
+  if(pick.length){const bad=pick.filter(p=>!ALL.concat(OPT).some(a=>a[0]===p));if(bad.length)throw new Error('CT_G15_GEOS: unknown geometry '+bad.join(','));}
+  const GEOS=pick.length?ALL.concat(OPT).filter(a=>pick.includes(a[0])):ALL.filter(a=>a[0]==='375x812');   // #553 split: 15 walks kunal by default, 249 walks 375x812
+  if(NO_EXCUSE.length)L.note('!! CT_G15_NO_EXCUSE='+NO_EXCUSE.join(',')+' - A MEASUREMENT RUN: the walk excusals of these cards are OFF, so their walk checks count (an excusal is earned by this run, never given)');
+  L.note('geometries: '+GEOS.map(g=>g[0]).join(' ')+(pick.length?'  (CT_G15_GEOS subset)':'')+(NC?'   NEGATIVE CONTROL '+NC+' at card '+NC_CARD:''));
+  // WALK-BODY-BEGIN: this loop is BYTE-IDENTICAL in gates/regress/15-gallery-playall.js and gates/regress/249-gallery-walk-375x812-and-the-gallery-blocks.js (#553 split); gate 249 asserts the md5 of the text between these two markers matches
+  for(const [lab,geo] of GEOS){
+    const b=await L.launch({geo,name:'playall-'+lab,store:{ct_pool:'3'}});await b.open();
+    /* #451: the pin reads the ASK QUEUE, not every card in the gallery. The gallery also renders the eight fixed
+       states the harness drives, and those are NOT asks - see chess.jsx const TS. BOTH populations are asserted
+       below, so this pin does not rest solely on the data-ct scoping that one commit introduced (#432: a check that
+       reads only what the fix added cannot see what the fix removed). */
+    const titles=await b.askTitles();const N=titles.length;
+    const allTitles=await b.cardTitles();
+    // PINNED, not a floor. `N>=6` was two cards of slack, and since walkOk takes N from this same call both
+    // sides moved together: delete two cards from SC and N would be 6, every caption would read /6, and the
+    // gate would go green having walked six. A deliberate change to the gallery updates this line on purpose.
+    // measured off b.cardTitles(), not guessed: card 6's own id is `US-R`, while its seven mid-walk steps
+    // re-caption as US-R01, US-R03 and so on. My first draft of this pin wrote US-R01 from the walk's
+    // captions and would have gone red on a healthy build.
+    const ids=titles.map(t=>t.split(' · ').slice(0,2).join(' '));
+    L.say(EXPECTED_N===PINNED_IDS.split('|').length,
+      lab+': the pin is self-consistent - EXPECTED_N agrees with the id list this commit declares',{EXPECTED_N,pinned:PINNED_IDS.split('|').length});
+    L.say(N===EXPECTED_N&&ids.join('|')===PINNED_IDS,
+      lab+': the ask queue holds the '+EXPECTED_N+' cards this commit pins, in order ('+N+')',ids);
+    // the fixture list, asserted as a population so it cannot quietly vanish and take five gates' route in with it
+    L.say(allTitles.length===EXPECTED_N+EXPECTED_STATES,
+      lab+': the gallery renders the '+EXPECTED_N+' asks AND the '+EXPECTED_STATES+' harness states that five gates tap ('+allTitles.length+')',
+      {asks:N,all:allTitles.length,want:EXPECTED_N+EXPECTED_STATES});
+    for(const need of STATE_IDS){
+      L.say(allTitles.some(t=>new RegExp('^\\d+ \u00b7 '+need.replace(/[.*+?^${}()|[\]\\]/g,'\\$&')+' \u00b7 ').test(t)),
+        lab+': the harness state card "'+need+'" is still reachable by the label gates/lib.js b.card() locates it by',
+        allTitles.filter(t=>t.indexOf(need)>=0));
+    }
+    await b.home();const gb=b.page.locator('button[title="Preview gallery (dev)"]');await gb.click();await b.settle(400);
+    /* THE PLAY-ALL BUTTON IS GUARDED, AND ITS ABSENCE IS DECLARED RATHER THAN THROWN. chess.jsx renders no
+       Play button at all when the ask queue is EMPTY - which is this feature's SUCCESS condition, the state it
+       exists to reach the day Kunal clears the list. Unguarded, this `.click()` then times out and the gate THROWS,
+       taking every walk assertion after it down with it - the #393 fault this file already fixed once in block S
+       ("a gate that halts on the first missing element hides every regression after it"). So: count first, and if
+       the button is not there, say so as a red on a named assertion and a declared skip rather than as a throw.
+       WHAT IS STILL OWED, AND IT IS NOT IN THIS FILE: the other half of
+       jobs/the-gallery-ask-queue-has-no-coverage-for-being-empty-which-is-its-success-condition-2026-10-01 is a
+       CT_* override that truncates or empties SC at launch, in the shape of CT_HM_BLOCKS. That lives in chess.jsx,
+       which this run may not touch, so the empty and one-card states still have no POSITIVE coverage - this guard
+       only stops the gate from throwing when they arrive. Recorded on that job as a skip, not as done. */
+    const pab=b.page.locator('button',{hasText:/^Play( all \d+)? \(screen-record this\)$/});
+    const pabN=await pab.count();
+    L.say(pabN>0,lab+': the gallery offers a Play-all button to walk ('+pabN+' found) - if the ask queue is EMPTY this is the expected red and the walk below is skipped BY DECLARATION, not by a harness throw',{pabN,asks:N});
+    if(pabN===0){L.note(lab+': walk skipped - no Play-all button, which is what an empty ask queue renders. The queue pin above still ran, so this run is not vacuous about the queue itself.');await b.close();continue;}
+    const recOn=await OVREC(b).catch(()=>false);
+    await pab.first().click();const walkT0=Date.now();   // #553 B1: the walk's own clock, so a shrink names when (and so on which screen of a walk card) it happened
+    let ovCompared=0;const ovDisagree=[];
+    const seen=[];let done=false;const scrolled=[],shrunk=[],pageScroll=[],unsettled=[],cards=[];
+    let cur=null,base=null,raced=0,sampled=0,lateBase=0;
+    let lastSample=Date.now();
+    for(let i=0;i<8000;i++){                                  // runaway guard only; the walk breaks on RECORDING COMPLETE
+      // #553 B1: was 4000, which ended the walk before card 5 once AUD (100 s) and SPD (60 s) joined - measured with the walk excusals
+      // off (CT_G15_NO_EXCUSE=AUD,DSK,SPD, 06:56Z): DSK began about 246 s in and 'card 5 never appeared' at both geometries. The walk is
+      // now about 420 s; the guard still only stops a walk that never ends, and 'the run ends on RECORDING COMPLETE' still asserts it ended.
+      const cap=await CAP(b);
+      if(cap&&cap!==cur){
+        cur=cap;seen.push(cap);
+        if(/RECORDING COMPLETE/i.test(cap)){done=true;break;}
+        if(NC&&new RegExp('·\\s*'+NC_CARD+'/').test(cap)&&(NC==='unsettled'||NC==='hideEntry'))L.note('NC '+NC+': '+await inject(b,NC));
+        const s=await settleBoard(b);base=s.st.ok?s.st.w:null;
+        const first=s.reads[0].w;
+        // what the OLD baseline (the first post-caption frame) would have been, from the same series
+        const oldBase=first, oldWouldRed=(oldBase!==null&&base!==null&&base<oldBase-TOL);
+        cards.push({cap:cap.slice(0,34),first,base,settleMs:s.st.ok?s.st.fromMs:null,oldWouldRed,
+          sawBoard:s.reads.some(r=>r.w!==null&&isFinite(r.w))});
+        L.note(lab+' card "'+cap.slice(0,34)+'": first read '+first+', settled baseline '+base+
+          (s.st.ok?' (held from '+s.st.fromMs+'ms of the 900ms window)':' NOT SETTLED: '+s.st.why)+
+          (oldWouldRed?'   <- the OLD first-frame baseline would have reported a shrink of '+(oldBase-base).toFixed(2)+'px here':''));
+        if(!s.st.ok&&s.st.why!=='no board')unsettled.push({cap:cap.slice(0,34),why:s.st.why,reads:s.reads.map(r=>r.w).slice(0,20)});
+        if(NC&&new RegExp('·\\s*'+NC_CARD+'/').test(cap)&&NC!=='unsettled'&&NC!=='hideEntry')L.note('NC '+NC+': '+await inject(b,NC));
+        lastSample=Date.now();continue;
+      }
+      if(cap&&/RECORDING COMPLETE/i.test(cap)){done=true;break;}
+      if(Date.now()-lastSample<700){await b.settle(TICK);continue;}
+      lastSample=Date.now();
+      const m=await b.metrics();
+      if(await CAP(b)!==cur){raced++;continue;}                // metrics is two evaluates; do not attribute across a change
+      if(!cur)continue;
+      sampled++;
+      /* #550 lead, final suite: the IPAD card is a WALK across screens under one caption (the shrink check below already excuses it), and
+         at 375x679 it passes through pages that still scroll there (jobs/pages-that-scroll-must-fit-on-one-screen-2026-11-11, open;
+         the long lists may scroll by design, AUD-L08/L16). Seen at 37, 204.7 and 261.3px over in this run's suites, and 0 in others,
+         by which screen the sample caught. Those pages have their own gates (159 and the job's list); this check is for the cards. */
+      /* #552 (batch 13, run 3) reddened here on a 2px Review-entry frame; #553 moved the verdict to the frame recorder (see ovEpisodes).
+         What a sample does now is CHECK THE RECORDER: when the recorder's value has been steady for 200ms, it must equal b.over()'s. */
+      {const rr=await OVREAD(b);if(rr&&rr.cur!==null&&rr.steadyMs>=200){ovCompared++;if(Math.abs(rr.cur-m.over.over)>0.6)ovDisagree.push({cap:cur.slice(0,34),rec:rr.cur,harness:m.over.over});}}
+      const pf=await PAGEFIX(b);
+      if(pf.bodyPos!=='fixed'||!/^(auto|scroll)$/.test(String(pf.rootOv))||pf.docScroll>0)
+        pageScroll.push(Object.assign({cap:cur.slice(0,34)},pf));
+      const rec=cards[cards.length-1];
+      if(m.board&&rec)rec.sawBoard=true;
+      if(m.board&&base===null&&rec&&(rec.lateTried||0)<2){    // the board arrived after the entry window
+        rec.lateTried=(rec.lateTried||0)+1;
+        const s2=await settleBoard(b);base=s2.st.ok?s2.st.w:null;if(s2.st.ok)lateBase++;
+        if(rec){rec.base=base;rec.settleMs=s2.st.ok?s2.st.fromMs:null;}
+        L.note(lab+' card "'+cur.slice(0,34)+'": no board at entry; settled baseline '+base+' once it appeared'+
+          (s2.st.ok?' (held from '+s2.st.fromMs+'ms of a second 900ms window)':' NOT SETTLED: '+s2.st.why));
+        if(!s2.st.ok&&s2.st.why!=='no board')unsettled.push({cap:cur.slice(0,34),why:s2.st.why,late:true,reads:s2.reads.map(r=>r.w).slice(0,20)});
+        continue;
+      }
+      if(m.board&&base!==null&&m.board.w<base-TOL&&!shrinkExcused(cur,lab,m.board.w))shrunk.push({cap:cur.slice(0,34),base,to:m.board.w,t:Date.now()-walkT0});   /* #550: the IPAD card is a WALK across screens (lesson, puzzle, game, review) under one caption, so its board changes size by design; every other card is one screen */
+    }
+    await b.shot('playall-'+lab+'-final');
+    L.say(done,lab+': the run ends on the RECORDING COMPLETE frame ('+seen.length+' captions seen)');
+    const w=walkOk(seen,N);
+    L.say(w.ok,lab+': every one of the '+N+' gallery cards was reached, in order ('+seen.length+' captions'+
+      (w.ok?', card numbers '+w.ns.join(',')+')':') - '+w.why),w.ok?undefined:seen.map(c=>c.slice(0,44)));
+    /* #553: the verdict, from every frame of the walk. IPAD is a walk across screens that may scroll (see above) and is excused as before. */
+    const ovR=recOn?await b.page.evaluate(()=>({ev:(window.__g15ov||{}).ev||[],frames:(window.__g15ov||{}).frames||{},now:Math.round(performance.now())})):{ev:[],frames:{},now:0};
+    const eps=ovEpisodes(ovR.ev,ovR.now,OV_WIN,OV_HOLD);
+    for(const e of eps){
+      const tag='      '+lab+' card "'+String(e.cap||'').slice(0,34)+'": over '+e.peak+' from '+e.onset+'ms';
+      {const ex=excused(e.cap,'scroll');if(ex){L.note(tag+' - excused for '+ex+': '+WALK_EXCUSE[ex].scroll);continue;}}
+      if(e.persists)scrolled.push({cap:String(e.cap||'').slice(0,34),over:e.peak,onset:e.onset,why:e.why});
+      else L.note(tag+', cleared in '+e.ms+'ms and held - a layout-in-progress frame of the fit loop, not counted (#553, ovEpisodes)');
+    }
+    const capsNoFrames=seen.filter(c=>!/RECORDING COMPLETE/i.test(c)&&!(ovR.frames[c]>0));
+    L.say(recOn&&capsNoFrames.length===0&&Object.keys(ovR.frames).length>0,lab+': the frame recorder ran under every caption of the walk ('+
+      Object.values(ovR.frames).reduce((a,v)=>a+v,0)+' frames, '+ovR.ev.length+' changes, '+eps.length+' over-episodes) - the verdict below is over every painted frame, not a sample',
+      {recOn,capsNoFrames:capsNoFrames.map(c=>c.slice(0,34))});
+    L.say(ovCompared>=Math.max(1,N)&&ovDisagree.length===0,lab+': the recorder reads the same overflow as the harness\'s own b.over() at every steady sample ('+ovCompared+' compared, '+ovDisagree.length+' disagreed)',ovDisagree.slice(0,3));
+    L.say(scrolled.length===0,lab+': no card leaves the page scrolling',scrolled.slice(0,3));
+    // expected vacuous by design and kept as a tripwire for the design changing: index.html says #root is the
+    // app's scroller and "the page never does", so docScroll is 0 on every screen (CLAUDE.md, two false P0s).
+    L.say(pageScroll.length===0,lab+': the page itself cannot scroll - body is out of flow and #root is the scroller',pageScroll.slice(0,3));
+    // ── THE FIVE BOARD-CONDITIONED CHECKS ARE REPORTED, NEVER CREDITED, WHEN THERE IS NO BOARD TO CHECK
+    // [#544 item (31); jobs/three-suite-assertions-read-an-empty-or-constant-denominator-as-a-pass-2026-10-07,
+    // P1, this file's instance found by antagonist B of #493 while reading the suite log for vacuity].
+    // WHAT WAS WRONG, and this file already said half of it: `const EXPECT_BOARD=[]` makes capWants
+    // constant-FALSE, so missingBoard and noBase are unconditional passes and unexpectedBoard reduces to
+    // `withBoard===0`, which is the NEXT assertion - the same measurement counted as two PASSes. shrunk and
+    // unsettled are conditioned on a board existing in the same way. SIX of the eight board-conditioned PASS
+    // lines could not independently fail, and the file DECLARED that in a comment and credited them anyway,
+    // which is precisely the half #493's own note says must not happen.
+    // THE JOB OFFERS TWO REMEDIES AND ONLY ONE OF THEM IS AVAILABLE HERE [the rule against treating a flag's
+    // proposed fix as a prescription]: "either populate EXPECT_BOARD or convert the vacuous cases to notes".
+    // POPULATING IT WOULD BE FALSE. This walk's own measurement, taken at both geometries over five runs and
+    // recorded above, is that the captions WITHOUT a board are exactly one and that the five board-owning
+    // cards are driven by block S instead - which is why the declaration assertion below asserts
+    // `withBoard===0`. Pinning a card id here would assert a board this walk does not paint.
+    // SO THEY BECOME NOTES, AND ONLY IN THE STATE THAT MAKES THEM INERT. When a board IS painted, or when a
+    // future commit pins one, every one of them is a real assertion again and unexpectedBoard stops being a
+    // duplicate - so this does not weaken the gate, it stops it claiming eight checks where it ran one.
+    const withBoard=cards.filter(c=>c.sawBoard).length;
+    const boardInert=(EXPECT_BOARD.length===0&&withBoard===0);
+    const sayBoard=(cond,msg,detail)=>{
+      if(boardInert)L.note(lab+': NOT CHECKED (no board in this walk, EXPECT_BOARD empty) - '+msg);
+      else L.say(cond,msg,detail);
+    };
+    sayBoard(shrunk.length===0,lab+': no board shrinks inside a card, against a SETTLED baseline',shrunk.slice(0,3));
+    sayBoard(unsettled.length===0,lab+': every card whose board is measurable settles inside the 900ms window',unsettled.slice(0,2));
+    /* THE SAMPLE FLOOR IS SCOPED TO THE QUEUE, NOT A CONSTANT 8 [R18]. It read `sampled>=8`, a bare literal from a
+       time when the ask list was pinned at eight cards. #451 turned that list into a real QUEUE whose length is the
+       thing that varies, and the walk's wall clock is now the queue's total hold: two cards give roughly 24 samples
+       while ONE SHORT CARD can fall through 8 on a perfectly healthy build. A floor that reds because Kunal did
+       what the feature asked him to do is worse than no floor - and a floor of 8 against a two-card queue is also
+       three times slacker than it looks. One sample per queued card is the honest floor: being non-vacuous is the
+       only thing this line was ever for. So it is derived from N, the count the pin above already established, and
+       the scope is published with the number rather than left in the literal. */
+    const SAMPLE_FLOOR=Math.max(1,N);
+    L.say(sampled>=SAMPLE_FLOOR,lab+': the walk actually took samples to assert over - at least one per queued card ('+sampled+' attributed against a floor of '+SAMPLE_FLOOR+' for '+N+' cards, '+raced+' discarded across a caption change)',{sampled,floor:SAMPLE_FLOOR,N,raced});
+    // the population this gate's board assertion actually covers, pinned to the MECHANISM rather than to a card
+    // count that the gallery can change under it: a caption whose board was never on screen has nothing to
+    // baseline (the Starting frame), but one whose board WAS on screen must never be left unbaselined - which is
+    // what the old lazy `if(curBoard===null)curBoard=m.board.w` did cover and a fixed entry window alone does not
+    // (measured: card 6/8 US-R01 shows no board for the first 11.5s of its 52s).
+    // AND THE POPULATION ITSELF MUST BE ASSERTED, not merely printed. Every board check here is conditioned on
+    // the board existing, so a bundle whose board is display:none passes ALL of them - measured by the #416
+    // antagonist at 24 pass / 0 fail with this line printing "2 of 15" and nothing reading it. That is the
+    // count-with-no-assertion fault (#405, #413's invariant 4b), and the number was already on the page.
+    // PINNED TO THE MECHANISM, NOT TO A COUNT WITH SLACK. The first draft of this line asserted
+    // "at least 13 of 15", and a bar with one caption of slack is how a frozen denominator starts - a gallery
+    // that legitimately gains one boardless caption would spend the slack silently. Measured at both
+    // geometries over five runs, the captions WITHOUT a board are exactly one, and it is the frame whose own
+    // text is "Starting...". So assert that: any other boardless caption is a finding, and a deliberate
+    // change to the gallery has to come through here on purpose.
+    // withBoard is computed above, beside boardInert, so the five checks can be gated on it [#544 item (31)]
+    // #451: two-sided against EXPECT_BOARD. `capWants` reads the card id out of the caption itself rather than
+    // out of SC, so the expectation stays external to the thing it checks.
+    const capWants=(cap)=>EXPECT_BOARD.some(id=>new RegExp('\\s'+id.replace(/[.*+?^${}()|[\]\\]/g,'\\$&')+'\\s').test(cap));
+    const missingBoard=cards.filter(c=>!/Starting/.test(c.cap)&&capWants(c.cap)&&!c.sawBoard);
+    const unexpectedBoard=cards.filter(c=>!/Starting/.test(c.cap)&&!capWants(c.cap)&&c.sawBoard);
+    sayBoard(missingBoard.length===0,lab+': every caption whose card is pinned to show a board showed one ('+
+      withBoard+' of '+cards.length+' captions had a board; '+EXPECT_BOARD.length+' card ids pinned)',
+      missingBoard.map(c=>c.cap));
+    sayBoard(unexpectedBoard.length===0,lab+': no caption painted a board where this commit pins none - so a card '+
+      'whose state changes under us cannot pass by being boardless',unexpectedBoard.map(c=>c.cap));
+    // AND THE VACUOUS CASE IS STATED, NOT SKIPPED. With EXPECT_BOARD empty every board-conditioned check in this
+    // gate (shrunk, unsettled, noBase, and the two above) is trivially satisfied, which is precisely how an
+    // assertion dies without anybody noticing (#405's frozen denominator; the #416 antagonist's 24 pass / 0 fail
+    // over a display:none board). So assert the condition itself: if nothing is pinned, nothing may have painted
+    // a board, and the log says in one line that the board invariants are carried elsewhere this run.
+    if(EXPECT_BOARD.length===0){
+      L.say(withBoard===0,lab+': EXPECT_BOARD is empty and NO caption painted a board - the board-shrink, settle '+
+        'and baseline checks in this gate are inert this run BY DECLARATION, and the states they covered are '+
+        'pinned in 10-gameover, 13-play-after-moves, 11-lesson, 12-hint, 20-review and 14-uat-review-card',
+        {withBoard,captions:cards.length});
+    }
+    const noBase=cards.filter(c=>c.sawBoard&&c.base===null);   // #451: inert while EXPECT_BOARD is empty, asserted as such above
+    sayBoard(noBase.length===0,lab+': every caption whose board was on screen got a settled baseline ('+
+      cards.filter(c=>c.sawBoard).length+' of '+cards.length+' captions had a board, '+lateBase+' baselined late)',
+      noBase.map(c=>c.cap));
+    const bad=b.errs.filter(e=>!/RuntimeError: unreachable/.test(e));
+    L.say(bad.length===0,lab+': no app error beyond the allowed engine trap',{allowed:b.errs.length-bad.length,other:bad.slice(0,2)});
+    await b.close();
+  }
+  // WALK-BODY-END
+
+  if(process.env.CT_G15_ONLY==='WALK'){L.note('CT_G15_ONLY=WALK: the units and the Play-all walk only - blocks F, M and HM skipped (a subset; never a push gate)');return;}   // #553: the pairs file's scope
+  /* #451 BLOCK F: THE TWO ACCEPTANCE CONDITIONS THE FLUSHED GALLERY OWES, and neither is checked anywhere else.
+     jobs/preview-gallery-flush-and-load-current-asks lists four; two are properties of the tracker record (which
+     cards are due, what each removed card's verdict was) and two are properties of the running app:
+       "Every card fits at 320 and 375 with nothing cut off."
+       "Card 1's numbers match what the browser reports on the same device."
+     F1/F2 run at 320x568, at 375x730 - the column then taken for the device (R19 has since settled 375x761), which
+     the walk above does NOT visit (it runs 375x679 and 375x812), so this block is also the only place in this gate
+     that measures that column - AND, added
+     here, at 375x568.
+     WHY 375x568 IS ADDED TO THIS BLOCK AND NOT TO THE WALK ABOVE, because the choice is the finding. Counted across
+     all 47 sections of gates/logs/451-all.log, exactly FOUR PASS lines asserted the #451 ask queue - log lines 206,
+     207, 230 and 231 - at geo kunal (375x679) and 375x812, and they asserted only the two titles and the count. So
+     NO ASSERTION OVER THE ASK QUEUE ITSELF ran at 375x568. **ONE NUMBER IN THAT JOB IS QUALIFIED HERE [R18]**: it
+     says "nothing visits the gallery at 375x568", and this file's own M6 geometry loop at :925 already launched at
+     `short375`, opened the gallery and tapped the manual ask card - so the gallery WAS visited there; what had no
+     coverage was the queue's count, population and containment. The gap is real and the sentence was too wide.
+     375x568 is the wide-and-short corner gates/lib.js GEOS calls
+     `short375` and documents as "a real phone shape: a 375-wide device in a browser with a large toolbar, or any
+     16:9 Android at 375dp" - the same corner the other 568-tall defects in that run were found in. The geometry
+     goes HERE because this block is the one that measures the queue's containment and population for about one
+     browser launch, where the walk above costs 44s a geometry in block S's holds alone; adding it to the walk would
+     have bought the same four pins at roughly three minutes. SO THE SCOPE IS DECLARED RATHER THAN IMPLIED [R12]:
+     375x568 now has the card count, the fixture-card population, both containment checks and the readout - it does
+     NOT have the ordered play-all walk, and that remains a named gap rather than a silent one.
+     HORIZONTAL, NOT VERTICAL, DELIBERATELY: the card list is an overflowY:auto scroller, so a long queue scrolling
+     is correct and is not a cut (CLAUDE.md: "below the fold is not unreachable", two false P0s). What must never
+     happen is a card's ink running past the viewport, which nothing can recover. */
+  for(const [glab,ggeo] of [['320x568','se'],['375x730 (Kunal)','kunal730'],['375x568 (wide-and-short)','short375']]){
+    const b=await L.launch({geo:ggeo,name:'cards-'+ggeo,store:{ct_pool:'3'}});await b.open();
+    await b.home();await b.page.locator('button[title="Preview gallery (dev)"]').click();await b.settle(500);
+    /* #451: F1's negative control, because two of its four assertions went GREEN against the #450 bundle and an
+       assertion not yet shown able to fail is not evidence. CT_G15_NC=cardwide forces a card box wider than the
+       viewport, which is the defect F1 exists to catch. **THE SECOND HALF OF THIS SENTENCE IS WITHDRAWN [R18]: it
+       claimed cardwide also reds "cut horizontally", and it does not.** Antagonist A caught it and the mechanism is
+       plain once stated - cardwide WIDENS the box, so the text wraps inside 536px and scrollWidth === clientWidth,
+       leaving `cut` green. Each of the two controls reddens exactly ONE assertion: cardwide reds "past the
+       viewport", cardclip reds "cut horizontally". Crediting one control with the other's coverage is how an
+       uncontrolled assertion comes to look controlled. It must CROSS the threshold, not merely disturb the
+       mechanism (CLAUDE.md, #384), so the width is set well past the widest geometry here rather than by a pixel. */
+    if(NC==='cardwide'){
+      const what=await b.page.evaluate(()=>{const st=document.createElement('style');st.id='ct-nc-cw';
+        st.textContent='button{min-width:520px!important}';document.head.appendChild(st);
+        return 'every button forced to min-width 520px - wider than 375 and than 320';});
+      L.note('NC cardwide: '+what);await b.settle(400);
+    }
+    if(NC==='cardclip'){
+      const what=await b.page.evaluate(()=>{const st=document.createElement('style');st.id='ct-nc-cc';
+        st.textContent='button{white-space:nowrap!important;overflow:hidden!important}';document.head.appendChild(st);
+        return 'card text forced to one nowrap line inside an overflow:hidden box - the card ink really is cut now';});
+      L.note('NC cardclip: '+what);await b.settle(400);
+    }
+    const fit=await b.page.evaluate(()=>{
+      const vw=window.innerWidth;
+      const cards=[...document.querySelectorAll('button[data-ct="ask-card"]')];
+      const states=[...document.querySelectorAll('button[data-ct="state-card"]')];
+      const rd=(el)=>{const r=el.getBoundingClientRect();return {l:+r.left.toFixed(2),r:+r.right.toFixed(2),w:+r.width.toFixed(2)};};
+      return {vw,n:cards.length,
+        // a card's own box must sit inside the viewport, and its text must not be cut by its own box horizontally
+        boxes:cards.map(c=>Object.assign({id:(c.innerText||'').split('\n')[0].slice(0,24),sw:c.scrollWidth,cw:c.clientWidth},rd(c))),
+        states:states.map(c=>Object.assign({id:(c.innerText||'').split('\n')[0].slice(0,24),sw:c.scrollWidth,cw:c.clientWidth},rd(c))),
+        docW:document.documentElement.scrollWidth};
+    });
+    L.note(glab+' gallery: vw '+fit.vw+', '+fit.n+' cards, doc scrollWidth '+fit.docW);
+    L.say(fit.n===EXPECTED_N,'F1 '+glab+': the gallery renders the '+EXPECTED_N+' pinned cards at this width ('+fit.n+')',{n:fit.n});
+    /* #451, AND THIS ONE EXISTS BECAUSE ANTAGONIST A BROKE THE ARGUMENT I HAD WRITTEN AGAINST IT. I claimed the
+       data-ct scoping was not load-bearing "because assertion (3) also pins the TOTAL card count, which is readable
+       on any bundle". That is true of the WALK loop and FALSE HERE, and the asymmetry is in the selectors: the walk
+       reads `allTitles` from cardTitles(), which is unscoped text matching, while block F reads `fit.states` from
+       `button[data-ct="state-card"]`. So a bundle that dropped ONLY that attribute while still rendering all eight
+       cards would keep assertion (3) and all six STATE_IDS green, and `past`/`cut` below would silently measure 2
+       of 10 boxes and pass - 74 PASS / 0 FAIL over 20% of the population they claim. Nothing in block F read
+       fit.states.length at all. A also pointed out that MY OWN TS-EMPTY CONTROL had already demonstrated it: in
+       that 48/6 run, `past` and `cut` went green having lost eight of their ten boxes, and I read the result only
+       for what it proved about (3) and (4). That is the seventh costume of the trap this file is full of warnings
+       about, in the half of the gate nobody cross-wired. One line closes it. */
+    L.say(fit.states.length===EXPECTED_STATES,'F1 '+glab+': the '+EXPECTED_STATES+
+      ' fixture card boxes are IN the population the two containment checks below measure ('+fit.states.length+')',
+      {states:fit.states.length,want:EXPECTED_STATES});
+    // the acceptance condition is about the cards Kunal is asked to record, but a fixture card painting off screen
+    // is a real defect too, so both populations go through the same two checks rather than only the asks.
+    const past=fit.boxes.concat(fit.states).filter(x=>x.l<-0.5||x.r>fit.vw+0.5);
+    L.say(past.length===0,'F1 '+glab+': no card box paints past the viewport',past);
+    const cut=fit.boxes.concat(fit.states).filter(x=>x.sw>x.cw+1);
+    L.say(cut.length===0,'F1 '+glab+': no card is cut horizontally by its own box (scrollWidth vs clientWidth)',cut);
+    /* EXPECTED VACUOUS BY DESIGN, AND SAID SO RATHER THAN COUNTED AS A LIVE CHECK - the same treatment this gate
+       already gives the page-scroll line. Measured, not assumed: NEITHER of F1's two negative controls could red
+       this one. CT_G15_NC=cardwide pushes both card boxes to 536 against a 320 viewport and docW stays 320;
+       cardclip gives them a 2529px scrollWidth and docW stays 320. #root is the app's scroller and clips, so the
+       document cannot grow horizontally whatever the gallery does. It is kept as a TRIPWIRE for that design
+       changing, and it is NOT the assertion that protects the acceptance condition - the two above are, and both
+       are controlled. Claiming this one as coverage would be the frozen-denominator shape (#405). */
+    L.say(fit.docW<=fit.vw+0.5,'F1 '+glab+': TRIPWIRE (cannot fail while #root clips, proved against both NCs) - the gallery adds no horizontal page overflow',{docW:fit.docW,vw:fit.vw});
+    /* #547 item (174), jobs/gallery-sub-44px-controls-including-its-only-exit-2026-10-01: the gallery's ONLY exit measured
+       34x34 and three of its full-width buttons 41-42px tall, at every geometry. LOCATED BY STRUCTURE, not by a hook this
+       build adds: the overlay is the fixed layer at zIndex 9990, the exit is its button reading exactly the close glyph,
+       and the full-width controls are its buttons at least 80% of the viewport wide that are not cards. The denominator
+       is asserted on its own line first, so an overlay that lost its buttons cannot pass over nothing. Control: the
+       pre-fix bundle reds TC-GL-004 at all three geometries (exit 34x34, Play 42, Walk 42 - 58 at 320x568, where its label wraps - Diagnostics 41; measured by #547's antagonist A). */
+    const tgt=await b.page.evaluate(()=>{
+      const ov=[...document.querySelectorAll('div')].find(d=>{const cs=getComputedStyle(d);return cs.position==='fixed'&&cs.zIndex==='9990';});
+      if(!ov)return {ov:false,exit:null,wide:[]};const vw=window.innerWidth;
+      const bs=[...ov.querySelectorAll('button')];const rd=(el)=>{const r=el.getBoundingClientRect();return {t:(el.innerText||'').trim().slice(0,28),w:+r.width.toFixed(2),h:+r.height.toFixed(2)};};
+      const ex=bs.find(x=>(x.innerText||'').trim()==='✕');
+      const wide=bs.filter(x=>!x.dataset.ct||!/card$/.test(x.dataset.ct)).filter(x=>x.getBoundingClientRect().width>=0.8*vw);
+      return {ov:true,exit:ex?rd(ex):null,wide:wide.map(rd)};
+    });
+    L.say(tgt.ov&&!!tgt.exit&&tgt.wide.length>=2,'F1 '+glab+': PRECONDITION the gallery overlay is up with its close control and at least two full-width action buttons ('+tgt.wide.length+')',tgt);
+    const small=[].concat(tgt.exit&&(tgt.exit.w<44||tgt.exit.h<44)?[tgt.exit]:[],tgt.wide.filter(x=>x.h<44));
+    L.say(small.length===0,'F1 '+glab+': TC-GL-004 the gallery\'s only exit is at least 44x44 ('+(tgt.exit?tgt.exit.w+'x'+tgt.exit.h:'none')+') and every full-width action button is at least 44 tall',small);
+
+    /* F2: card 1 exists so ONE screenshot settles the height question, which makes the readout's own numbers
+       load-bearing. Asserted against what the browser reports in the same evaluate, so a readout that printed a
+       stale or wrong viewport goes red. LOCATED BY WHAT IT SAYS, not by a hook this commit added: the line is found
+       by matching /^inner \d+x\d+/ over the rendered text. #432 - an assertion keyed only to a selector its own
+       build adds cannot see the defect that build removes, and would have reported PASS against the old bundle by
+       reading null. This way it goes red on any bundle whose readout lacks the line, including #450's. */
+    await (await b.galleryClose()).click().catch(()=>{});
+    await b.settle(300);await b.home();
+    await b.page.locator('button[data-ct="home-menu"]').click();await b.settle(500);
+    await b.page.evaluate(()=>{const e=document.querySelector('[data-ct="menu-sheet"] [data-ct="menu-foot"]');if(e&&e.getAttribute('aria-expanded')==='false')e.click();});await b.settle(350);   // #550 jobs/build-menu-one-screen: the Layout readout row sits behind the menu's foot line
+    const tog=b.page.locator('button',{hasText:/^Layout readout/}).first();
+    const togSeen=await tog.count();
+    L.say(togSeen>0,'F2 '+glab+': the menu offers the Layout readout toggle card 1 drives');
+    if(togSeen>0){await tog.click();await b.settle(600);}
+    const ro=await b.page.evaluate(()=>{
+      let hit=null;
+      for(const d of document.querySelectorAll('div')){
+        if(d.children.length)continue;
+        const t=(d.textContent||'').trim().replace(/\s+/g,' ');
+        const m=t.match(/^inner\s+(\d+)x(\d+)\s+vv\s+(\S+)\s+app\s+(.+)$/);
+        if(m){hit={text:t,innerW:+m[1],innerH:+m[2],vv:m[3],app:m[4].trim()};break;}
+      }
+      let vvReal=null;try{const q=window.visualViewport;if(q)vvReal=Math.round(q.width)+'x'+Math.round(q.height);}catch(e){}
+      return {hit,real:{innerW:window.innerWidth,innerH:window.innerHeight,vv:vvReal}};
+    });
+    L.say(!!ro.hit,'F2 '+glab+': the readout prints the inner/vv/app line card 1 tells him to screenshot',
+      ro.hit?ro.hit.text:'NO LINE MATCHING /^inner NxN vv .. app ../ IN THE READOUT');
+    if(ro.hit){
+      L.note('F2 '+glab+' readout says "'+ro.hit.text+'"; browser reports inner '+ro.real.innerW+'x'+ro.real.innerH+' vv '+ro.real.vv);
+      L.say(ro.hit.innerW===ro.real.innerW&&ro.hit.innerH===ro.real.innerH,
+        'F2 '+glab+": the readout's inner WxH equals what the browser reports",
+        {readout:ro.hit.innerW+'x'+ro.hit.innerH,browser:ro.real.innerW+'x'+ro.real.innerH});
+      L.say(ro.hit.vv===ro.real.vv,'F2 '+glab+": the readout's visual viewport equals window.visualViewport",
+        {readout:ro.hit.vv,browser:ro.real.vv});
+      // headless Chromium is a browser tab, never an installed app, so the branch is pinned rather than accepted loosely
+      L.say(ro.hit.app==='browser tab','F2 '+glab+": the readout names the display mode, and in headless Chromium it is the browser branch",{app:ro.hit.app});
+    }
+    await b.shot('cards-'+ggeo+'-readout');
+    const bad2=b.errs.filter(e=>!/RuntimeError: unreachable/.test(e));
+    L.say(bad2.length===0,'F '+glab+': no app error in the gallery or the readout',{other:bad2.slice(0,2)});
+    await b.close();
+  }
+
+  /* #452 BLOCK M: THE TWO MODES, AND THE INSTRUCTION THAT MUST OUTLIVE ITS OWN TASK.
+     Two P1 jobs from #451's antagonist B, and they share one cause: the screen had ONE mode baked into the header
+     and the Play-all button while the CARDS had two.
+       jobs/gallery-card-2-instruction-vanishes-before-its-task-can-start-2026-10-01
+       jobs/the-gallery-ask-queue-states-three-different-deliverables-for-one-situation-2026-10-01
+
+     WHY 30 SECONDS AND NOT A ROUND NUMBER I LIKED. The manual card's own text asks Kunal to open a game, hit
+     Analyze, open the summary and screenshot the grade rows for both players. This repo's own
+     gates/drive/review.js:5 puts a first analysis at "~20-60 s". So 30 s is INSIDE the task's measured range: an
+     instruction that is gone at 30 s is gone before the median run of the task it is giving. The assertion is
+     "it survives its own task", not "it lasts a number".
+
+     KEYED TO WHAT THE SCREEN SAYS, NOT TO WHAT THIS BUILD ADDED [#432]. M1/M2/M3 read RENDERED TEXT and locate the
+     manual card by the label the pin already spells ('2 - KEV'), which the #451 bundle renders too. That is what
+     makes the control below meaningful: against the real shipped #451 app.js these assertions go red because the
+     screen genuinely does not declare a mode and its instruction genuinely expires, NOT because a hook is missing.
+     The ONE exception is named rather than smoothed: M5b/M6/M7 read [data-ct="rec-cap-done"], a control this build
+     introduces, so they cannot be controlled against #451 and are positive claims about a new mechanism only.
+
+     CONTROL, RUN AND RECORDED: CT_APP=<the shipped #451 app.js, md5 aba551f896c7> - the ideal control, free, and
+     the actual broken build. Result in the run report and in the control-record line below. */
+  const MODE_AUTO='DRIVES ITSELF', MODE_MANUAL='YOUR TAPS';
+  const MANUAL_CARD=null;     // #550 a29: no manual card in the queue (it was '1 · KEV'); the manual-card blocks below report NOT RUN rather than pass
+  const EXPECTED_MANUAL=0, EXPECTED_AUTO=5 /* #550: + IPAD, which drives itself; #553 B1: IPAD out, AUD, DSK and SPD in, all three drive themselves */, HOLD_MS=30000;   // #547: PHONE was the one self-driving ask card; #550 item (1): SCR is the self-driving one now
+  {
+    const b=await L.launch({geo:'kunal730',name:'modes-kunal730',store:{ct_pool:'3'}});await b.open();
+    await b.home();await b.page.locator('button[title="Preview gallery (dev)"]').click();await b.settle(500);
+    const screen=await b.page.evaluate(({A,M})=>{
+      const cards=[...document.querySelectorAll('button[data-ct="ask-card"]')];
+      // the header blurb, located by a sentence BOTH bundles carry, so this read is portable
+      const blurb=[...document.querySelectorAll('div')].filter(d=>(d.innerText||'').indexOf('This list holds only what I still need')>=0)
+        .sort((x,y)=>(x.innerText||'').length-(y.innerText||'').length)[0];
+      const bt=blurb?(blurb.innerText||'').replace(/\s+/g,' ').trim():null;
+      return {n:cards.length, blurb:bt,
+        cards:cards.map(c=>{const t=(c.innerText||'').replace(/\s+/g,' ').trim();
+          return {head:t.split(' · ').slice(0,2).join(' · ').slice(0,20), auto:t.indexOf(A)>=0, manual:t.indexOf(M)>=0, badge:(()=>{const bd=c.querySelector('[data-ct="ask-mode"]');return bd?(bd.innerText||'').replace(/\s+/g,' ').trim():null;})()};}),
+        headerNamesAuto:bt?bt.indexOf(A)>=0:false, headerNamesManual:bt?bt.indexOf(M)>=0:false,
+        headerStillClaimsAllDrive:bt?bt.indexOf('Each card drives itself')>=0:false};
+    },{A:MODE_AUTO,M:MODE_MANUAL});
+    L.note('M gallery header: '+String(screen.blurb).slice(0,150));
+    L.note('M cards: '+JSON.stringify(screen.cards));
+    // M1: every card declares exactly one mode, in the words the header uses. Read off the card's own text.
+    const declared=screen.cards.filter(c=>c.auto!==c.manual).length;
+    L.say(screen.n===EXPECTED_N&&declared===EXPECTED_N,
+      'M1: every one of the '+EXPECTED_N+' ask cards declares exactly one mode on its face ('+declared+' of '+screen.n+')',screen.cards);
+    // M2: and the mix is the one THIS COMMIT declares - parameterised, like EXPECTED_N, never read back off the cards
+    const nMan=screen.cards.filter(c=>c.manual&&!c.auto).length, nAuto=screen.cards.filter(c=>c.auto&&!c.manual).length;
+    L.say(EXPECTED_MANUAL+EXPECTED_AUTO===EXPECTED_N,'M2: the mode pin is self-consistent with EXPECTED_N',{EXPECTED_MANUAL,EXPECTED_AUTO,EXPECTED_N});
+    L.say(nMan===EXPECTED_MANUAL&&nAuto===EXPECTED_AUTO,
+      'M2: the queue holds the '+EXPECTED_MANUAL+' manual and '+EXPECTED_AUTO+' self-driving card this commit declares',{nMan,nAuto});
+    // M2b TC-GL-006 [#548, item (119); jobs/the-ask-card-mode-badge-is-false-inside-the-play-all-path-2026-10-01, Kunal's default
+    // B8-SMALL-DEFAULTS (6)]: a manual card's badge says WHEN its instruction holds - tapped on its own - because inside Play all the
+    // walk moves on and the old 'its instruction stays up until you hide it' was false there. Read off each manual card's badge.
+    {const man=screen.cards.filter(c=>c.manual);
+     if(EXPECTED_MANUAL===0)L.note('M2b NOT RUN, NAMED [#550 a29]: no manual card in the queue, so no manual badge to read (M2 asserts 0 manual).');
+     else L.say(man.length>0&&man.every(c=>!!c.badge&&/on its own/.test(c.badge)&&/stays up until you hide it/.test(c.badge)),'M2b TC-GL-006 every manual card\'s badge qualifies the hold: it stays up only when the card is tapped on its own',man.map(c=>c.badge));}
+    // M3: the header states both modes and no longer asserts that every card drives itself (the measured falsehood)
+    L.say(screen.headerNamesAuto&&screen.headerNamesManual,
+      'M3: the header names BOTH modes in the same words the cards use',{auto:screen.headerNamesAuto,manual:screen.headerNamesManual});
+    L.say(screen.headerStillClaimsAllDrive===false,
+      'M3: the header no longer claims "Each card drives itself" while a card says the taps are his');
+    /* M9, AND IT IS HERE BECAUSE THE GATE COULD NOT SEE THE ONE DEFECT THAT VETOED THIS BUILD. #452's first
+       bundle rendered its new Hide control as the literal six characters \u2715 and said the same thing in the
+       header sentence that teaches it, because both sat in JSX TEXT position where that is not an escape - while
+       the repo's own two uses (chess.jsx:6382, :7575) are inside JS STRING literals where it is. M5b/M6/M7
+       asserted the control's existence, its 44px box, its pointerEvents and that tapping it works, and every one
+       was green over a button labelled with its own escape sequence: #395's "a container is not its contents",
+       pointed the other way round - there the box was fine and the ink was wrong, here too. Assert the CLASS
+       (no painted string anywhere on this screen is an escape sequence) rather than the instance. */
+    const esc=await b.page.evaluate(()=>{
+      const bad=[];const re=/\\[ux]\{?[0-9a-fA-F]{2,6}/;
+      for(const el of document.querySelectorAll('div,button,span')){
+        if(el.children.length)continue;                       // leaf text only, so a parent is not blamed twice
+        const t=(el.innerText||'').trim(); if(t&&re.test(t))bad.push(t.slice(0,60));
+      }
+      return bad;
+    });
+    L.say(esc.length===0,'M9: no string painted on the gallery is a literal escape sequence rather than the character it names',esc);
+    await b.close();
+  }
+  if(MANUAL_CARD){
+    /* M4, THE HEADLINE. Tap the card the pin marks manual and hold the clock on it. Assert the banner was UP
+       first (#385: when an assertion says X is present in state S, prove S was reached and X was there to begin
+       with), then that it is STILL up at 30 s. On the #451 bundle it is gone at ~9 s. */
+    const b=await L.launch({geo:'kunal730',name:'hold-kunal730',store:{ct_pool:'3'}});await b.open();
+    await b.home();await b.page.locator('button[title="Preview gallery (dev)"]').click();await b.settle(500);
+    const card=b.page.locator('button[data-ct="ask-card"]',{hasText:MANUAL_CARD}).first();
+    const found=await card.count();
+    L.say(found>0,'M4: the manual card "'+MANUAL_CARD+'" is on the gallery to tap',{found});
+    if(found>0){
+      const t0=Date.now();await card.click();await b.settle(1200);
+      const up0=await b.page.evaluate(()=>!!document.querySelector('[data-ct="rec-cap"]'));
+      L.say(up0,'M4: the instruction IS on screen just after the tap (the state the hold is about was reached)',{atMs:Date.now()-t0});
+      /* NC holdoff controls THIS assertion rather than the app: it removes the banner at 9 s, which is what the
+         #451 bundle does by itself. It proves M4 can SEE a vanishing instruction. */
+      if(NC==='holdoff'){await b.page.evaluate(()=>{setTimeout(()=>{const e=document.querySelector('[data-ct="rec-cap"]');if(e)e.remove();},9000);});
+        L.note('NC holdoff: the banner is removed at 9000ms, reproducing the #451 dwell');}
+      /* NC eatTaps IS M5'S OWN CONTROL, and M5 had none until now - holdoff reddened it by REMOVING the bar, which
+         is M4's threshold, not M5's. This one LEAVES THE BAR IN PLACE and sets its pointerEvents to 'auto', which
+         is exactly the regression M5 exists to catch: a 92vw bar pinned across the bottom strip, still up, now
+         swallowing the taps the card is asking Kunal to make. It must cross M5's OWN threshold and disturb no
+         neighbour (CLAUDE.md #384, and this file's own cardwide/cardclip lesson at :616 - crediting one control
+         with another's coverage is how an uncontrolled assertion comes to look controlled). The style rule is
+         !important and keyed on the data-ct hook rather than set on the node, so it survives any re-render of the
+         bar during the hold. EXPECTED: 1 FAIL, M5 alone - M4 stays green because the bar is present, and M5b stays
+         green because the Hide control's own pointerEvents are untouched. */
+      if(NC==='eatTaps'){const what=await b.page.evaluate(()=>{const st4=document.createElement('style');st4.id='ct-nc-et';
+        st4.textContent='[data-ct="rec-cap"]{pointer-events:auto!important}';document.head.appendChild(st4);
+        return 'the held instruction bar is pointer-events:auto - it is up AND it eats taps';});
+        L.note('NC eatTaps: '+what);}
+      while(Date.now()-t0<HOLD_MS)await b.settle(1000);
+      const st=await b.page.evaluate(()=>{const e=document.querySelector('[data-ct="rec-cap"]');if(!e)return {up:false};
+        const d=document.querySelector('[data-ct="rec-cap-done"]');const r=d?d.getBoundingClientRect():null;
+        return {up:true,barPe:getComputedStyle(e).pointerEvents,txt:(e.innerText||'').replace(/\s+/g,' ').trim().slice(0,90),
+          done:!!d,donePe:d?getComputedStyle(d).pointerEvents:null,doneTxt:d?(d.innerText||'').trim():null,
+          doneRect:r?{w:+r.width.toFixed(2),h:+r.height.toFixed(2),right:+r.right.toFixed(2),top:+r.top.toFixed(2)}:null,vw:innerWidth};});
+      L.note('M4 at '+(Date.now()-t0)+'ms: '+JSON.stringify(st));
+      L.say(st.up===true,'M4: the manual card\'s instruction is STILL on screen at '+HOLD_MS+'ms - longer than the 20-60s its own task takes (gates/drive/review.js:5)',st);
+      /* M5: and it must not have bought that by eating his taps. The bar is 92vw over the bottom strip; the whole
+         point of the card is that HE taps things, so the bar stays pointerEvents:none and only the Hide target
+         takes events. This guards the regression THIS fix could have introduced.
+         THE CONJUNCT IS SPLIT, AND THAT IS THE WHOLE POINT OF THIS EDIT. M5 was written
+         `L.say(st.up&&st.barPe==='none', ...)` and M5b `L.say(st.done===true&&st.donePe==='auto', ...)`. When the
+         bar is absent `st` is `{up:false}`, so BOTH lines went red on the PRESENCE conjunct and neither ever went
+         red on the pointer-events one: on the shipped #451 bundle the payloads read `FAIL M5 ... [{}]` with no
+         barPe value in them at all, and CT_G15_NC=holdoff gave 3 FAIL (M4, M5, M5b) for the same reason. So there
+         was NO control in which the bar EXISTED and M5 failed - every red so far was M4 wearing M5's label, which
+         is CLAUDE.md's "a wrong reason that reaches the right verdict is a trap, not a check" (#419) and the
+         uncontrolled-assertion charge of #395 in one line. M4 above already owns the presence claim, so presence is
+         now a GUARD rather than a conjunct and the pointer-events claim stands alone and can cross its own
+         threshold. Absence is declared rather than silently skipped, so a vanished bar cannot make M5 vacuous. */
+      if(st.up!==true){
+        L.note('M5/M5b not asserted: the bar is absent at '+HOLD_MS+'ms, which is M4\'s red above, not a pointer-events result');
+      }else{
+        L.say(st.barPe==='none','M5: the held instruction bar still passes taps through (pointerEvents none), so it cannot eat the taps the card asks for',{barPe:st.barPe});
+        L.say(st.done===true&&st.donePe==='auto','M5b: a tappable Hide control exists while the instruction is held',{done:st.done,pe:st.donePe});
+      }
+      if(st.doneRect){
+        L.say(st.doneRect.w>=44&&st.doneRect.h>=44,'M6: the Hide control meets the 44px tap-target minimum ('+st.doneRect.w+'x'+st.doneRect.h+')',st.doneRect);
+        L.say(st.doneRect.right<=st.vw,'M6: the Hide control sits inside the viewport - no horizontal spill, which is the unrecoverable one',{right:st.doneRect.right,vw:st.vw});
+      }
+      /* M9b/M10: the same class, on the banner and on the control's own label. The banner text is the first
+         thing in every screenshot Kunal sends back, so an escape sequence there is burned into the evidence. */
+      if(st.up){
+        const re=/\\[ux]\{?[0-9a-fA-F]{2,6}/;
+        L.say(!re.test(st.txt||''),'M9b: the held instruction bar paints no literal escape sequence',{txt:(st.txt||'').slice(0,70)});
+      }
+      if(st.doneTxt!==undefined&&st.doneTxt!==null){
+        L.say([...String(st.doneTxt)].length===1,
+          'M10: the Hide control is labelled with ONE character, not with the escape sequence that names it',
+          {label:st.doneTxt,codePoints:[...String(st.doneTxt)].length});
+      }
+      // M11 [#547 item (93); jobs/the-held-instruction-keeps-the-label-and-loses-the-steps-and-the-route-back-2026-10-01]: the held bar
+      // keeps a short label of a long instruction, so it must carry a ROUTE BACK to the card and its steps - on the bar itself, since
+      // the dev row stays hidden while an instruction is held. Read while the bar is up (M7 below hides it).
+      {const bk=await b.page.evaluate(()=>{const d=document.querySelector('[data-ct="rec-cap"] [data-ct="rec-cap-back"]');if(!d)return null;const r=d.getBoundingClientRect();
+         const h=document.elementFromPoint(r.left+r.width/2,r.top+r.height/2);return {pe:getComputedStyle(d).pointerEvents,aria:d.getAttribute('aria-label'),w:r.width,h:r.height,self:!!(h&&(h===d||d.contains(h)))};});
+       L.say(!!bk&&bk.pe==='auto'&&bk.self&&bk.w>=43.5&&bk.h>=43.5&&/card/i.test(bk.aria||''),'M11: the held bar carries a route back to the card and its steps - a 44px control that hit-tests to itself and says where it goes',bk);}
+      /* M12/M13 [#549 item (88); jobs/a-held-gallery-instruction-hides-the-home-dev-row-for-an-unbounded-time-2026-10-01]: until
+         now this block never rendered HOME, so the dev row's state while an instruction is held was asserted by nobody. The
+         orchestrator's ruling of 4 Nov 2026 keeps the hide ON PURPOSE (build-run 6d: no Preview or feedback chrome in a recording),
+         so M12 asserts it DELIBERATELY - on Home, with the bar proven still up first (#385) - and M13 asserts the row is back on
+         Home after the bar's Hide. Without M13 a hide that never lifts is indistinguishable from the ruling. */
+      let onHomeHeld=false;
+      if(st.up){await b.home();await b.settle(400);
+        const hm=await b.page.evaluate(()=>({bar:!!document.querySelector('[data-ct="rec-cap"] [data-ct="rec-cap-done"]'),row:!!document.querySelector('[data-ct="home-devrow"]')}));
+        onHomeHeld=hm.bar&&await b.onHome();
+        if(!onHomeHeld)L.say(false,'M12: Home was reached with the held instruction still up (the state M12 and M13 are about)',{bar:hm.bar,onHome:await b.onHome()});
+        else L.say(hm.row===false,'M12: while an instruction is held, Home DELIBERATELY hides its dev row (Preview and feedback) - the orchestrator ruling of 4 Nov 2026',hm);}
+      // M7: the control does what it says
+      if(st.done){await b.page.locator('[data-ct="rec-cap-done"]').click();await b.settle(500);
+        const gone=await b.page.evaluate(()=>!!document.querySelector('[data-ct="rec-cap"]'));
+        L.say(gone===false,'M7: tapping Hide clears the instruction',{stillUp:gone});
+        if(onHomeHeld){await b.settle(600);const back=await b.page.evaluate(()=>{const e=document.querySelector('[data-ct="home-devrow"]');if(!e)return null;
+            return {preview:!!e.querySelector('[data-ct="home-preview"]'),feedback:!!e.querySelector('[data-ct="home-feedback"]')};});
+          L.say(!!back&&back.preview&&back.feedback,'M13: after Hide the dev row is back on Home, Preview and feedback both - the hide is bounded, not for the session',back);}}
+    }
+    const badM=b.errs.filter(e=>!/RuntimeError: unreachable/.test(e));
+    L.say(badM.length===0,'M: no app error while holding and hiding the instruction',{other:badM.slice(0,2)});
+    await b.close();
+  }
+  else L.note('NOT RUN, NAMED [#550 answer a29]: the ask queue holds NO manual card since KEV was removed (the Kevitsch screenshot is held), so this manual-card block has nothing to tap. M2 asserts the queue holds 0 manual cards; the block runs again the day a manual card joins (MANUAL_CARD).');
+  {
+    /* M8: THE FIX MUST NOT HAVE WIDENED. A self-driving card still expires on its own hold - card 1 carries
+       h:10000, so it must be gone well before the 30 s the manual card now holds for. Without this, "make it
+       persist" could have been implemented for every card and nothing would have noticed. */
+    const b=await L.launch({geo:'kunal730',name:'autoexpire',store:{ct_pool:'3'}});await b.open();
+    await b.home();await b.page.locator('button[title="Preview gallery (dev)"]').click();await b.settle(500);
+    /* #547 item (53): PHONE, the one self-driving ASK card, is gone, so M8 drives the first harness STATE card, k10, which
+       runs the same caption path with a fixed hold (h:13000) - a self-driving card that must still expire on its own. */
+    const auto=b.page.locator('button[data-ct="state-card"]',{hasText:'1 · k10'}).first();
+    if(await auto.count()>0){
+      const t0=Date.now();await auto.click();await b.settle(1200);
+      const up0=await b.page.evaluate(()=>!!document.querySelector('[data-ct="rec-cap"]'));
+      L.say(up0,'M8: the self-driving card\'s caption appears when tapped (the state is reached)');
+      /* M8 IS THE ONE ASSERTION IN THIS BLOCK THE #451 BUNDLE CANNOT CONTROL, because it PASSES there too - #451
+         expires every card, measured at 16308ms, so M8 is green on the broken build by agreeing with it. That is
+         what M8 is for (it guards against "make it persist" becoming "make EVERYTHING persist") and it is also
+         exactly the uncontrolled-assertion charge this project keeps paying, so it gets its own control at the
+         ASSERTION rather than the app: CT_G15_NC=persistall pins a banner node that never goes away, which is what
+         a bundle that over-applied the fix would look like from here. M8 must go red under it. */
+      if(NC==='persistall'){await b.page.evaluate(()=>{const d=document.createElement('div');
+        d.setAttribute('data-ct','rec-cap');d.textContent='NC persistall: a banner that never expires';
+        d.style.cssText='position:fixed;bottom:0;left:0;opacity:0.01';document.body.appendChild(d);});
+        L.note('NC persistall: a rec-cap node is pinned so it cannot expire - what over-applying the fix would look like');}
+      while(Date.now()-t0<16000)await b.settle(1000);
+      const still=await b.page.evaluate(()=>!!document.querySelector('[data-ct="rec-cap"]'));
+      L.say(still===false,'M8: a SELF-DRIVING card still expires on its own 10s hold - the persistence is scoped to manual cards only',{atMs:Date.now()-t0,still});
+    }
+    await b.close();
+  }
+  /* M6 at the two narrow/short geometries the job named under notChecked: the dwell is a timeout and is not
+     geometry-dependent, but the Hide control's RECT is. Checked without the 30s wait - the banner is held, so the
+     control is there the moment the card is tapped. */
+  /* 730x375 LANDSCAPE [#549, item (51); jobs/three-latent-faults-the-452-hold-opens-steps-fallback-x-locator-and-landscape-
+     2026-10-01]: the held bar is permanent until hidden, and landscape is the one orientation nobody had measured it in. Driven
+     the way gates 62, 64 and 16 drive landscape, as a {w,h,safe} geo, so M6 and M6b (TC-GL-008) now read it there too, and
+     M6c reads the bar against EVERY button on that 375-tall screen rather than only the bottom quarter, as a recorded measurement. */
+  if(MANUAL_CARD)for(const [glab,ggeo] of [['320x568','se'],['375x568','short375'],['730x375',{w:730,h:375,safe:''}]]){
+    const b=await L.launch({geo:ggeo,name:'hide-'+glab,store:{ct_pool:'3'}});await b.open();
+    await b.home();await b.page.locator('button[title="Preview gallery (dev)"]').click();await b.settle(500);
+    const card=b.page.locator('button[data-ct="ask-card"]',{hasText:MANUAL_CARD}).first();
+    if(await card.count()>0){
+      await card.click();await b.settle(1500);
+      /* NC landLow controls M6 and M6b AT 730x375 ONLY: the held bar pushed back to the bottom edge and 30px past it, the
+         pre-(112) placement made worse, so its Hide control leaves the viewport and the bar lies over the tab bar. */
+      if(NC==='landLow'&&(L.GEOS[ggeo]||ggeo).w>(L.GEOS[ggeo]||ggeo).h){await b.page.evaluate(()=>{const st6=document.createElement('style');st6.textContent='[data-ct="rec-cap"]{top:auto!important;bottom:-30px!important}';document.head.appendChild(st6);});await b.settle(300);L.note('NC landLow: the held bar sits at bottom:-30px in landscape');}
+      const r=await b.page.evaluate(()=>{const d=document.querySelector('[data-ct="rec-cap-done"]');if(!d)return null;
+        const q=d.getBoundingClientRect();return {w:+q.width.toFixed(2),h:+q.height.toFixed(2),left:+q.left.toFixed(2),right:+q.right.toFixed(2),top:+q.top.toFixed(2),vw:innerWidth,vh:innerHeight};});
+      L.note('M6 '+glab+': hide control '+JSON.stringify(r));
+      L.say(!!r&&r.w>=44&&r.h>=44&&r.right<=r.vw&&r.left>=0&&r.top>=0,
+        'M6 '+glab+': the Hide control is a 44px target, fully inside the viewport',r);
+      /* M6b TC-GL-008 [#548, item (112); Kunal's default B8-SMALL-DEFAULTS (6): the instruction bar moved off the footer]: neither the
+         held bar nor its Hide control overlaps any button in the bottom quarter of the screen - the tab bar and the pinned footers
+         live there, and at the bottom the bar covered 96% of the Review summary's footer and its Hide sat over 'Start review'. */
+      const ov=await b.page.evaluate(()=>{const bar=document.querySelector('[data-ct="rec-cap"]');if(!bar)return null;const R=(e)=>e.getBoundingClientRect();const br=R(bar);
+        const hit=(a,c)=>a.left<c.right-0.5&&a.right>c.left+0.5&&a.top<c.bottom-0.5&&a.bottom>c.top+0.5;
+        const low=[...document.querySelectorAll('button')].filter(x=>!bar.contains(x)).map(x=>({t:(x.innerText||x.getAttribute('aria-label')||'').trim().slice(0,24),r:R(x)})).filter(o=>o.r.width>1&&o.r.height>1&&o.r.top>=innerHeight*0.75&&o.r.top<innerHeight);
+        return {bar:[Math.round(br.top),Math.round(br.bottom)],low:low.length,over:low.filter(o=>hit(br,o.r)).map(o=>o.t)};});
+      L.say(!!ov&&ov.low>0,'M6b '+glab+': TC-GL-008 DENOMINATOR the held bar is up and there are buttons in the bottom quarter to check it against',ov);
+      L.say(!!ov&&ov.over.length===0,'M6b '+glab+': TC-GL-008 the held instruction bar covers no button in the bottom quarter of the screen (tab bar, pinned footer)',ov);
+      if((L.GEOS[ggeo]||ggeo).w>(L.GEOS[ggeo]||ggeo).h){
+        /* M6c, A MEASUREMENT AND NOT AN ASSERTION, AND WHY [#549, item (51)]. Read against EVERY on-screen button, not only the bottom
+           quarter: at 730x375 the bar (top 18..70, 14% of the height) overlaps the Review tab's menu button, and the button's centre
+           hit-tests to the bar's Hide control - the Hide control takes the menu's tap. A probe found the same at 375x761 and 320x568,
+           so it is not a landscape fault but item (112)'s move of the bar to the top. Where the controls should sit instead is a layout
+           call no answer on this job settles, so it is printed here as notChecked and routed, never asserted green or left red. #550: NOW ASSERTED by block HM (TC-GL-012), through the ct_schold seam, and fixed - the controls sit inside the bar, under the header row. */
+        const all=await b.page.evaluate(()=>{const bar=document.querySelector('[data-ct="rec-cap"]');if(!bar)return null;const br=bar.getBoundingClientRect();
+          const hit=(a,c)=>a.left<c.right-0.5&&a.right>c.left+0.5&&a.top<c.bottom-0.5&&a.bottom>c.top+0.5;
+          return {bar:[Math.round(br.left),Math.round(br.top),Math.round(br.right),Math.round(br.bottom)],vh:innerHeight,barShare:+((br.bottom-Math.max(0,br.top))/innerHeight).toFixed(3),
+            over:[...document.querySelectorAll('button')].filter(x=>!bar.contains(x)).map(x=>({x,r:x.getBoundingClientRect()})).filter(o=>o.r.width>1&&o.r.bottom>0&&o.r.top<innerHeight&&hit(br,o.r))
+              .map(o=>{const h=document.elementFromPoint(o.r.left+o.r.width/2,o.r.top+o.r.height/2);return {t:(o.x.innerText||o.x.getAttribute('aria-label')||'').trim().slice(0,24),takenBy:h&&!(h===o.x||o.x.contains(h))?(h.getAttribute('data-ct')||h.tagName):null};})};});
+        L.note('M6c 730x375 notChecked (routed, not asserted): '+JSON.stringify(all));
+      }
+    }
+    await b.close();
+  }
+  else L.note('NOT RUN, NAMED [#550 answer a29]: the ask queue holds NO manual card since KEV was removed (the Kevitsch screenshot is held), so this manual-card block has nothing to tap. M2 asserts the queue holds 0 manual cards; the block runs again the day a manual card joins (MANUAL_CARD).');
+  /* SF TC-GL-011 [#549, item (51); jobs/three-latent-faults-the-452-hold-opens-steps-fallback-x-locator-and-landscape-2026-10-01]:
+     A STEP THAT ARRIVES AFTER HIDE. _steps' fallback branch (no bar up when a step fires) built a bar with no hold until #547, so it
+     came back with neither a Hide control nor a timer - stuck for good. No ask card carries steps, so no gate could reach that
+     branch; chess.jsx's ct_scsteps seam gives the manual card one step at STEP_MS. Each state is proven reached before its claim
+     [#385]: the bar is up after the tap, gone after Hide, and BACK after the step (so the fallback really ran) before SF3 asks
+     whether it came back hideable. CONTROL: a trial bundle with the fallback's hold removed (the #452 code) reddens SF3 and SF4. */
+  if(MANUAL_CARD){const STEP_MS=4500;
+   const b=await L.launch({geo:'kunal761',name:'steps-fallback',store:{ct_pool:'3',ct_scsteps:String(STEP_MS)}});await b.open();
+   await b.home();await b.page.locator('button[title="Preview gallery (dev)"]').click();await b.settle(500);
+   const card=b.page.locator('button[data-ct="ask-card"]',{hasText:MANUAL_CARD}).first();
+   const found=await card.count();
+   L.say(found>0,'SF TC-GL-011 PRECONDITION the manual card "'+MANUAL_CARD+'" is on the gallery to tap',{found});
+   if(found>0){
+     const t0=Date.now();await card.click();await b.settle(800);
+     const q=()=>b.page.evaluate(()=>({up:!!document.querySelector('[data-ct="rec-cap"]'),done:!!document.querySelector('[data-ct="rec-cap-done"]')}));
+     const s0=await q();
+     L.say(s0.up&&s0.done,'SF1 TC-GL-011 the held bar and its Hide control are up just after the tap',s0);
+     if(s0.done){await b.page.locator('[data-ct="rec-cap-done"]').click();await b.settle(300);}
+     const s1=await q();const hidAt=Date.now()-t0;
+     L.say(!s1.up&&hidAt<STEP_MS,'SF2 TC-GL-011 PRECONDITION Hide cleared the bar BEFORE the step fires ('+hidAt+'ms < '+STEP_MS+'ms), so the step lands on the fallback branch',{s1,hidAt});
+     while(Date.now()-t0<STEP_MS+1500)await b.settle(500);
+     const s2=await q();
+     L.say(s2.up,'SF2b TC-GL-011 PRECONDITION the step brought the bar back (the fallback branch ran)',s2);
+     if(s2.up){
+       L.say(s2.done,'SF3 TC-GL-011 a bar brought back by a step after Hide still carries its Hide control - it is never stuck',s2);
+       if(s2.done){await b.page.locator('[data-ct="rec-cap-done"]').click();await b.settle(300);}
+       const s3=await q();
+       L.say(!s3.up,'SF4 TC-GL-011 and that Hide control clears it',s3);
+     }else L.note('SF3/SF4 not asserted: the step did not bring the bar back, which is SF2b\'s red above');
+   }
+   L.say(b.errs.filter(e=>!/RuntimeError: unreachable/.test(e)).length===0,'SF TC-GL-011 zero app errors',b.errs.slice(0,2));
+   await b.close();}
+  else L.note('NOT RUN, NAMED [#550 answer a29]: the ask queue holds NO manual card since KEV was removed (the Kevitsch screenshot is held), so this manual-card block has nothing to tap. M2 asserts the queue holds 0 manual cards; the block runs again the day a manual card joins (MANUAL_CARD).');
+  /* Q: THE QUEUE'S OWN LENGTHS, POSITIVELY [#547, item (51); jobs/the-gallery-ask-queue-has-no-coverage-for-being-empty-
+     which-is-its-success-condition-2026-10-01, TC-GL-003]. The empty queue is the queue's SUCCESS condition and until now no
+     gate could reach it: the guard above only stopped the walk from throwing when it arrived. chess.jsx now honours
+     localStorage ct_scmax=<n> (truncate SC to n cards), so this block opens the gallery at ct_scmax=0 and at the natural
+     one-card queue and asserts each. Two of the three lengths: the >=2 branch ('▶ Play all N') is the walk above whenever the
+     queue holds two or more, and no seam can ADD cards. Each length asserts the gallery really opened first (the harness
+     state cards are on screen), so an absent Play button cannot pass by the gallery never rendering [#385]. */
+  /* #550 item (1): the natural queue now holds two cards (KEV, SCR), so the one-card case takes ct_scmax=1 as the empty case takes 0. */
+  for(const [qlab,store,wantAsks] of [['empty',{ct_pool:'3',ct_scmax:'0'},0],['one',{ct_pool:'3',ct_scmax:'1'},1]]){
+    const b=await L.launch({geo:'kunal730',name:'queue-'+qlab,store});await b.open();
+    await b.home();await b.page.locator('button[title="Preview gallery (dev)"]').click();await b.settle(500);
+    /* #550 #432 sweep round 5: the queue's length also counted by the cards' WORDS - a painted button carrying a line that starts with an ask
+       card's mode badge (DRIVES ITSELF or YOUR TAPS; the harness state cards carry none, and the folded blurb's line starts 'Cards are') - so
+       the empty queue's 'exactly 0' does not read only the ask-card hook #451 added with this gate */
+    const q=await b.page.evaluate(()=>({asks:document.querySelectorAll('button[data-ct="ask-card"]').length,
+      askW:[...document.querySelectorAll('button')].filter(x=>{const r=x.getBoundingClientRect();return r.width>0&&r.height>0&&/^\s*(\u21bb DRIVES ITSELF|\u261e YOUR TAPS)/m.test(x.innerText||'');}).length,
+      states:document.querySelectorAll('button[data-ct="state-card"]').length,
+      play:[...document.querySelectorAll('button')].map(x=>(x.innerText||'').replace(/\s+/g,' ').trim()).filter(t=>/^Play( all \d+)? \(screen-record this\)$/.test(t)),
+      empty:[...document.querySelectorAll('div')].filter(d=>d.children.length===0&&/^Nothing needed right now\./.test((d.innerText||'').trim())).map(d=>{const r=d.getBoundingClientRect();return {t:(d.innerText||'').trim().slice(0,60),h:Math.round(r.height),top:Math.round(r.top),vh:innerHeight};})}));
+    L.say(q.states>=4,'Q '+qlab+': PRECONDITION the gallery opened - '+q.states+' harness state cards are on screen, so what follows is read off a rendered gallery',q);
+    L.say(q.asks===wantAsks&&q.askW===wantAsks,'Q '+qlab+': the ask queue holds exactly '+wantAsks+' card(s) (by hook '+q.asks+', by their mode badges '+q.askW+')',q);
+    /* TC-GL-005 [#548, item (10)]: the EMPTY queue says so in words. The sentence has been in chess.jsx since #167 (search
+       'Nothing needed right now'); this is the first assertion over it. It must be rendered and painted (non-zero height,
+       top inside the viewport) at zero cards and absent at one, so a build that drops it, or shows it beside a card, is red. */
+    if(wantAsks===0)L.say(q.empty.length===1&&q.empty[0].h>0&&q.empty[0].top<q.empty[0].vh,'Q empty: TC-GL-005 an EMPTY queue renders its empty-state sentence ("Nothing needed right now. ...") on screen',q.empty);
+    else L.say(q.empty.length===0,'Q one: TC-GL-005 a queue holding a card does NOT render the empty-state sentence',q.empty);
+    if(wantAsks===0)L.say(q.play.length===0,'Q empty: TC-GL-003 an EMPTY queue offers NO Play button - there is nothing to walk, and a button that walked zero cards would say otherwise',q.play);
+    else L.say(q.play.length===1&&!/\ball\b/i.test(q.play[0]),'Q one: TC-GL-003 a ONE-card queue offers one Play button and it does not say "all" - "Play all 1" would claim a set',q.play);
+    L.say(b.errs.length===0,'Q '+qlab+': zero app errors',b.errs.slice(0,2));
+    await b.close();
+  }
+  /* TC-GL-007 [#548, item (129); jobs/gallery-header-takes-69-percent-of-a-320x568-screen-2026-10-01, Kunal's default
+     B8-SMALL-DEFAULTS (6)]: ON A SHORT PHONE THE HEADER IS SHORT ENOUGH FOR THE FIRST ASK CARD TO BE SEEN WHOLE. At 320x568 the
+     first ask card must lie fully inside BOTH its scroll clip and the viewport at rest - the job measured it never doing so at
+     any scroll position on aba551f896c7 (header 390 of 568px). The folded explanation must still open on a tap. */
+  {const b=await L.launch({geo:'se',name:'gallery-header-se',store:{ct_pool:'3'}});await b.open();
+   await b.home();await b.page.locator('button[title="Preview gallery (dev)"]').click();await b.settle(500);
+   const g=await b.page.evaluate(()=>{const c=document.querySelector('button[data-ct="ask-card"]');if(!c)return null;let p=c.parentElement;while(p&&!(/auto|scroll/.test(getComputedStyle(p).overflowY)))p=p.parentElement;
+     const r=c.getBoundingClientRect(),q=p?p.getBoundingClientRect():null;return {card:[Math.round(r.top),Math.round(r.bottom)],clip:q?[Math.round(q.top),Math.round(q.bottom)]:null,vh:innerHeight};});
+   L.say(!!g&&!!g.clip,'TC-GL-007 320x568 PRECONDITION the gallery opened and its first ask card and that card\'s scroll clip were found',g);
+   L.say(!!g&&!!g.clip&&g.card[0]>=g.clip[0]-0.5&&g.card[1]<=g.clip[1]+0.5&&g.card[1]<=g.vh,'TC-GL-007 320x568 the FIRST ask card is seen whole at rest - inside its scroll clip and inside the viewport',g);
+   const more=b.page.locator('[data-ct="gallery-blurb-more"]');let opened=false;
+   if(await more.count()){await more.first().click();await b.settle(300);opened=await b.page.evaluate(()=>[...document.querySelectorAll('div')].some(d=>(d.innerText||'').indexOf('This list holds only what I still need')>=0));}
+   else opened=await b.page.evaluate(()=>[...document.querySelectorAll('div')].some(d=>(d.innerText||'').indexOf('This list holds only what I still need')>=0));
+   L.say(opened,'TC-GL-007 320x568 the full explanation is still reachable on this phone (folded behind one tap, or shown)',{opened});
+   L.say(b.errs.length===0,'TC-GL-007 320x568 zero app errors',b.errs.slice(0,2));
+   await b.close();}
+  /* TC-GL-009 [#548, item (162); jobs/preview-gallery-button-gone-after-running-a-card-2026-11-03]: TWO STATE CARDS IN A ROW. Home
+     hides the Preview gallery button while a card's instruction bar is up (the hide is kept, bounded by the bar's timer - the
+     orchestrator's ruling on item (120)), so b.card(2) straight after b.card(1) timed out at 375x730 and 320x568. gates/lib.js's
+     card() now waits the bar out; this is the harness's own control over that path. */
+  for(const geo of ['kunal730','se']){const b=await L.launch({geo,name:'two-cards-'+geo});await b.open();
+    let ok1=true,ok2=true;try{await b.card(1,2500);}catch(e){ok1=false;}
+    const t0=Date.now();try{await b.card(2,2500);}catch(e){ok2=false;}
+    L.say(ok1,geo+': TC-GL-009 PRECONDITION state card 1 was reached');
+    L.say(ok2,geo+': TC-GL-009 b.card(2) straight after b.card(1) reaches its card ('+(Date.now()-t0)+'ms) - the harness waits out the instruction bar that hides the gallery button');
+    await b.close();}
+  await blockHM();
+},'GALLERY-PLAYALL');
+// SELECTOR-OPENED: gallery-blurb-more reading=presence round 4: TC-GL-007 needs the fold reachable
+// SELECTOR-OPENED: rec-cap-back reading=presence round 4: M11 needs the 44px control
+// SELECTOR-OPENED: state-card reading=precondition round 4: Q needs four state cards
+// SELECTOR-OPENED: menu-foot reading=nav #550 lead, opened by reading: the click opens the fold and the next tapText(/^Layout readout$/) targets a row behind it, so a missing hook leaves it unreachable and the tap fails red
+// (not control records) batch 13, 2026-11-21, on 73249bd45e30: BEFORE b7317056 the whole gate read 156/0, 155/1 and, on the bundle from before batch 13's fixes 81d3ffd0b7ba, 155/1 - the same 2px on the EXP card's entry step each time it went red. AFTER it, 156/0 and 156/0; the first of those NOTED the very frame ('over 2 at one sample, 0 250ms later'; claude/agents/gatelogs/552-15-after-b7317056-real1.log).
+// SELECTOR-OPENED: ask-card control=fb7bfc7 round 5: Q's queue-length line also counts the cards by their mode badges; c15 renamed the hook and drew three cards in the empty queue, red
+// SELECTOR-OPENED: rec-cap-done reading=presence round 5: M5b requires the Hide control by this hook before M6/M7 read or tap it, M7's own absence check reads rec-cap (#451, not this pair), and the block is NOT RUN since a29 (MANUAL_CARD null), so no line reads the hook on any bundle today
