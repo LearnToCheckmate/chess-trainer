@@ -4920,6 +4920,9 @@ function IconGlyph({g,em,top}){return <span style={{fontSize:em+'em',lineHeight:
    width: a new width is measured again. A box with no width (a hidden screen) is not a reading, so it is measured when it next paints.
    Measured in the gate browser: the slot is 136 at 320, 156 at 360, 164 at 375 and 171 at 390 wide against 161.2 of text, so 375 and wider
    read the long caption and 320 and 360 the short one. */
+/* #553 B2 (amber flags/amber-553-discover-caption-re-measures-after-home-scales): `w` carries Home's phone scale too (homePh.z), because the
+   scale lands in a later layout pass than this box's first measurement: since Q13 (e5435040) Home is 0.85 at 320x568, the room grows from
+   136 to 162 CSS px against 161.2 of long words, and a box measured only at scale 1 kept the short words where the long ones fit. */
 function FitLine({long,short,w,ct,style}){
   const ref=useRef(null);const [st,setSt]=useState({w:null,cut:false});
   const useShort=st.w===w&&st.cut;
@@ -11831,7 +11834,7 @@ function AppMain(){
                 <div style={{color:'rgba(255,255,255,.98)',fontSize:hbig?'clamp(25px,2.8vw,31px)':(hLand?'clamp(23px,2.9vw,31px)':'clamp(17.5px,4.7vw,22px)'),fontWeight:800,marginBottom:hbig?6:4,letterSpacing:.3}}>{label}</div>
                 {(()=>{const _ss={color:'rgba(255,255,255,.62)',fontSize:hbig?'clamp(15px,1.9vw,18px)':(hLand?'clamp(15px,1.9vw,18px)':'clamp(12.5px,3.2vw,15px)'),lineHeight:1.4,...(_hc?{whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis',maxWidth:'100%'}:null)};
                   /* batch 13 TXT-32: on a phone Discover's caption names tactics wherever the long words fit on the one line (FitLine) */
-                  return (_hc&&SUB_FIT[k])?<FitLine ct={'tile-sub-'+k} long={sub} short={SUB_SHORT[k]} w={vp.w} style={_ss}/>:<div data-ct={'tile-sub-'+k} style={_ss}>{_hc&&SUB_SHORT[k]?SUB_SHORT[k]:sub}</div>;})()}
+                  return (_hc&&SUB_FIT[k])?<FitLine ct={'tile-sub-'+k} long={sub} short={SUB_SHORT[k]} w={vp.w+':'+homePh.z} style={_ss}/>:<div data-ct={'tile-sub-'+k} style={_ss}>{_hc&&SUB_SHORT[k]?SUB_SHORT[k]:sub}</div>;})()}
               </button>);})}
           </div>);
             const _coach=(()=>{const cn=coachNudge();return(
