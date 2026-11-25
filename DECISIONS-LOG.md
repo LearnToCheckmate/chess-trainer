@@ -398,6 +398,8 @@ panel to put it in; on a phone there is not. Copying the pattern onto the board 
 
 Scope is Review only. The lesson screen's note box sits ABOVE its board, not on it, and is untouched.
 
+> The live version lives in the tracker (artifact 5326ERvZCZ5tEYRkPavPTF); see decisions/one-home-per-document-2026-09-22. This file is the build lane close-out copy; where the two differ the tracker wins.
+
 ## 2026-11-10 — THE BOARD'S COORDINATE LETTERS KEEP TODAY'S COLOURS; WCAG AA 4.5:1 IS NOT THEIR TARGET (recorded #553)
 
 **His answer**, on the Desk card questions/B9C-COORD-CONTRAST ("Should the letters and numbers along the edge of the board be
@@ -414,4 +416,3 @@ IS held is that no highlight, hint, selection or solution square can pull a lett
 before #548). Gate 207 (TC-R326..327) asserts exactly that, on a puzzle's Show square and on a flipped board. A recolour
 of the letters (black or white ink, a chip independent of the square) is his call and is not to be built without it.
 
-> The live version lives in the tracker (artifact 5326ERvZCZ5tEYRkPavPTF); see decisions/one-home-per-document-2026-09-22. This file is the build lane close-out copy; where the two differ the tracker wins.
