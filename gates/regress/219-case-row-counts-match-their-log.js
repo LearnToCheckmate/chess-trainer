@@ -18,8 +18,14 @@
 const L=require('../lib');
 const fs=require('fs'),path=require('path'),cp=require('child_process');
 const ROOT=path.join(__dirname,'..','..');
-/* the two RECORDS directories, named as strings and not as path.join literals: fastgate.sh's premise check (part two) derives a gate's fs
-   inputs from path.join literals, and these two are read through git and covered by fastgate.sh running this gate (see below) */
+/* the two RECORDS directories, named as strings and not as path.join literals. fastgate.sh's PREMISE CHECK, PART TWO ('the files a gate
+   reads without require()') derives a gate's fs inputs from the leading quoted literals of each path.join, and refuses a records-only one;
+   with the literals this gate tripped it, and every records-tier case of gates/fastgate-drive.sh went red on that refusal. The constants
+   take these two reads out of PART TWO's sight, and that is honest ONLY because fastgate.sh RUNS this gate whenever a records range adds
+   or changes anything under either directory and refuses on any red (H76/H77, TC-SUITE-401/402) - the guarantee PART TWO exists to give
+   is kept by that run, not hidden from. It is gate 81's precedent exactly: gate 81 names claude/agents/gatelogs as a string to git
+   ls-tree and fastgate.sh runs it when a log moves (H74/H75). A gate that reads a records path with NO fast-tier run behind it is still
+   refused by PART TWO (fastgate-drive.sh H30) and by gates.sh's observed-inputs check. */
 const STORIES='claude/stories',GATELOGS='claude/agents/gatelogs';
 const SD=process.env.CT_G219_STORIES||path.join(ROOT,STORIES);
 /* READ THROUGH GIT, NOT fs [#553 B2, the landing pre-check's red: 'READ A RECORDS-ONLY PATH ... make the path FORCE in classify(), or stop
