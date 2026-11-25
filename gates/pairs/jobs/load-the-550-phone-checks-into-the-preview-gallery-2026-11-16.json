@@ -1,0 +1,26 @@
+{
+ "job": "load-the-550-phone-checks-into-the-preview-gallery-2026-11-16",
+ "about": "The preview gallery's ask queue after the orchestrator's q26 ruling (run-answers orchestrator-B14-Q26-RULING-2026-11-24): 1 SCR, 2 EXP, 3 AUD (his page picks of 14 Nov), 4 DSK (his desktop look at 1920x1080 and 1440x900, on the retired IPAD card's walk) and 5 SPD (speed with his own games); IPAD retired under CLAUDE.md's Parked line. Graded by gate 15 at 375x679 (CT_G15_GEOS=kunal): the queue pin (PINNED_IDS, in order) and the two-sided board pin (EXPECT_BOARD: AUD and DSK paint a board on their walks, SPD does not on a fresh store).",
+ "gate": "gates/regress/15-gallery-playall.js",
+ "env": {"CT_G15_GEOS": "kunal"},
+ "checks": [
+  "^kunal: the ask queue holds the",
+  "^kunal: every caption whose card is pinned to show a board showed one"
+ ],
+ "build": "auto",
+ "situations": [
+  {"name": "375x679", "match": "^kunal: "}
+ ],
+ "breaks": [
+  {"name": "ipad-card-back-in-the-queue", "patch": "breaks/g15-ipad-card-back-in-the-queue.diff",
+   "why": "the retired IPAD card is back in the queue in DSK's place - the Parked line broken - so the queue reads SCR|EXP|AUD|IPAD|SPD against the pin",
+   "mustFailIn": ["375x679"]},
+  {"name": "audit-picks-card-dropped", "patch": "breaks/g15-audit-picks-card-dropped.diff",
+   "why": "the audit-picks card is missing, so the queue holds four cards where the pin names five",
+   "mustFailIn": ["375x679"]},
+  {"name": "desktop-card-walks-nothing", "patch": "breaks/g15-desktop-card-walks-nothing.diff",
+   "why": "the desktop card stays on Home instead of walking the board screens, so its caption, pinned to show a board, shows none",
+   "mustFailIn": ["375x679"]}
+ ],
+ "timeoutSec": 2400
+}

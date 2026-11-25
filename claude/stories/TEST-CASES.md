@@ -467,6 +467,15 @@ after that log was made, so its row is under Cross-app invariants (US-INV-05) an
 *(Added #451, from jobs/preview-gallery-flush-and-load-current-asks, priority 10, Kunal's own ask of 2026-09-22 and
 the only ready priority-10 build job whose askedBy names him. The gallery had no case before this.)*
 
+*(#553 seat B1, jobs/load-the-550-phone-checks-into-the-preview-gallery-2026-11-16, the orchestrator's q26 ruling
+(run-answers orchestrator-B14-Q26-RULING-2026-11-24): the ask queue is `1 SCR|2 EXP|3 AUD|4 DSK|5 SPD`. IPAD leaves it
+under CLAUDE.md's Parked line ("The iPad, entirely, until the phone layout is settled. Do not spend a run on it and do not
+ask about it again."); its walk is kept as DSK's. AUD is his page picks of 14 Nov, each saying whether it is built on this
+head; DSK his desktop look at 1920x1080 and 1440x900 (DSK-07 not built, and it says so); SPD speed with his own games
+(SPD-05/06/07/10 in, SPD-04 not). The walk cards AUD, DSK and SPD carry IPAD's two excusals (board size across the walk,
+pages that may scroll on the way), by id and for no other card. The wording card waits for his three answers and the
+readability card for q23. Control: this gate on the tree before (its bundle still carrying IPAD) is red on the pin.)*
+
 **INPUTS, 4 browser sessions.** The walk runs at 375x679 and 375x812, which is what gate 15 already did. Block F
 adds 320x568 and **375x730, which this gate did not previously visit at all** - recorded at #451 as the real device; R19 settled the
 device at 375x761 and 375x730 is the gates' superseded column (#549, item (110)), so F measures that column and not the device. Plus 2 pure-function fixture sets (tailStable, walkOk) that

@@ -11569,10 +11569,32 @@ function AppMain(){
     {at:64000,id:'EXP-2',l:'10.Nxb5!!: the reading on the sacrifice',fn:()=>{setPly(19);setTimeout(()=>setEngWhy(true),4500);}},
     {at:76000,id:'EXP-3',l:'Move 13: the reading near the finish',fn:()=>{setPly(25);setTimeout(()=>setEngWhy(true),4500);}},
    ], h:88000},
-  /* #550 run-answers hold-landing (6), HIS iPAD - "put them in the preview gallery, and then I'll open it on the iPad ... on Safari, right? Not
-     as an app": one card that walks every screen the desktop and tablet rule touches, each held long enough to capture, for him to record in
-     Safari on his iPad upright and then sideways. */
-  {id:"IPAD",c:"iPad: every board and page screen, upright and sideways",l:"3 \u00b7 IPAD \u00b7 Your iPad in Safari: record it upright, then turn it sideways and record it again", n:"Open this page in Safari on your iPad (not the app), press play and screen-record. It shows Home, Discover, Tactics, a lesson, Puzzles, a game against the computer, then a reviewed game (that one takes about 45 seconds to analyze). Then turn the iPad sideways and play it again. Look for: everything centered, the board as big as the screen allows, nothing cut off and nothing scrolling.", r:()=>{setMenuOpen(false);setOpenIdx(null);setPlaySetup(false);setLearnGroup(null);setHomeScreen(true);
+  /* #553 B1, jobs/load-the-550-phone-checks-into-the-preview-gallery-2026-11-16, the orchestrator's q26 ruling (run-answers
+     orchestrator-B14-Q26-RULING-2026-11-24). His rule of 16 Nov: "Anything I need to check should be setup and put there first".
+     THE IPAD CARD IS RETIRED: CLAUDE.md's Parked line - "The iPad, entirely, until the phone layout is settled. Do not spend a run
+     on it and do not ask about it again." - so it leaves the ask queue (q26 (4)). Its walk, which visits every screen the desktop
+     and tablet rule touches, is kept as the DESKTOP card's walk (card 4), so nothing it drove is lost.
+     The wording card (q26 (3)) waits for his three answers and the readability card for q23; neither is here.
+     Card 3, AUD: his page-audit picks of Sat 14 Nov (answered 11:17pm Sat to 12:09am Sun EST on the Desk), each with the screen it
+     changed and what to look at. Read against this head (23c3d5d2's tree): two picks KEEP a screen as it is, and NONE of the eight
+     picks that change a screen is built yet - Home still has Colors & pieces and Style as two buttons; Puzzles and lessons keep
+     their layout; no finish card, no motif list behind the Tactics counter, no sections in the lists, no welcome screen (searched
+     chess.jsx and the commit log since 14 Nov). The card says so for each, so he sees today's screens and knows which are still to
+     come. The laptop Review pick (DSK-07) is on card 4. */
+  {id:"AUD",c:"Your page picks of 14 Nov: what is built and what is still to come",l:"3 · AUD · Your page picks of 14 Nov: look at each screen it walks", n:"Press play and screen-record. The card walks the screens your picks of Sat 14 Nov were about. Kept as they are, so check they still look right: the Game Review summary (shown last, after about 45 seconds of analysis) and the Puzzles home with its scenic road. Not built yet, so you see today's screen: Home with one Look and feel button in place of Style and Colors (Home still has both); solving a puzzle and the lesson screen in the chess.com shape; tap the Tactics counter for a list of motifs; the Openings, Gambits and Endgames lists collapsed into sections; a finish card when a lesson ends; a one screen welcome on a new player's first open. Tell me if any of these is not what you picked, then upload it in the Claude chat.", r:()=>{setMenuOpen(false);setOpenIdx(null);setPlaySetup(false);setLearnGroup(null);setLookOpen(false);setHomeScreen(true);
+    const _t=(ms,fn)=>setTimeout(()=>{try{fn();}catch(e){}},ms);
+    _t(6000,()=>{setHomeScreen(false);setOpenIdx(null);setMistakeMode(false);setMode('puzzle');setPzView('roadmap');});
+    _t(13000,()=>{pzEnterBrowse(0,0);});
+    _t(20000,()=>{setHomeScreen(false);setMode('learn');setOpenIdx(null);setLearnGroup('openings');});
+    _t(27000,()=>{setLearnGroup('tactics');});
+    _t(34000,()=>{setLearnGroup(null);_picker(0);});
+    _t(42000,()=>{setOpenIdx(null);setHomeScreen(false);setMode('analyze');setPlaySetup(false);pvJumpRef.current=null;setPgnText(_OPERA);importGame(_OPERA,{});});}, h:100000},
+  /* Card 4, DSK: his desktop look, written without helper 5's draft (q26 (2)): Home, Puzzles, Review and the other screens in his
+     own full window at 1920x1080 and at 1440x900, which closes the desktop check DSK-03 to DSK-12 (docs/desktop-check-2026-11-12).
+     DSK-07, his laptop Review pick of 11:39pm Sun 15 Nov (the bottom player bar at the foot of the right column, the space beside it
+     for the move list with grades and a key moments switch), is NOT built on this head (seat B2's recheck_553; this tree's Review
+     has no such column), and the card says so. The walk is the retired IPAD card's, unchanged. */
+  {id:"DSK",c:"Your computer: every board and page screen at 1920x1080 and 1440x900",l:"4 · DSK · Your computer in its full window: record it at 1920 by 1080, then at 1440 by 900", n:"Open this page on your computer in its full window, about 1920 by 1080, press play and screen-record. It shows Home, Discover, Tactics, a lesson, Puzzles, a game against the computer, then a reviewed game (that one takes about 45 seconds to analyze). Then make the window about 1440 by 900 and play it again. Look for: one centered group, the board as tall as the window allows, nothing scrolling and nothing running over the edge. One pick is not built yet: Review on a laptop with the bottom player bar at the foot of the right column and the move list with grades and a key moments switch beside it (your pick of 15 Nov), so Review still shows today's layout. Then upload it in the Claude chat.", r:()=>{setMenuOpen(false);setOpenIdx(null);setPlaySetup(false);setLearnGroup(null);setHomeScreen(true);
     const _t=(ms,fn)=>setTimeout(()=>{try{fn();}catch(e){}},ms);
     _t(5000,()=>{setHomeScreen(false);setMode('learn');setOpenIdx(null);setLearnGroup(null);});
     _t(10000,()=>{setLearnGroup('tactics');});
@@ -11581,6 +11603,15 @@ function AppMain(){
     _t(33000,()=>{_autogame(['e4','e5','Nf3','Nc6']);});
     _t(45000,()=>{setHomeScreen(false);setMode('analyze');setPlaySetup(false);pvJumpRef.current=null;setPgnText(_OPERA);importGame(_OPERA,{});});
     _t(100000,()=>{setReviewView('moves');setPly(19);});}, h:108000},
+  /* Card 5, SPD: the speed check with his own games, on his phone (docs/speed-check-2026-11-12; jobs/speed-check-regressions-2026-11-12).
+     SPD-05 (no engine in Home's first seconds), SPD-06 (the games list's first rows), SPD-07 (a stored game's summary while the regrade
+     pass waits) and SPD-10 (the Puzzles glow rests after four pulses) are merged on this head; SPD-04 (load less code at start) is open,
+     and the card says so. It opens the newest stored game by tapping the list's first row, as his finger would. */
+  {id:"SPD",c:"Speed with your own games: Home, the games list and a review",l:"5 · SPD · Speed on your phone with your own games: time each screen", n:"Open the app on your phone with your own games in it, press play and screen-record. It shows Home, then the Review list of your games, then opens your newest game's review, then the Puzzles home. Watch how long each takes to appear and whether anything stalls. Built since your last check: Home no longer starts the engine at once, the games list shows its first rows first, a stored game's summary no longer waits behind the regrading of your other games, and the Puzzles glow stops after four pulses. Not built yet: loading less code when the app starts. Then upload it in the Claude chat.", r:()=>{setMenuOpen(false);setOpenIdx(null);setPlaySetup(false);setLearnGroup(null);setHomeScreen(true);
+    const _t=(ms,fn)=>setTimeout(()=>{try{fn();}catch(e){}},ms);
+    _t(8000,()=>{setHomeScreen(false);setOpenIdx(null);setPlaySetup(false);setMode('analyze');setReview(null);});
+    _t(18000,()=>{const r=document.querySelector('[data-ct="game-row"]');if(r)r.click();});
+    _t(45000,()=>{setHomeScreen(false);setOpenIdx(null);setMistakeMode(false);setMode('puzzle');setPzView('roadmap');});}, h:60000},
         ];
         /* THE ASK-QUEUE SEAM [#547, item (51); jobs/the-gallery-ask-queue-has-no-coverage-for-being-empty-which-is-its-
            success-condition-2026-10-01]. localStorage ct_scmax=<n> truncates SC to its first n cards at render, so a gate can

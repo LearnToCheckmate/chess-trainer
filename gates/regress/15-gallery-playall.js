@@ -206,8 +206,12 @@ const TOL=0.6, HOLD=250, WIN=900, STEP=50, TICK=60;
 /* #550 item (1): SCR, his phone check of the full-screen shell, joins as card 2. */
 /* #550 answer a29 (the orchestrator, 11:37am ET: the Kevitsch screenshot is held, 'remove the KEV card as provided'): KEV leaves, so SCR
    is card 1 and EXP card 2. */
-const PINNED_IDS='1 SCR|2 EXP|3 IPAD';   /* #550 hold-landing (6): his iPad card, every screen the desktop and tablet rule touches */ //   /* #550 item (11): EXP, the plain-words engine reading, joined as card 3 (card 2 since a29) */
-const EXPECTED_N=3;   // #550 hold-landing (6): + 3 IPAD
+/* #553 B1 (jobs/load-the-550-phone-checks-into-the-preview-gallery-2026-11-16; the orchestrator's q26 ruling, run-answers
+   orchestrator-B14-Q26-RULING-2026-11-24): IPAD leaves the queue under CLAUDE.md's Parked line ("The iPad, entirely, until the phone
+   layout is settled. Do not spend a run on it and do not ask about it again."), and three cards join: 3 AUD (his page picks of 14 Nov),
+   4 DSK (his desktop look at 1920x1080 and 1440x900, on the retired IPAD card's walk) and 5 SPD (speed with his own games). */
+const PINNED_IDS='1 SCR|2 EXP|3 AUD|4 DSK|5 SPD';   /* #550 hold-landing (6): his iPad card, every screen the desktop and tablet rule touches */ //   /* #550 item (11): EXP, the plain-words engine reading, joined as card 3 (card 2 since a29) */
+const EXPECTED_N=5;   // #550 hold-landing (6): + 3 IPAD; #553 B1: IPAD out, AUD, DSK and SPD in
 /* #451: WHICH PINNED CARDS SHOW A BOARD, AS AN EXPLICIT TWO-SIDED PIN - and this is the assertion that would
    otherwise have gone quietly vacuous when the card set changed, which is the fault this file is full of warnings
    about. Until #451 every SC card drove a board screen, so "every caption except Starting showed a board" was a
@@ -272,7 +276,20 @@ const STATE_CARDS=[{id:'k10',hold:13000},{id:'k8',hold:8000},{id:3,hold:7000},{i
    engine line and its why) is a REVIEW card, so all four of its captions paint the review board. Measured on trial t6: the walk's only
    board-painting captions are EXP, EXP-1, EXP-2 and EXP-3, at both geometries. Pinned, so the board-conditioned checks stop being inert
    for this walk and a caption of EXP that LOSES its board reds rather than passing as 'boardless'. */
-const EXPECT_BOARD=['EXP','EXP-1','EXP-2','EXP-3','IPAD'];   /* #550: IPAD walks screens with boards */   /* card ids (as PINNED_IDS spells them) expected to paint a board during the walk */
+const EXPECT_BOARD=['EXP','EXP-1','EXP-2','EXP-3','AUD','DSK'];   /* #550: IPAD walked screens with boards; #553 B1: AUD (a puzzle, a lesson, the review) and DSK (IPAD's walk) do; SPD does not here (a fresh store has no stored game to open, and Home, the list and the roadmap draw no board) */
+/* #553 B1: THE WALK EXCUSALS, EARNED BY MEASUREMENT AND PINNED PER CARD ID (the lead's condition). IPAD, a walk across screens under one
+   caption, was excused from two checks: the board's size across the walk (SHRINK) and pages that may scroll on the way (SCROLL). A card
+   gets an excusal here only if gate 15 run with it OFF (CT_G15_NO_EXCUSE=<ids>, a measurement switch, printed loudly) reds exactly that
+   walk check for that card, on screens where the board legitimately changes size or a page legitimately scrolls; the run is named in the
+   reason. No pattern: the lookup is by the card id read out of the caption, and a card with no entry is excused from nothing. */
+const WALK_EXCUSE={
+  AUD:{shrink:'PENDING MEASUREMENT',scroll:'PENDING MEASUREMENT'},
+  DSK:{shrink:'PENDING MEASUREMENT',scroll:'PENDING MEASUREMENT'},
+  SPD:{shrink:'PENDING MEASUREMENT',scroll:'PENDING MEASUREMENT'},
+};
+const NO_EXCUSE=(process.env.CT_G15_NO_EXCUSE||'').split(',').map(x=>x.trim()).filter(Boolean);
+const capId=(cap)=>{const m=/\s\d+\/\d+\s\u00b7\s([A-Z][A-Z0-9]*)(?:-\d+)?\s/.exec(String(cap||''));return m?m[1]:null;};   // the caption is '🎬 #553 · 3/5 · AUD · 375x679 ...'
+const excused=(cap,check)=>{const id=capId(cap);if(!id||NO_EXCUSE.includes(id))return null;const e=WALK_EXCUSE[id];return e&&e[check]?id:null;};
 
 // tailStable(reads,hold,tol): reads are [{w,ms}] in poll order. The baseline is the value at the END of the read
 // window, and it counts as settled only if the run of reads agreeing with it within tol spans >= hold ms.
@@ -541,6 +558,7 @@ L.run(async()=>{
   const pick=(process.env.CT_G15_GEOS||'').split(',').map(s=>s.trim()).filter(Boolean);
   if(pick.length){const bad=pick.filter(p=>!ALL.concat(OPT).some(a=>a[0]===p));if(bad.length)throw new Error('CT_G15_GEOS: unknown geometry '+bad.join(','));}
   const GEOS=pick.length?ALL.concat(OPT).filter(a=>pick.includes(a[0])):ALL;
+  if(NO_EXCUSE.length)L.note('!! CT_G15_NO_EXCUSE='+NO_EXCUSE.join(',')+' - A MEASUREMENT RUN: the walk excusals of these cards are OFF, so their walk checks count (an excusal is earned by this run, never given)');
   L.note('geometries: '+GEOS.map(g=>g[0]).join(' ')+(pick.length?'  (CT_G15_GEOS subset)':'')+(NC?'   NEGATIVE CONTROL '+NC+' at card '+NC_CARD:''));
   for(const [lab,geo] of GEOS){
     const b=await L.launch({geo,name:'playall-'+lab,store:{ct_pool:'3'}});await b.open();
@@ -639,7 +657,7 @@ L.run(async()=>{
         if(!s2.st.ok&&s2.st.why!=='no board')unsettled.push({cap:cur.slice(0,34),why:s2.st.why,late:true,reads:s2.reads.map(r=>r.w).slice(0,20)});
         continue;
       }
-      if(m.board&&base!==null&&m.board.w<base-TOL&&!/\sIPAD\s/.test(cur))shrunk.push({cap:cur.slice(0,34),base,to:m.board.w});   /* #550: the IPAD card is a WALK across screens (lesson, puzzle, game, review) under one caption, so its board changes size by design; every other card is one screen */
+      if(m.board&&base!==null&&m.board.w<base-TOL&&!excused(cur,'shrink'))shrunk.push({cap:cur.slice(0,34),base,to:m.board.w});   /* #550: the IPAD card is a WALK across screens (lesson, puzzle, game, review) under one caption, so its board changes size by design; every other card is one screen */
     }
     await b.shot('playall-'+lab+'-final');
     L.say(done,lab+': the run ends on the RECORDING COMPLETE frame ('+seen.length+' captions seen)');
@@ -651,7 +669,7 @@ L.run(async()=>{
     const eps=ovEpisodes(ovR.ev,ovR.now,OV_WIN,OV_HOLD);
     for(const e of eps){
       const tag='      '+lab+' card "'+String(e.cap||'').slice(0,34)+'": over '+e.peak+' from '+e.onset+'ms';
-      if(/\sIPAD\s/.test(String(e.cap||''))){L.note(tag+' - IPAD walks screens that may scroll, excused (not counted)');continue;}
+      {const ex=excused(e.cap,'scroll');if(ex){L.note(tag+' - excused for '+ex+': '+WALK_EXCUSE[ex].scroll);continue;}}
       if(e.persists)scrolled.push({cap:String(e.cap||'').slice(0,34),over:e.peak,onset:e.onset,why:e.why});
       else L.note(tag+', cleared in '+e.ms+'ms and held - a layout-in-progress frame of the fit loop, not counted (#553, ovEpisodes)');
     }
@@ -1013,7 +1031,7 @@ L.run(async()=>{
      the actual broken build. Result in the run report and in the control-record line below. */
   const MODE_AUTO='DRIVES ITSELF', MODE_MANUAL='YOUR TAPS';
   const MANUAL_CARD=null;     // #550 a29: no manual card in the queue (it was '1 · KEV'); the manual-card blocks below report NOT RUN rather than pass
-  const EXPECTED_MANUAL=0, EXPECTED_AUTO=3 /* #550: + IPAD, which drives itself */, HOLD_MS=30000;   // #547: PHONE was the one self-driving ask card; #550 item (1): SCR is the self-driving one now
+  const EXPECTED_MANUAL=0, EXPECTED_AUTO=5 /* #550: + IPAD, which drives itself; #553 B1: IPAD out, AUD, DSK and SPD in, all three drive themselves */, HOLD_MS=30000;   // #547: PHONE was the one self-driving ask card; #550 item (1): SCR is the self-driving one now
   {
     const b=await L.launch({geo:'kunal730',name:'modes-kunal730',store:{ct_pool:'3'}});await b.open();
     await b.home();await b.page.locator('button[title="Preview gallery (dev)"]').click();await b.settle(500);

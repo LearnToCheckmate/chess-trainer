@@ -1,0 +1,18 @@
+diff --git a/chess.jsx b/chess.jsx
+--- a/chess.jsx
++++ b/chess.jsx
+@@ -11558,14 +11558,6 @@
+      their layout; no finish card, no motif list behind the Tactics counter, no sections in the lists, no welcome screen (searched
+      chess.jsx and the commit log since 14 Nov). The card says so for each, so he sees today's screens and knows which are still to
+      come. The laptop Review pick (DSK-07) is on card 4. */
+-  {id:"AUD",c:"Your page picks of 14 Nov: what is built and what is still to come",l:"3 · AUD · Your page picks of 14 Nov: look at each screen it walks", n:"Press play and screen-record. The card walks the screens your picks of Sat 14 Nov were about. Kept as they are, so check they still look right: the Game Review summary (shown last, after about 45 seconds of analysis) and the Puzzles home with its scenic road. Not built yet, so you see today's screen: Home with one Look and feel button in place of Style and Colors (Home still has both); solving a puzzle and the lesson screen in the chess.com shape; tap the Tactics counter for a list of motifs; the Openings, Gambits and Endgames lists collapsed into sections; a finish card when a lesson ends; a one screen welcome on a new player's first open. Tell me if any of these is not what you picked, then upload it in the Claude chat.", r:()=>{setMenuOpen(false);setOpenIdx(null);setPlaySetup(false);setLearnGroup(null);setLookOpen(false);setHomeScreen(true);
+-    const _t=(ms,fn)=>setTimeout(()=>{try{fn();}catch(e){}},ms);
+-    _t(6000,()=>{setHomeScreen(false);setOpenIdx(null);setMistakeMode(false);setMode('puzzle');setPzView('roadmap');});
+-    _t(13000,()=>{pzEnterBrowse(0,0);});
+-    _t(20000,()=>{setHomeScreen(false);setMode('learn');setOpenIdx(null);setLearnGroup('openings');});
+-    _t(27000,()=>{setLearnGroup('tactics');});
+-    _t(34000,()=>{setLearnGroup(null);_picker(0);});
+-    _t(42000,()=>{setOpenIdx(null);setHomeScreen(false);setMode('analyze');setPlaySetup(false);pvJumpRef.current=null;setPgnText(_OPERA);importGame(_OPERA,{});});}, h:100000},
+   /* Card 4, DSK: his desktop look, written without helper 5's draft (q26 (2)): Home, Puzzles, Review and the other screens in his
+      own full window at 1920x1080 and at 1440x900, which closes the desktop check DSK-03 to DSK-12 (docs/desktop-check-2026-11-12).
+      DSK-07, his laptop Review pick of 11:39pm Sun 15 Nov (the bottom player bar at the foot of the right column, the space beside it
