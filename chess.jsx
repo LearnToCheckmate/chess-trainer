@@ -8473,6 +8473,7 @@ function AppMain(){
   const poolSlotMsg=(slot)=>(e)=>{
     const msg=String(e.data||'');
     if(engMsg(slot.S,msg))return;   // #549 item (26) A2-R3: a search this slot stopped or gave up on
+    if(msg==='readyok'&&slot.S.ping&&slot.S.ping.current>0){slot.S.ping.current--;if(slot.cb&&slot.cb.tick)slot.cb.tick();return;}   /* #553 B2: the answer to sfEvalOn's liveness ping - the worker is alive mid-search. UCI answers in order, so these come before any later isready's (engIdle's sync is never fired by one) */
     if(msg==='readyok'){slot.ready=true;const _s=slot.S.sync.current;if(_s){slot.S.sync.current=null;try{_s();}catch(_e){}}return;}
     const cb=slot.cb;if(!cb)return;
     if(cb.tick)cb.tick();   // #549 item (30): any output from this search is progress (sfEvalOn's silence ceiling)
@@ -8488,7 +8489,7 @@ function AppMain(){
   const ensurePool=(want)=>new Promise(resolve=>{
     try{
       while(sfPoolRef.current.length<want){
-        const slot={w:null,ready:false,cb:null,S:{go:{current:0},owed:{current:0},wait:{current:null},sync:{current:null}}};   // S: #549 item (26) A2-R3, the slot's own stopIdle/engMsg counts
+        const slot={w:null,ready:false,cb:null,S:{go:{current:0},owed:{current:0},wait:{current:null},sync:{current:null},ping:{current:0}}};   /* ping: #553 B2, the liveness isready posts still unanswered (sfEvalOn) */   // S: #549 item (26) A2-R3, the slot's own stopIdle/engMsg counts
         const w=new Worker('./stockfish-18-lite-single.js');
         w.onmessage=poolSlotMsg(slot);
         w.onerror=()=>{slot.ready=false;slot.dead=true;slot.S.go.current=0;slot.S.owed.current=0;slot.S.wait.current=null;};
@@ -8520,14 +8521,23 @@ function AppMain(){
        measured on the Opera Game with ten busy processes sharing the core, 28 searches abandoned, 19 of 34 positions stored at a shallower
        depth, Black 88.9 -> 86.4 and Best 7 -> 6. A loaded search keeps talking (an info line per iteration, currmove lines after 3 s), so
        the guard fires only on 20 s with no word from the worker at all - a stuck worker, which is what it was always meant to catch. */
-    let _last=Date.now();const _quiet=Math.max(20000,movetime*8),to=setInterval(()=>{if(Date.now()-_last>_quiet)finish(null,false);},250);
+    /* #553 B2 (jobs/one-of-his-games-never-finishes-its-review-it-stalls-at-move-68-of-103-2026-11-24): SILENCE IS NOT DEATH, SO ASK.
+       Stockfish prints one info line per finished depth, and in a long endgame one iteration can run silent for longer than the ceiling:
+       measured on his game 174055211202 (ply 96, 4Q3/kp6/p1p5/2b5/7P/1B3q2/P6K/8 b), depth 15 -> 16 said nothing for 10.7 s on an idle
+       worker here and far longer with the pool's three searches sharing four cores - so the guard abandoned live searches, every retry of
+       the group did the same, and the review sat at 'move 68 of 103' for minutes. After PING quiet ms the slot is asked 'isready', which
+       Stockfish answers at once mid-search (13-35 ms measured); the answer counts as progress (poolSlotMsg). A worker that cannot answer
+       is still abandoned at the same ceiling. */
+    const PING=4000;let _pinged=false;
+    let _last=Date.now();const _quiet=Math.max(20000,movetime*8),to=setInterval(()=>{const _q=Date.now()-_last;if(_q>_quiet){finish(null,false);return;}
+      if(_q>PING&&!_pinged&&slot.cb&&slot.S.go.current>0){_pinged=true;slot.S.ping.current++;try{slot.w.postMessage('isready');}catch(e){slot.S.ping.current--;}}},250);
     const DCAP=16;  // the review's search depth: reproducible, and faster than the old 1.8 s-per-position budget
     /* #549 item (26) A2-R3: THE STUCK-WORKER GUARD ABANDONS A SEARCH WITHOUT STOPPING IT. Under load a depth-16 search outlives the
        20 s guard, the slot is handed the next position, and its `go` lands in the still-running search - measured at #549 on a loaded
        machine: 12 gos into running pool searches over five walks and 3 RuntimeError: unreachable. So a slot with a search outstanding
        goes through stopIdle (stop, wait for that bestmove, 2.5 s ceiling, abandon never proceed) before this search starts; an idle slot
        posts at once, exactly as before. The callback is installed only when this search is about to start (#511's F4 rule). */
-    const run=()=>{_last=Date.now();slot.cb={tick:()=>{_last=Date.now();},score:(sc)=>{const _m=sc.mpv||1;
+    const run=()=>{_last=Date.now();slot.cb={tick:()=>{_last=Date.now();_pinged=false;},score:(sc)=>{const _m=sc.mpv||1;
         if(_m===1){if(sc.mate!=null){mate=mateW(sc.mate,sign);cp=null;}else{cp=sign*sc.cp;mate=null;}}
         else if(_m===2){if(sc.mate!=null){mate2=mateW(sc.mate,sign);cp2=null;}else{cp2=sign*sc.cp;mate2=null;}if(sc.first)alt=sc.first;}},
       best:(bm)=>finish(bm,true)};
