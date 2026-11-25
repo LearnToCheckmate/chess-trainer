@@ -31,6 +31,7 @@
 // a global rule), field edges (A11Y-08), the Discover badge (A11Y-04), tallies (A11Y-09) and every P3 are NOT read here.
 // CONTROL-RECORD: 4baf00d 2026-11-14 total=48 red=2 scope=trial:9d44bba256e6 how=#550 helper app A, FMT-B-03 follow-up: the tree before the short-phone Review corners change (the 44x44 back and more in a 32 bar) - TC-R220f se rev-back and rev-more red (tap area 44x35, drawn from y -4); the fix's bundle 92b13a5b8746 reads 48/0
 // CONTROL-RECORD: 34a4a6d 2026-11-13 total=46 red=31 scope=trial:9812f33cea74 how=the branch tip before the change (white ink on every accent, one-colour clock inks, root-white flag alt text, colour-only graph dots, 43px tabs, 30px close): 2.07..3.40 on the accents, cream clock 3.56 / amber 1.44 / red 3.17, AT 1.17; on a11a610b8f51 46/0
+// CONTROL-RECORD: 4c44bf3f 2026-11-25 total=97 red=28 scope=env:CT_G144_ONLY=i how=#553 B3 q23 THE SUBJECT REMOVED: the tree before (trial f0c66ac8c7d7, 0316f16c) - every TC-R440 screen line red but lesson-practice (which had none), at both geometries in both skins (7/9/2-3/7/5/18/7 texts under 12px); with the change (trial 6f8e140ce146) 97/0
 // CONTROL-RECORD: a5ddc8cc 2026-11-25 total=10 red=4 scope=env:CT_G144_ONLY=h how=#553 B3 THE SUBJECT REMOVED: the tree before (trial 98eae81eb01b, the label at 55% black and the boxes at 18% white) - TC-R425a 3.33 and TC-R425b 1.74 red at kunal761 and se; the preconditions, denominators and error lines green
 const L=require('../lib');
 /* #550 helper A, r19 audit A4 [jobs/r19-phone-geometry-audit-is-red-on-the-branch-and-a4c-reads-short-as-a-dead-geos-key-2026-11-14]:
@@ -119,7 +120,35 @@ async function blockH(){
    L.say(ed.length>0&&ed.every(x=>x.bw>=1&&x.ratio>=3),'TC-R425b '+geo+' every text box edge reads at least 3:1 against its card: '+ed.map(x=>x.tag+' '+x.ratio+' ('+x.edge+')').join('; '),ed);
    L.say(b.errs.length===0,'TC-R425 '+geo+' zero app errors',b.errs.slice(0,3));await b.close();}
 }
+/* (i), measured by itself with CT_G144_ONLY=i (controls; gates.sh never sets it) */
+// (i) TC-R440 [#553 B3, jobs/readability-check-2026-11-12 A11Y-19; Kunal's q23 pick A (Desk card 95, 24 Nov 2026): "a 12px text minimum everywhere
+// except the board letters"]: on the eight screens of the A11Y-19 survey - Home, Discover, Review moves (ply 10), Play vs the computer (4 plies),
+// a puzzle, a lesson's practice, the Review summary and Play setup - in Classic and in Playful (the Pro stand-in), at kunal761 and 320x568, no
+// visible element with its own text has a computed font-size under 12px (11.95 allows rounding), svg text excluded; the board's file and rank
+// letters (a single a-h or 1-8 inside the board) are excluded by his pick and counted apart. Amber flags/amber-553-text-12px-minimum. Counted
+// before the change (job field a11y19Count_553): 55 texts on 9 sources at each geometry, the same in both skins.
+// KNOW ITS LIMIT: these eight screens and their states only; chess.jsx holds 68 sub-12 font literals at 0316f16c, most on screens not read here.
+const BLOCK_I_STATES={home:async()=>{},discover:async b=>{await b.tile('Discover');await b.settle(1000);},'review-moves':async b=>{await R.states['moves-ply10'](b);},
+  'play-cpu':async b=>{await require('../drive/play').states['cpu-4ply'](b);},puzzle:async b=>{await require('../drive/puzzles').states['train'](b);},
+  'lesson-practice':async b=>{await require('../drive/lesson').states['practice-m0'](b);},'review-summary':async b=>{await R.states['summary'](b);},
+  'play-setup':async b=>{await require('../drive/play').states['setup'](b);}};
+const SMALL_TEXT=`(()=>{const bd=[...document.querySelectorAll('div')].filter(d=>/repeat\\(8,/.test(d.style.gridTemplateColumns||''));let seen=0,coords=0;const out=[];
+  for(const el of document.querySelectorAll('body *')){if(el.closest('svg'))continue;const txt=[...el.childNodes].filter(c=>c.nodeType===3).map(c=>c.textContent).join('').trim();if(!txt)continue;
+    const r=el.getBoundingClientRect();if(r.width<=0||r.height<=0||r.bottom<0||r.right<0||r.left>innerWidth)continue;const cs=getComputedStyle(el);if(cs.visibility==='hidden'||+cs.opacity===0||cs.display==='none')continue;
+    seen++;const f=parseFloat(cs.fontSize);if(f>=11.95)continue;if(bd.some(g=>g.contains(el))&&/^[a-h1-8]$/.test(txt)){coords++;continue;}
+    out.push(txt.slice(0,24)+' '+(Math.round(f*10)/10)+'px'+((el.closest('[data-ct]')||{getAttribute:()=>null}).getAttribute('data-ct')?' ['+el.closest('[data-ct]').getAttribute('data-ct')+']':''));}
+  return {seen,coords,small:out};})()`;
+async function blockI(){
+  for(const sk of ['classic','playful'])for(const geo of ['kunal761','se'])for(const st of Object.keys(BLOCK_I_STATES)){
+    const tag='TC-R440 '+sk+' '+geo+' '+st;const b=await L.launch({geo,name:'small144-'+sk+'-'+geo+'-'+st,store:{ct_pool:'3',ct_skin:String(SKINS.indexOf(sk))},pro:sk!=='classic'});
+    let ok=true;try{await b.open();await b.settle(1200);await BLOCK_I_STATES[st](b);await b.settle(1500);}catch(e){ok=false;L.note(tag+' did not reach the screen: '+String(e.message||e).split('\n')[0].slice(0,140));}
+    const m=ok?await b.page.evaluate(SMALL_TEXT):{seen:0,coords:0,small:[]};const skinNow=await b.page.evaluate(()=>localStorage.getItem('ct_skin')).catch(()=>null);
+    L.say(ok&&m.seen>=5&&skinNow===String(SKINS.indexOf(sk)),tag+' PRECONDITION the screen is reached in its skin and shows text ('+m.seen+' texts, ct_skin '+skinNow+')');
+    L.say(ok&&m.seen>=5&&m.small.length===0,tag+' no text under 12px but the board letters ('+m.coords+' excluded): '+(m.small.length?m.small.length+' under: '+m.small.join('; '):'none'),m.small);
+    L.say(b.errs.length===0,tag+' zero app errors',b.errs.slice(0,3));await b.close();}
+}
 L.run(async()=>{
+  if(process.env.CT_G144_ONLY==='i'){L.note('CT_G144_ONLY=i: block (i) alone - a control or a probe, never the suite');await blockI();return;}
   if(process.env.CT_G144_ONLY==='h'){L.note('CT_G144_ONLY=h: block (h) alone - a control or a probe, never the suite');await blockH();return;}
   L.say(THEMES.length>=12&&SKINS.indexOf('classic')>=0&&SKINS.indexOf('playful')>=0&&SKINS.indexOf('medieval')>=0,'TC-R220 PRECONDITION the bundle names '+THEMES.length+' colour themes ('+THEMES.join(', ')+') and the skins '+SKINS.join(', '),{THEMES,SKINS,PAL});
   // ── (a)(b) the accent buttons ──
@@ -211,6 +240,7 @@ L.run(async()=>{
    L.say(mo&&mc.length>=1&&mc.every(x=>x.name==='Close'&&x.h.w>=44&&x.h.h>=44),'TC-R220f '+geo+' the menu sheet\'s close button is named and has a 44px tap area: '+mc.map(x=>'"'+x.name+'" '+x.h.w+'x'+x.h.h+' (drawn '+x.h.drawn.join('x')+')').join(', '));
    L.say(b.errs.length===0,'TC-R220g '+geo+' zero app errors',b.errs.slice(0,3));await b.close();}
   await blockH();
+  await blockI();
 },'144-readable-everywhere');
 // SELECTOR-OPENED: eval-graph-dot reading=precondition round 2: PRECONDITION dots at least 3
 // SELECTOR-OPENED: eval-graph-hit reading=precondition round 2: read inside the dots the precondition requires
