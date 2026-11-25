@@ -25,12 +25,17 @@
 //          scroller, so without this the list came back from a review wherever the review left #root (347px down at 375x761, its top row
 //          with the back icon scrolled off; gate 182 TC-R258l found it).
 //  TC-R316 zero app errors.
+//  TC-R437 [#553 B3, jobs/speed-check-regressions-2026-11-12 SPD-06, amber flags/amber-553-games-list-draws-in-steps]: from the Review tap, the
+//          first frame with games draws at most 50 rows and the whole first page (200) is drawn within 3 s with Show more games under it.
 // CT_G192_GEOS=kunal761,se,844x390 narrows a run (a subset is never the whole gate).
 // CONTROL-RECORD: bc7f285c 2026-11-24 total=24 red=10 scope=trial:4bd00a97d8f9 how=#553 B1, THE SUBJECT REMOVED: the tree before this job (bc7f285c, the fitted games box, chips inside it on a short phone, no place kept) - TC-R311, TC-R313 and TC-R315 red at all three sizes (the box its own scroller; #root 761 in 761 at 375x761), TC-R317 red at 375x761 (scrolled to 0: the fixed page cannot scroll); R310, R312, R314, R316 green
 // CONTROL-RECORD: 800686b5 2026-11-24 total=24 red=9 scope=trial:5c93b1657c7f how=#553 pairs break the-games-box-scrolls-again (192-the-games-box-scrolls-again.diff): TC-R311, TC-R313 and TC-R315 red at all three sizes
 // CONTROL-RECORD: 800686b5 2026-11-24 total=24 red=1 scope=trial:12f56828b9bf how=#553 pairs break short-phone-chips-inside-the-box (192-short-phone-chips-inside-the-box.diff): TC-R315 red at 320x568 only
 // CONTROL-RECORD: 800686b5 2026-11-24 total=24 red=3 scope=trial:449146aa618b how=#553 pairs break the-list-forgets-its-place (192-the-list-forgets-its-place.diff): TC-R317 red at all three sizes
 // The grading machine on 800686b5: CHECKED, real 8/8 at kunal761, 320x568 and 844x390 (bundle 9dd8fa07928d), the three breaks CAUGHT.
+// TC-R437 ON THE SPD-06-ONLY TREE (35b02b5c, src 886ccfb8f394, bundle aaea9a0d80d0), 25 Nov 2026: 34/0, and gate 61 292/0 on the same bundle;
+// pairs speed-check-regressions-2026-11-12--list-steps (base 35b02b5c) CHECKED, real 3/3 and 3/3, the break caught at both.
+// CONTROL-RECORD: 998df569 2026-11-25 total=34 red=3 scope=trial:10a45e6e4ec4 how=#553 B3 SPD-06 THE SUBJECT REMOVED: the tree before (998df569's chess.jsx, src 0346eae8ae41) - TC-R437 'first frame at most 50 rows' red at 375x761, 320x568 and 844x390 (200 rows in the first frame); every other line green
 const L=require('../lib');
 const PGN='[Event "Live Chess"]\n[Site "Chess.com"]\n[Date "2025.10.01"]\n[White "Kunal2023"]\n[Black "Opp"]\n[Result "1-0"]\n[TimeControl "180"]\n\n1. e4 e5 2. Nf3 d6 3. d4 Bg4 4. dxe5 Bxf3 5. Qxf3 dxe5 6. Bc4 Nf6 7. Qb3 Qe7 8. Nc3 c6 9. Bg5 b5 10. Nxb5 cxb5 11. Bxb5+ Nbd7 12. O-O-O Rd8 13. Rxd7 Rxd7 14. Rd1 Qe6 15. Bxd7+ Nxd7 16. Qb8+ Nxb8 17. Rd8# 1-0';
 const games=[],stats={};const t0=1760000000000;
@@ -72,8 +77,15 @@ L.run(async()=>{
   for(const g0 of GEOS){const geo=/^\d+x\d+$/.test(g0)?{w:+g0.split('x')[0],h:+g0.split('x')[1],safe:''}:g0;
     const gn=L.geoIs(g0,375,761)?'375x761':L.geoIs(g0,320,568)?'320x568':g0;
     const b=await L.launch({geo,dev:false,name:'g192-'+gn,store:STORE});await b.open();let ok=true;
+    // TC-R437 [#553 B3, SPD-06]: every animation frame from the tap until 3 s later, the number of game rows drawn (a rAF loop installed BEFORE
+    // the tap; rows found by data-ct="game-row", which the tree before carries too, so the control reads the same way).
+    await b.page.evaluate(()=>{window.__g437=[];const t0=performance.now();const f=()=>{window.__g437.push(document.querySelectorAll('[data-ct="game-row"]').length);if(performance.now()-t0<3000)requestAnimationFrame(f);};requestAnimationFrame(f);});
     try{await b.tile('Review');await b.settle(1500);}catch(e){ok=false;L.note(gn+' open: '+String(e).slice(0,120));}
     const m=await b.page.evaluate(read);
+    {const fr=await b.page.evaluate(()=>window.__g437||[]);const first=fr.find(n=>n>0)||0,last=fr.length?fr[fr.length-1]:0,more=!!(await b.page.$('[data-ct="glist-more"]'));
+     L.say(fr.length>10&&last>=200,gn+' TC-R437 DENOMINATOR '+fr.length+' frames read after the tap and the page ends with '+last+' rows drawn (the first page of 465)',{frames:fr.length,last});
+     L.say(first>0&&first<=50,gn+' TC-R437 the first frame with games draws at most 50 rows ('+first+'), the rest of the page following ('+[...new Set(fr)].slice(0,8).join(' -> ')+')',{first});
+     L.say(last===200&&more,gn+' TC-R437 the whole first page (200 rows) is drawn within 3 s, with Show more games below it ('+last+', more '+more+')');}
     L.say(ok&&!!m.box&&m.rows>0&&m.cnt==='465 loaded',gn+' TC-R310 DENOMINATOR the Review list is up with its games box and '+m.rows+' game rows, the count reading "'+m.cnt+'"',{rows:m.rows,cnt:m.cnt,box:!!m.box});
     const boxFlat=(x)=>!!x.box&&x.box.oy==='visible'&&x.box.mh==='none'&&x.box.sh<=x.box.ch+1;
     L.say(boxFlat(m)&&m.scrollers.length===1&&m.scrollers[0]==='root'&&m.root.sh>m.root.ch+m.vh,gn+' TC-R311 one scroller: the page (#root '+m.root.sh+' in '+m.root.ch+') is the only thing that scrolls ('+m.scrollers.join(', ')+'), and the games box is not one (overflow-y '+(m.box&&m.box.oy)+', max-height '+(m.box&&m.box.mh)+', '+(m.box&&m.box.sh)+' in '+(m.box&&m.box.ch)+')',{scrollers:m.scrollers,root:m.root,box:m.box});
