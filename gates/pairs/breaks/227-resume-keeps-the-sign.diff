@@ -1,0 +1,13 @@
+diff --git a/chess.jsx b/chess.jsx
+index 24086b0d..900d9caa 100644
+--- a/chess.jsx
++++ b/chess.jsx
+@@ -12122,7 +12122,7 @@ function AppMain(){
+               Before this, resume was setPlaySetup(false) alone, so a player who opened this sheet over a live
+               Pass & Play game, tapped Computer to look at the bot list, and then tapped THIS row went back to
+               their own game with opponent='computer' - and the engine moved in it. See liveSettingsRef. */}
+-          {_livePlies>0&&!setupFromFEN&&opponent!=='online'&&!_gameOver&&(<button data-ct="setup-resume" onClick={()=>{setStartArm(false);_restoreLiveSettings();setPlaySetup(false);}} style={{padding:'13px 14px',borderRadius:12,border:'1px solid rgba(var(--acr),.45)',background:'rgba(var(--acr),.14)',color:'var(--ac2)',fontWeight:700,fontSize:'clamp(14px,2.9vw,15px)',cursor:'pointer',textAlign:'left',lineHeight:1.4}}>{/* #553 card 90: no play sign */}Resume your game in progress <span style={{fontWeight:500,opacity:.85}}>({_playMoves} {_playMoves===1?'move':'moves'} played)</span></button>)}
++          {_livePlies>0&&!setupFromFEN&&opponent!=='online'&&!_gameOver&&(<button data-ct="setup-resume" onClick={()=>{setStartArm(false);_restoreLiveSettings();setPlaySetup(false);}} style={{padding:'13px 14px',borderRadius:12,border:'1px solid rgba(var(--acr),.45)',background:'rgba(var(--acr),.14)',color:'var(--ac2)',fontWeight:700,fontSize:'clamp(14px,2.9vw,15px)',cursor:'pointer',textAlign:'left',lineHeight:1.4}}>{'▶'} Resume your game in progress <span style={{fontWeight:500,opacity:.85}}>({_playMoves} {_playMoves===1?'move':'moves'} played)</span></button>)}
+           {setupFromFEN&&(setupBlocked
+             ?(<div data-ct="setup-terminal-note" style={{padding:'10px 13px',borderRadius:12,background:'rgba(224,168,58,.12)',border:'1px solid rgba(224,168,58,.4)',fontSize:'clamp(14px,2.6vw,14px)',color:'#e0a83a',lineHeight:1.45}}>⚠ That position is already over: {setupTerminal==='checkmate'?'it is checkmate':'it is a stalemate'}, so there is no move to play from it. Step back a move in your review and use <b>Play from here</b> there instead.</div>)
+             :(<div style={{padding:'10px 13px',borderRadius:12,background:'rgba(var(--acr),.12)',border:'1px solid rgba(var(--acr),.3)',fontSize:'clamp(14px,2.6vw,14px)',color:'var(--ac2)',lineHeight:1.45}}>♟ Continuing from your reviewed position. You'll play <b>{pColor==='w'?'White':'Black'}</b> (the side to move): switch the color below if you'd rather take the other side.</div>))}

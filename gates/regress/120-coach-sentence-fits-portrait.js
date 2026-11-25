@@ -52,6 +52,12 @@ L.run(async()=>{
        const cut=rows.filter(r=>r.sh>r.ch+0.05),bad=cut.filter(r=>!(r.clamp>0)||r.ch>Math.ceil(r.clamp*r.lh)+0.5);
        L.say(ok&&rows.length>=80&&bad.length===0,'TC-R118 '+name+': the sentence is cut at '+cut.length+' of '+rows.length+' plies, and at every one the line clamp does the cutting: a clamp is set and the box is no taller than the clamped lines',{bad:bad.slice(0,4),cutPlies:cut.map(r=>r.ply).slice(0,20)});
      }
+     /* #553 TC-R118b (jobs/the-review-sentence-box-gives-each-line-17px-against-an-18-85px-line-height-2026-11-24): THE OTHER DIRECTION. The line above
+        holds the box no TALLER than the clamped lines; this holds it no SHORTER than the lines it shows (the whole sentence or the clamp's
+        lines, whichever is less), so the box edge never cuts a line the clamp let through. Measured before the fix: 761x375, a 34px box for
+        two lines of 18.85 (37.7), the second line's foot 1.84px under the box at 30 of 33 Opera plies. Its own line, not a conjunct. */
+     const shown=(r)=>Math.min(r.sh,(r.clamp>0?r.clamp:Infinity)*r.lh),short=rows.filter(r=>r.ch+0.5<shown(r));
+     L.say(ok&&rows.length>=80&&short.length===0,'TC-R118b '+name+': at every ply the box holds every line it shows ('+rows.length+' plies; the box is shorter than the lines at '+short.length+')',{short:short.slice(0,4).map(r=>Object.assign({shown:Math.round(shown(r)*100)/100},r))});
      await b.close();}
   }
 },'120-coach-sentence-fits-portrait');

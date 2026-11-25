@@ -43,6 +43,13 @@ const MEAN={
   play:/^(Auto-play|Pause|Play or pause|Play the line|Play this line)$/,
   reset:/^(Reset|Try again|Replay from start|Back to the card's position|Back to the position after your move)$/,
 };
+// #553 card 90: helpers for the NAMED routes below - scroll the first button whose words match into view; the lesson's More sheet in practice;
+// its 'Watch it explained' box opened (a div with a disclosure caret, tapped by its words: the DEEPEST div whose words start so, since
+// the closed box's outer div holds only that header and reads the same words, and a click on it toggles nothing)
+const toWords=async(b,re)=>{await b.page.evaluate((src)=>{const r=new RegExp(src.s,src.f);const e=[...document.querySelectorAll('button,a')].find(x=>r.test((x.innerText||'').replace(/\s+/g,' ').trim()));if(e)e.scrollIntoView({block:'center'});},{s:re.source,f:re.flags});await b.settle(400);};
+const demoSheet=async(b)=>{await D.states['demo-m0'](b);await b.page.locator('button[aria-label="More for this lesson"]').click();await b.settle(600);};
+const lessonSheet=async(b)=>{await D.states['practice-correct'](b);await b.page.locator('button[aria-label="More for this lesson"]').click();await b.settle(600);};
+const openVideo=async(b)=>{await b.page.evaluate(()=>{const e=[...document.querySelectorAll('div')].filter(x=>/^📺 Watch it explained/.test((x.innerText||'').trim())).pop();if(e){e.scrollIntoView({block:'center'});e.click();}});await b.settle(600);};
 // TC-R411: the worded buttons of his pick A, each reached by its words (never a data-ct this build added), at 375x761
 const NAMED=[
   ['play-setup',b=>P.states['setup'](b),/^Start game$/],
@@ -51,6 +58,11 @@ const NAMED=[
   ['lesson-intro',b=>D.states['intro'](b),/^Got it, play$/],
   ['lesson-more',async b=>{await D.states['practice-correct'](b);await b.page.locator('button[aria-label="More for this lesson"]').click();await b.settle(600);await b.page.evaluate(()=>{const e=[...document.querySelectorAll('button')].find(x=>/^Play this position/.test((x.innerText||'').trim()));if(e)e.scrollIntoView({block:'center'});});},/^Play this position vs Computer$/],   // the sheet scrolls; the button is found by its words
   ['review-why',b=>R.states['why-open'](b),/^why$/],
+  /* #553 card 90 (his pick A, run-answers orchestrator-B14-DESK-ANSWERS-Q17-Q18-Q19-Q20-Q23-2026-11-24 (a)): the last worded buttons lose the
+     sign too. Each is reached by its words and scrolled into view by them (the sheets scroll), never by a data-ct this build added. */
+  ['play-resume',async b=>{await P.states['pp-m0'](b);await b.move('f2','f3');await b.move('e7','e5');await b.move('g2','g4');await b.tapCt('play-home').catch(()=>{});await b.settle(400);await b.tile('Play');await b.settle(800);await toWords(b,/^Resume your game in progress/);},/^Resume your game in progress/],
+  ['lesson-demo-again',async b=>{await lessonSheet(b);await toWords(b,/^Watch the demo again$/);},/^Watch the demo again$/],
+  ['lesson-video',async b=>{await demoSheet(b);await openVideo(b);await toWords(b,/^Watch in app$/);},/^Watch in app$/],   // the video box is in the DEMO phase's More sheet (measured: 0 in practice's, 6 in demo's)
   ['gallery',async b=>{await b.home();await b.settle(500);await b.page.evaluate(()=>{const e=document.querySelector('[data-ct="home-preview"]');if(e)e.scrollIntoView({block:'center'});});await b.settle(300);await b.tapCt('home-preview',900);},/^Play( all \d+)? \(screen-record this\)$/],
 ];
 // key -> [enter, meanings the state must show, geometries (default kunal761 and se), extra store]
@@ -140,4 +152,34 @@ L.run(async()=>{
     L.say(ok&&hit.length>0&&bad.length===0,'TC-R411 '+tag+' the worded button '+re+' is on screen by its words and carries no play sign, text or drawn ('+(hit.length?hit.map(x=>JSON.stringify(x.text)+(x.shapes?' paints '+x.shapes:'')).join('; '):'NOT FOUND among '+bs.map(x=>JSON.stringify(x.text)).join(', ').slice(0,300))+(err?'; '+err:'')+')',{err,bad});
     L.say(b.errs.length===0,'TC-R411 '+tag+' zero app errors',b.errs.slice(0,3));
     await b.close();}
+  /* #553 card 90: the three coach links under 'Watch it explained' are LINKS, not buttons, so READ does not see them: each is found by its
+     words and must carry no text triangle and draw no shape. A denominator first, in its own line. */
+  if(!ONLY.length||ONLY.includes('lesson-video')){
+    const b=await L.launch({geo:'kunal761',name:'g227n-coach-links'});await b.open();let ok=true,err='';
+    try{await demoSheet(b);await openVideo(b);await toWords(b,/^(▶ )?Chess Vibes$/);}catch(e){ok=false;err=e.message;}
+    const ls=await b.page.evaluate(()=>[...document.querySelectorAll('a')].map(a=>({t:(a.innerText||'').replace(/\s+/g,' ').trim(),svg:a.querySelectorAll('svg').length})).filter(x=>/(Remote Chess Academy|GothamChess|Chess Vibes)$/.test(x.t)));
+    L.say(ok&&ls.length===3,'TC-R411 375x761 lesson-video DENOMINATOR the three coach links are on the page by their words ('+ls.length+': '+ls.map(x=>JSON.stringify(x.t)).join(', ')+(err?'; '+err:'')+')',{err});
+    const badL=ls.filter(x=>/[▶◀⏮⏭⏸▸◂►]/.test(x.t)||x.svg>0);
+    L.say(ls.length===3&&badL.length===0,'TC-R411 375x761 lesson-video every coach link carries no play sign, text or drawn ('+(badL.length?badL.map(x=>JSON.stringify(x.t)).join(', '):ls.length+' of '+ls.length)+')',badL);
+    await b.close();}
+  /* #553 card 90: 'Run' in the Mastery plan CANNOT BE REACHED BY A PLAYER ON THIS TREE - the plan sheet opens only from the Home coach
+     card (_coach in chess.jsx), and nothing renders _coach (measured: no 'Your coach' element on Home at 375x761; the two setCoachOpen(true)
+     calls are both inside it). So this reads the BUNDLE UNDER TEST instead of a screen, and says so: the Run button's text carries no play
+     sign. A denominator first (the button is in the bundle at all), then the sign. */
+  if(!ONLY.length||ONLY.includes('coach-run')){
+    const src=require('fs').readFileSync(process.env.CT_APP||require('path').join(L.ROOT,'app.js'),'utf8');
+    // esbuild writes the sign as an escape ("\u25B6 Run") and minifies coachRun's name, so the button is its string literal. The forms the sign can
+    // take in a bundle: the escape (all esbuild emits for non-ASCII, measured: 5 escapes and 0 literal characters in t2), the literal character
+    // (a bundle built without escaping), and either one followed by the emoji variation selector U+FE0F. Each form is in both patterns below.
+    const runs=/Mastery plan/.test(src)?(src.match(/"(\\u25B6(\\uFE0F)? |\u25b6\ufe0f? )?Run"/gi)||[]):[];
+    L.say(runs.length>=1,'TC-R411 bundle coach-run DENOMINATOR the Mastery plan Run button is in the bundle ('+runs.length+')',{n:runs.length});
+    const signed=/\\u25B6(\\uFE0F)?\s*Run\b|\u25b6\ufe0f?\s*Run\b/i;
+    // THE PATTERN'S OWN BOTH-WAYS CORPUS (the negated-regex-guards rule for a pattern bound to a name, as gates 16, 29, 33 and 65 do): it must
+    // match every form the sign can take before Run, and reject Run without it and the sign before other words.
+    const SGN_YES=['"\\u25B6 Run"','"\\u25b6 Run"','"\\u25B6\\uFE0F Run"','"\u25b6 Run"','"\u25b6\ufe0f Run"'],SGN_NO=['"Run"','"Running"','"\\u25B6 Watch"','"\\u25B6 Runs"'];
+    const sgnBad=[...SGN_YES.filter(x=>!signed.test(x)).map(x=>'missed '+x),...SGN_NO.filter(x=>signed.test(x)).map(x=>'matched '+x)];
+    L.say(sgnBad.length===0,'TC-R411 bundle coach-run the play-sign pattern matches all '+SGN_YES.length+' forms of the sign before Run (escaped, literal, each with and without U+FE0F) and none of '+SGN_NO.length+' look-alikes',sgnBad);
+    L.note('TC-R411 coach-run is read from the bundle, not a screen: the Mastery plan sheet is not reachable by a player on this tree (nothing renders the Home coach card)');
+    if(runs.length>=1)L.say(!signed.test(src),'TC-R411 bundle coach-run the Run button carries no play sign ('+runs.length+' Run literal(s) found; the sign '+(signed.test(src)?'IS before Run: '+(src.match(signed)||[''])[0]:'before none')+')',{n:runs.length});   // over nothing it does not run: the DENOMINATOR line above is red then
+  }
 });

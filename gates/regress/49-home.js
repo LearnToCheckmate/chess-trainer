@@ -211,6 +211,7 @@
 // CONTROL-RECORD: 8b13567 2026-11-19 total=47 red=3 scope=blocks:B how=batch 13 wording check TXT-32, the re-pinned TC-HM-013 on the tree before the change (589563c built as trial fcc6f271332f, CT_HM_BLOCKS=B): Discover's caption reads 'Openings & endgames' at every width, so TC-HM-013 is red at kunal730, 390 and 430 and green at se; on trial e80b12b1b130 the full gate reads 523 pass 0 fail
 // CONTROL-RECORD: eb549465 2026-11-25 total=404 red=17 scope=blocks:E,F,G how=#553 B1 (jobs/gate-49-goes-red-on-hm-042-to-051-when-a-run-crosses-utc-midnight-2026-11-25), the midnight control: TODAY'S gate (23c3d5d2's 49-home.js, its one change being TODAY/YDAY read from CT_HM_NOW) run with CT_HM_NOW=2026-11-24T23:59:50Z on bundle 38efeff179d8 at 06:02Z on 25 Nov - a seed read before midnight, pages after it: red on TC-HM-042 x2, 043 x2, 045 x2, 047, 051c x4, 051d x6 - the defect B2 saw on 24 Nov
 // CONTROL-RECORD: eb549465 2026-11-25 total=406 red=0 scope=blocks:E,F,G how=#553 B1, the same control on the FIXED gate (one clock reading, every page's Date pinned to noon of its day): green, 404 + the two new TC-HM-042 PRECONDITION lines (se, kunal730), bundle 38efeff179d8, 06:20Z-06:33Z
+// CONTROL-RECORD: 600bb617 2026-11-25 total=47 red=4 scope=blocks:B how=#553 card 92: the re-pinned TC-HM-015 (Play ink 1.11, the pawn) on the tree with Classic's crown back (pairs break classic-play-crown-again, bundle f70fe27a72ab, CT_HM_BLOCKS=B): TC-HM-015 red at se, kunal730, 390 and 430, every other line green; the real tree 47/0 (bundle 2f9b9a5b811d)
 // CONTROL-RECORD (B1 #553), not a control: the fixed gate whole, no CT_HM_NOW, bundle 38efeff179d8, 06:33Z-06:46Z: 525 pass 0 fail (the register's 523 + the two PRECONDITION lines)
 'use strict';
 const L=require('../lib');
@@ -485,7 +486,10 @@ const SUBS_AT=(geo)=>L.geoIs(geo,320,568)?SUBS:['Openings, tactics, endgames',..
 // #366 y3b, per glyph, identical at every width. RE-PINNED at #550 item (68): Classic (the default skin) has its own four emoji again
 // (📖 🧩 📈 👑, its pre-#366 set) instead of Playful's (🔭 🧩 🔍 ♟️, which read 1, 1, 0.99, 1.11); measured on trial t12 (f0477c0d12aa)
 // at all four widths: 📖 1.06, 🧩 1, 📈 0.99, 👑 0.99.
-const INK={learn:'1.06',puzzle:'1',analyze:'0.99',play:'0.99'};
+// RE-PINNED at #553 card 92 (his pick '(a) Pawn'; Amber: flags/amber-553-classic-play-tile-pawn): Classic's Play is the pawn ♟️ now, MEASURED
+// 1.11 at all four widths (se, kunal730, 390, 430) on trial t4 (d249426cfb0c) - the value Playful's same pawn read at #550, re-measured here
+// rather than carried. The other three are unchanged.
+const INK={learn:'1.06',puzzle:'1',analyze:'0.99',play:'1.11'};
 // The coach line's middle span is nowrap with an ellipsis, so whether the recommendation survives is a question
 // about the WIDTH. Measured with the fresh-store recommendation, "New to chess? Lock in the endgame basics":
 // 240px of text in a 193px box at 320, and 248 in 248 at 375 - which fits with ZERO slack. Pinned both ways.
@@ -591,7 +595,7 @@ if(blk('B'))for(const geo of GEOS){
   L.say(t.every(x=>near(x.boxW,ICONBOX[geo])&&near(x.boxH,ICONBOX[geo])),
     geo+': TC-HM-014 every tile\'s icon box is '+ICONBOX[geo]+'x'+ICONBOX[geo]+' - 80x80 at full size (84 until #550 AUD-H01\'s 80pt icons), scaled with the column where Home is fitted to the window (#553) - the tiles do not grow with the phone, the gaps do',t.map(x=>x.k+':'+x.boxW+'x'+x.boxH).join(' '));
   L.say(t.every(x=>x.ink===INK[x.k]),
-    geo+': TC-HM-015 and each glyph carries its measured ink scale (#366 y3b: the app measures the glyph on THIS device rather than trusting the font) - 📖 1.06, 🧩 1, 📈 0.99, 👑 0.99 (Classic, #550 item (68)), identical at all four widths',t.map(x=>x.k+':'+x.ink).join(' '));
+    geo+': TC-HM-015 and each glyph carries its measured ink scale (#366 y3b: the app measures the glyph on THIS device rather than trusting the font) - 📖 1.06, 🧩 1, 📈 0.99, ♟️ 1.11 (Classic, #550 item (68); the pawn since #553 card 92), identical at all four widths',t.map(x=>x.k+':'+x.ink).join(' '));
   L.say(t.every(x=>near(x.x,W[x.k].x)&&near(x.y,W[x.k].y)&&near(x.w,W[x.k].w)&&near(x.h,W[x.k].h,1)),
     geo+': TC-HM-016 and each tile is the rect measured for THIS geometry, before any tap - '+JSON.stringify(W),{measured:t.map(x=>x.k+' '+x.x+','+x.y+' '+x.w+'x'+x.h),want:W});
   L.say(t.every(x=>x.x>=-0.5&&x.right<=vw+0.5),
