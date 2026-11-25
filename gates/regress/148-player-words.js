@@ -57,39 +57,48 @@ L.run(async()=>{
      Every line starts with its geometry, so gates/pairs can grade each on its own. CT_G148_ONLY=o runs this block alone. */
   {const Z=require('../drive/puzzles');
    const LONG='Openings, tactics, endgames',SHORT='Openings & endgames';
-   const WANT={kunal761:LONG,se:SHORT};
+   /* #553 B2 (amber flags/amber-553-discover-caption-re-measures-after-home-scales): se MOVED FROM SHORT TO LONG. Since Q13 (e5435040) Home is drawn
+      at 0.85 at 320x568, so the caption's room is 162 CSS px against 161.2 of long words (it was 136); the app kept the short words there only
+      because FitLine measured before the scale landed. Measured on the fix (trial a017c3eaa6ec), the room at every phone width: se 162,
+      w360 186, kunal 184, short375 194, kunal761 164, 390 171 - the long words fit at all of them at 1x. So THE SHORT BRANCH IS DRIVEN BY
+      LARGER TEXT: case 'se125' is se with every text x1.25 (gates/drive/textscale.js, as gate 241), where the long words are 201.3 px
+      against 162 and the short caption must show. Its lines are the same TC-R224o caption lines; the puzzle-row lines run at 1x only. */
+   const CASES=[{tag:'kunal761',geo:'kunal761',S:1,want:LONG},{tag:'se',geo:'se',S:1,want:LONG},{tag:'se125',geo:'se',S:1.25,want:SHORT}];
+   const TS=require('../drive/textscale');
    const caps=(b)=>b.page.evaluate((LONG)=>{const o={};for(const k of ['learn','puzzle','analyze','play']){const e=document.querySelector('[data-ct="tile-sub-'+k+'"]');if(!e){o[k]=null;continue;}
        const cs=getComputedStyle(e),bt=e.closest('button'),bcs=getComputedStyle(bt),r=e.getBoundingClientRect();
        const sp=document.createElement('span');sp.style.cssText='position:absolute;visibility:hidden;white-space:nowrap;font:'+cs.font+';letter-spacing:'+cs.letterSpacing;sp.textContent=LONG;document.body.appendChild(sp);const lw=sp.getBoundingClientRect().width;sp.remove();
        o[k]={text:e.textContent,cw:e.clientWidth,sw:e.scrollWidth,h:Math.round(r.height*10)/10,line:parseFloat(cs.fontSize)*1.4,slot:bt.clientWidth-parseFloat(bcs.paddingLeft)-parseFloat(bcs.paddingRight),longW:Math.round(lw*10)/10,
          onScreen:r.width>1&&r.bottom>0&&r.top<innerHeight,tileH:Math.round(bt.getBoundingClientRect().height*10)/10};}return o;},LONG);
    const whole=(c)=>!!c&&c.sw<=c.cw&&c.h<=c.line+1.5;
-   for(const geo of ['kunal761','se']){
-    const b=await L.launch({geo,name:'pw148-fit-'+geo,dev:false});await b.open();await b.settle(400);
+   for(const CS of CASES){const {geo,tag}=CS;const WANT={[geo]:CS.want};
+    const b=await L.launch({geo,name:'pw148-fit-'+tag,dev:false});if(CS.S!==1)await TS.install(b,CS.S);await b.open();await b.settle(400);
+    if(CS.S!==1){const ts=await TS.stats(b);L.say(ts.scale===CS.S&&ts.scaled>10,tag+' TC-R224o PRECONDITION the text is x'+CS.S+' ('+ts.scaled+' elements scaled)',ts);}
     const c=await caps(b);const d=c.learn;
-    L.say(!!d&&d.onScreen&&['puzzle','analyze','play'].every(k=>c[k]&&c[k].text.length>3),geo+' TC-R224o PRECONDITION Home is on screen with its four tile captions ('+['learn','puzzle','analyze','play'].map(k=>c[k]?c[k].text:'missing').join(' | ')+')',c);
+    L.say(!!d&&d.onScreen&&['puzzle','analyze','play'].every(k=>c[k]&&c[k].text.length>3),tag+' TC-R224o PRECONDITION Home is on screen with its four tile captions ('+['learn','puzzle','analyze','play'].map(k=>c[k]?c[k].text:'missing').join(' | ')+')',c);
     const fits=!!d&&d.longW<=d.slot;
-    L.say(!!d&&d.longW>100&&d.slot>100&&fits===(WANT[geo]===LONG),geo+' TC-R224o PRECONDITION the gate\'s own measurement: the long caption is '+(d&&d.longW)+'px in the caption\'s font and the tile gives it '+(d&&d.slot)+'px, so it '+(fits?'fits':'does not fit')+' here (pinned: '+(WANT[geo]===LONG?'fits':'does not fit')+' at '+geo+')',d);
-    L.say(!!d&&d.text===WANT[geo],geo+' TC-R224o TXT-32 Discover\'s caption reads "'+WANT[geo]+'" ('+(WANT[geo]===LONG?'the long words fit, so it names tactics':'the long words do not fit, so the short caption')+'); it reads "'+(d&&d.text)+'"',d);
-    L.say(whole(d),geo+' TC-R224o TXT-32 the caption is whole on one line: '+(d&&d.sw)+'px of words in a '+(d&&d.cw)+'px box, '+(d&&d.h)+'px tall (a cut caption paints an ellipsis)',d);
+    L.say(!!d&&d.longW>100&&d.slot>100&&fits===(WANT[geo]===LONG),tag+' TC-R224o PRECONDITION the gate\'s own measurement: the long caption is '+(d&&d.longW)+'px in the caption\'s font and the tile gives it '+(d&&d.slot)+'px, so it '+(fits?'fits':'does not fit')+' here (pinned: '+(WANT[geo]===LONG?'fits':'does not fit')+' at '+geo+')',d);
+    L.say(!!d&&d.text===WANT[geo],tag+' TC-R224o TXT-32 Discover\'s caption reads "'+WANT[geo]+'" ('+(WANT[geo]===LONG?'the long words fit, so it names tactics':'the long words do not fit, so the short caption')+'); it reads "'+(d&&d.text)+'"',d);
+    L.say(whole(d),tag+' TC-R224o TXT-32 the caption is whole on one line: '+(d&&d.sw)+'px of words in a '+(d&&d.cw)+'px box, '+(d&&d.h)+'px tall (a cut caption paints an ellipsis)',d);
     const others=['puzzle','analyze','play'];
-    L.say(others.every(k=>whole(c[k]))&&others.every(k=>c[k]&&d&&c[k].tileH===d.tileH),geo+' TC-R224o TXT-32 the other three captions are whole too and all four tiles are one height ('+['learn',...others].map(k=>c[k]&&c[k].tileH).join(', ')+'), so the caption cost Home no height',c);
+    L.say(others.every(k=>whole(c[k]))&&others.every(k=>c[k]&&d&&c[k].tileH===d.tileH),tag+' TC-R224o TXT-32 the other three captions are whole too and all four tiles are one height ('+['learn',...others].map(k=>c[k]&&c[k].tileH).join(', ')+'), so the caption cost Home no height',c);
     /* a new width is measured again, both ways (a caption decided once at the first paint would keep the wrong words after a turn or a resize) */
-    const other=L.geoIs(geo,320,568)?{w:375,h:761,want:LONG}:{w:320,h:568,want:SHORT};
+    const other=L.geoIs(geo,320,568)?{w:375,h:761,want:CS.S===1?LONG:SHORT}:{w:320,h:568,want:LONG};   /* #553: at 1x the long words fit at both widths now; at x1.25 at neither (201 against 164 at 375) */
     await b.page.setViewportSize({width:other.w,height:other.h});await b.settle(700);const c2=await caps(b);
     await b.page.setViewportSize({width:L.GEOS[geo].w,height:L.GEOS[geo].h});await b.settle(700);const c3=await caps(b);
-    L.say(!!c2.learn&&c2.learn.text===other.want&&whole(c2.learn)&&!!c3.learn&&c3.learn.text===WANT[geo]&&whole(c3.learn),geo+' TC-R224o TXT-32 the caption follows the width: at '+other.w+' wide it reads "'+(c2.learn&&c2.learn.text)+'", and back at '+L.GEOS[geo].w+' "'+(c3.learn&&c3.learn.text)+'", whole both times',{c2:c2.learn,c3:c3.learn});
+    L.say(!!c2.learn&&c2.learn.text===other.want&&whole(c2.learn)&&!!c3.learn&&c3.learn.text===WANT[geo]&&whole(c3.learn),tag+' TC-R224o TXT-32 the caption follows the width: at '+other.w+' wide it reads "'+(c2.learn&&c2.learn.text)+'", and back at '+L.GEOS[geo].w+' "'+(c3.learn&&c3.learn.text)+'", whole both times',{c2:c2.learn,c3:c3.learn});
+    if(CS.S!==1){L.say(b.errs.length===0,tag+' TC-R224o zero app errors',b.errs.slice(0,3));await b.close();continue;}   /* larger text: the caption lines only */
     /* the phone puzzle row */
     let row=null;try{await Z.states.train(b);await b.settle(300);
       row=await b.page.evaluate(()=>[...document.querySelectorAll('button')].filter(x=>{const r=x.getBoundingClientRect();return r.width>1&&r.height>1&&(/\u{1F441}/u.test(x.innerText||'')||(x.closest('[data-ct="pz-bottom"]')&&x.getAttribute('aria-label')==='Show move'));})   /* batch 13: the phone row's Show is the eye icon (an svg), no words */
         .map(x=>{const rg=document.createRange();rg.selectNodeContents(x);const ir=rg.getBoundingClientRect(),r=x.getBoundingClientRect();return {text:(x.innerText||'').trim(),name:x.getAttribute('aria-label'),w:Math.round(r.width*10)/10,h:Math.round(r.height*10)/10,ink:Math.round(ir.width*10)/10,inside:ir.left>=r.left-0.5&&ir.right<=r.right+0.5};}));}catch(e){L.note(geo+' puzzle row: '+String(e).slice(0,160));}
-    L.say(!!row&&row.length===1&&/^(\u{1F441} Show( move)?|)$/u.test(row[0].text),geo+' TC-R224o PRECONDITION a training puzzle is open and its row carries one Show button, found by its eye ('+(row?row.map(x=>x.text).join(' | '):'none')+')',row);
-    L.say(!!row&&row.length===1&&row[0].name==='Show move',geo+' TC-R224o the puzzle row\'s Show button is NAMED "Show move", the name every other Show button carries; its name is '+JSON.stringify(row&&row[0]&&row[0].name),row);
-    L.say(!!row&&row.length===1&&row[0].inside&&row[0].h===44,geo+' TC-R224o and its icon (words before batch 13) is whole inside a 44px button ('+(row&&row[0]&&row[0].ink)+'px of ink in '+(row&&row[0]&&row[0].w)+'px)',row);
+    L.say(!!row&&row.length===1&&/^(\u{1F441} Show( move)?|)$/u.test(row[0].text),tag+' TC-R224o PRECONDITION a training puzzle is open and its row carries one Show button, found by its eye ('+(row?row.map(x=>x.text).join(' | '):'none')+')',row);
+    L.say(!!row&&row.length===1&&row[0].name==='Show move',tag+' TC-R224o the puzzle row\'s Show button is NAMED "Show move", the name every other Show button carries; its name is '+JSON.stringify(row&&row[0]&&row[0].name),row);
+    L.say(!!row&&row.length===1&&row[0].inside&&row[0].h===44,tag+' TC-R224o and its icon (words before batch 13) is whole inside a 44px button ('+(row&&row[0]&&row[0].ink)+'px of ink in '+(row&&row[0]&&row[0].w)+'px)',row);
     /* back on Home after another screen was up: the caption is still the right one (a caption measured while Home was hidden would be wrong here) */
     let c4=null;try{await b.home();await b.settle(500);c4=await caps(b);}catch(e){L.note(geo+' home again: '+String(e).slice(0,120));}
-    L.say(!!c4&&!!c4.learn&&c4.learn.onScreen&&c4.learn.text===WANT[geo]&&whole(c4.learn),geo+' TC-R224o TXT-32 back on Home after a puzzle the caption still reads "'+WANT[geo]+'", whole ("'+(c4&&c4.learn&&c4.learn.text)+'")',c4&&c4.learn);
-    L.say(b.errs.length===0,geo+' TC-R224o zero app errors',b.errs.slice(0,3));
+    L.say(!!c4&&!!c4.learn&&c4.learn.onScreen&&c4.learn.text===WANT[geo]&&whole(c4.learn),tag+' TC-R224o TXT-32 back on Home after a puzzle the caption still reads "'+WANT[geo]+'", whole ("'+(c4&&c4.learn&&c4.learn.text)+'")',c4&&c4.learn);
+    L.say(b.errs.length===0,tag+' TC-R224o zero app errors',b.errs.slice(0,3));
     await b.close();}
    if(process.env.CT_G148_ONLY==='o')return;}
   // ── STATIC: the bundle text
