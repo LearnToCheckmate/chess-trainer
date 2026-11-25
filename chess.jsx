@@ -11820,7 +11820,7 @@ function AppMain(){
               Home, because build-run 6d forbids that chrome in a recording. It is bounded by the instruction's own timer (armCapTimer above, one handle at a time)
               and, for a held card, by the bar's own Hide and Back controls - the bar is the route back while the row is gone. Gate 15 M12/M13. */}
           {devOn&&!_hcF&&!preview&&!fbOpen&&!recCap&&(<div data-ct="home-devrow" style={{marginTop:14,display:'flex',alignItems:'center',justifyContent:'center',gap:8}}>{_devBtns(34)}</div>)}
-          {devOn&&BUILD_INFO&&<div data-ct="home-build" style={{marginTop:_hcF?8:10,whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis',maxWidth:'100%',fontSize:12 /* #553 q23: was 11 */,lineHeight:'12px' /* the 11px line's box, so Home's column keeps its height */,color:'rgba(255,255,255,.3)',letterSpacing:.5,textAlign:'center',fontFamily:'ui-monospace,Menlo,Consolas,monospace'}}>Build {BUILD_INFO}</div>}
+          {devOn&&BUILD_INFO&&<div data-ct="home-build" style={{marginTop:_hcF?7:9 /* #553 q23: 1px less, for the 12px line's 1px taller box, so Home's column keeps its height */,whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis',maxWidth:'100%',fontSize:12 /* #553 q23: was 11; a 12px line box cut the glyphs 2px (gate 26), so the line keeps its own box and the margin above gives the 1px back */,color:'rgba(255,255,255,.3)',letterSpacing:.5,textAlign:'center',fontFamily:'ui-monospace,Menlo,Consolas,monospace'}}>Build {BUILD_INFO}</div>}
         </div>
       </div>)}
 
