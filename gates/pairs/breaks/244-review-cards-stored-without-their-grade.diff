@@ -1,0 +1,11 @@
+diff --git a/chess.jsx b/chess.jsx
+index 22430abc..76f551bd 100644
+--- a/chess.jsx
++++ b/chess.jsx
+@@ -8845,5 +8845,5 @@ function AppMain(){
+                or "a blunder". Instance 2 of
+                jobs/the-sel-cls-split-migrated-selectors-but-not-every-label-consumer-2026-09-30. */
+-            caps.push({fen:toFEN(_cpos),uci:u,label:_S,ts:Date.now(),last:lastOf(i),played,why:_cwhy,hint:_chint,...((out[i].altUci&&DRILL_ACCEPT.includes(out[i].altLabel))?{alt2:{uci:out[i].altUci,san:out[i].altSan,label:out[i].altLabel}}:{}),...(GRADES2?{wc:{g:_S,drop:Math.round((out[i].wdrop||0)*10)/10,v:1,src:'review'}}:{})/* #553 amber-553-review-cards-keep-their-grade: the review's own win-chance grade, so the Home re-check (ct_regrade550, which re-checks only a card with no wc) leaves a card the review chose by that very rule */,no:Math.floor((_pb+i)/2)+1/* #550 item (51): alt2 is the review's second move when it graded it Excellent or better. no is last, so gate 67's P0 anchor {fen,uci,label,ts} still reads the shape it pins */});
++            caps.push({fen:toFEN(_cpos),uci:u,label:_S,ts:Date.now(),last:lastOf(i),played,why:_cwhy,hint:_chint,...((out[i].altUci&&DRILL_ACCEPT.includes(out[i].altLabel))?{alt2:{uci:out[i].altUci,san:out[i].altSan,label:out[i].altLabel}}:{}),...{}/* #553 amber-553-review-cards-keep-their-grade: the review's own win-chance grade, so the Home re-check (ct_regrade550, which re-checks only a card with no wc) leaves a card the review chose by that very rule */,no:Math.floor((_pb+i)/2)+1/* #550 item (51): alt2 is the review's second move when it graded it Excellent or better. no is last, so gate 67's P0 anchor {fen,uci,label,ts} still reads the shape it pins */});
+           }
+           /* #550 item (18): EVERY position where he had a Brilliant and played something else goes to the brilliant-moves drill (clear or

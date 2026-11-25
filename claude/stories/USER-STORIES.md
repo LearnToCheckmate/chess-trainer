@@ -2991,3 +2991,9 @@ As a player who leaves the Puzzles roadmap open, the active tier's glow pulses a
 *Added #553 B3, jobs/speed-check-regressions-2026-11-12 (SPD-06 of docs/speed-check-2026-11-12). Amber: flags/amber-553-games-list-draws-in-steps.*
 As a player with hundreds of stored games, tapping Review shows the list straight away; the rows further down are drawn a moment later, before I can scroll to them, and every row, the search, the filters and both more-games buttons stay where they were.
 - The first frame with games draws at most 50 rows and the whole first page of 200 is drawn within 3 seconds, with Show more games under it. (TC-R437)
+
+### US-R255 A mistake a review saves to my drill is still there when I come to drill it
+*Added #553 B2, jobs/a-mistakes-card-stored-with-its-played-move-can-be-dropped-by-the-home-screens-regrade-2026-11-24. Amber: flags/amber-553-review-cards-keep-their-grade.*
+As a player who reviews a game and then goes back to Home, every Mistake and Blunder the review saved to the Mistakes drill is still in the deck; only the cards chosen by the old grading are re-checked, as I asked on 12 Nov.
+- Every card my reviewed games capture is still in the deck after Home, in the session and after reopening the app. (TC-R442, TC-R443)
+- An old card where I played the best move still leaves the deck, and an old real blunder stays, re-graded. (TC-R444)

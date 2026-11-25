@@ -1,0 +1,34 @@
+{
+ "job": "a-mistakes-card-stored-with-its-played-move-can-be-dropped-by-the-home-screens-regrade-2026-11-24",
+ "about": "A card a review saves to the Mistakes drill carries the review's own grade (wc), so Home's re-check pass leaves it; an old-ladder card with no wc is still re-checked (a41). Graded by gate 244 at kunal761 over the first three games of gates/fixtures/kunal/kunal-40.pgn with their recorded engine output. NOT COVERED: the re-review upgrade that gives an already-stored card with no wc the review's grade; the pass leaving Home mid-way (gate 134's limit too).",
+ "gate": "gates/regress/244-review-cards-survive-home.js",
+ "checks": [
+  "^TC-R44[234] "
+ ],
+ "build": "always",
+ "situations": [
+  {
+   "name": "kunal761",
+   "match": "^TC-R44[234] "
+  }
+ ],
+ "breaks": [
+  {
+   "name": "review-cards-stored-without-their-grade",
+   "patch": "breaks/244-review-cards-stored-without-their-grade.diff",
+   "why": "a review's cards are stored with no wc again, so Home's quick re-check grades them a second time and drops those it calls less than a Mistake",
+   "mustFailIn": [
+    "kunal761"
+   ]
+  },
+  {
+   "name": "the-recheck-skips-every-card",
+   "patch": "breaks/244-the-recheck-skips-every-card.diff",
+   "why": "the re-check pass takes no card at all, so an old-ladder card where he played the best move stays in the deck (the a41 re-check switched off)",
+   "mustFailIn": [
+    "kunal761"
+   ]
+  }
+ ],
+ "timeoutSec": 900
+}

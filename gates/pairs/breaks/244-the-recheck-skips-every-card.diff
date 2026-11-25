@@ -1,0 +1,11 @@
+diff --git a/chess.jsx b/chess.jsx
+index 22430abc..915bdd1f 100644
+--- a/chess.jsx
++++ b/chess.jsx
+@@ -6823,5 +6823,5 @@ function AppMain(){
+   useEffect(()=>{
+     if(!homeScreen||!GRADES2||regradeRunRef.current)return;
+-    const todo=(myMistakesRef.current||[]).filter(m=>m&&!m.wc&&m.fen&&m.uci);if(!todo.length)return;
++    const todo=(myMistakesRef.current||[]).filter(m=>m&&!m.wc&&m.fen&&m.uci&&false);if(!todo.length)return;
+     regradeRunRef.current=true;let stop=false,rgW=null;const halt=()=>{stop=true;try{if(rgW)rgW.terminate();}catch(e){}rgW=null;};   /* leaving Home ends the pass and its own worker */const off=setTimeout(()=>{},0);
+     (async()=>{
