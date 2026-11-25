@@ -485,7 +485,11 @@ const SUBS=['Openings & endgames','890 tactical puzzles','Free game reviews','Co
 // PIN MOVED WITH A FIX [batch 13, jobs/wording-check-2026-11-12 TXT-32]: Discover's caption names tactics wherever the long words fit on the one
 // line (chess.jsx FitLine). Measured on trial bbd39ed5bdf9: 'Openings, tactics, endgames' is 161.2px at 12.5px (170.7 at 414, 177.3 at 430) against a
 // tile inner width of 136 at 320, 164 at 375, 171 at 390 and 191 at 430, so se keeps the short caption and the other three geometries read the long one.
-const SUBS_AT=(geo)=>L.geoIs(geo,320,568)?SUBS:['Openings, tactics, endgames',...SUBS.slice(1)];
+// PIN MOVED AGAIN [#553 B2, amber flags/amber-553-discover-caption-re-measures-after-home-scales]: since Q13 (e5435040) Home is drawn at 0.85 at
+// 320x568, so the tile's inner width there is 162 CSS px against the 161.2 of long words, and once the caption measures after that scale lands
+// (FitLine, 30c2950b/95a1c0c6) se reads the long caption too - every geometry this gate walks does. The short caption's branch is held by gate 148
+// TC-R224o at se with text x1.25 (201.3 px of long words against 162). Was: se kept the short caption (SUBS).
+const SUBS_AT=(geo)=>['Openings, tactics, endgames',...SUBS.slice(1)];
 // #366 y3b, per glyph, identical at every width. RE-PINNED at #550 item (68): Classic (the default skin) has its own four emoji again
 // (📖 🧩 📈 👑, its pre-#366 set) instead of Playful's (🔭 🧩 🔍 ♟️, which read 1, 1, 0.99, 1.11); measured on trial t12 (f0477c0d12aa)
 // at all four widths: 📖 1.06, 🧩 1, 📈 0.99, 👑 0.99.

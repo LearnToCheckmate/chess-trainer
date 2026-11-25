@@ -1,10 +1,10 @@
 diff --git a/chess.jsx b/chess.jsx
-index 4bc82e40..60df32c7 100644
+index 3f7c4905..d9711006 100644
 --- a/chess.jsx
 +++ b/chess.jsx
-@@ -4568,6 +4568,6 @@ function IconGlyph({g,em,top}){return <span style={{fontSize:em+'em',lineHeight:
- function FitLine({long,short,w,ct,style}){
-   const ref=useRef(null);const [st,setSt]=useState({w:null,cut:false});
+@@ -4934,6 +4934,6 @@ function FitLine({long,short,w:w0,ct,style}){
+     try{if(document.fonts&&document.fonts.ready)document.fonts.ready.then(()=>{if(!dead)setGen(g=>g+1);});}catch(e){}
+     return()=>{dead=true;try{if(ro)ro.disconnect();}catch(e){}};},[]);
 -  const useShort=st.w===w&&st.cut;
 -  useLayoutEffect(()=>{if(st.w===w)return;const e=ref.current;if(!e||e.clientWidth<=0)return;setSt({w,cut:e.scrollWidth>e.clientWidth});});
 +  const useShort=st.cut;

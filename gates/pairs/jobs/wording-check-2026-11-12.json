@@ -15,31 +15,36 @@
   {
    "name": "se 320x568",
    "match": "^se "
+  },
+  {
+   "name": "se 320x568 at text x1.25",
+   "match": "^se125 ",
+   "why": "#553 B2: since Q13 scales Home to 0.85 at 320x568 the long words fit at every phone width at 1x, so the short-caption branch is driven by larger text (gates/drive/textscale.js x1.25: 201.3 px of long words against 162)"
   }
  ],
  "breaks": [
   {
    "name": "caption-always-short",
    "patch": "breaks/g148-caption-always-short.diff",
-   "why": "the phone caption is the short one at every width, as before the change: on his phone Discover's caption names no tactics although the long words fit",
+   "why": "the phone caption is the short one at every width, as before the change: on his phone (and since #553 at 320x568, where Home's 0.85 scale gives the long words room) Discover's caption names no tactics although the long words fit",
    "mustFailIn": [
-    "kunal761"
+    "kunal761",
+    "se 320x568"
    ]
   },
   {
    "name": "caption-never-falls-back",
    "patch": "breaks/g148-caption-never-falls-back.diff",
-   "why": "the long caption is painted whether or not it fits: at 320 wide it is cut with an ellipsis ('Openings, tactics, endg...'), which is the reason #550 held the item",
+   "why": "the long caption is painted whether or not it fits: where it does not fit (320 wide at text x1.25 since #553; 320 wide at 1x before Q13) it is cut with an ellipsis ('Openings, tactics, endg...'), which is the reason #550 held the item",
    "mustFailIn": [
-    "se 320x568"
+    "se 320x568 at text x1.25"
    ]
   },
   {
    "name": "caption-measured-once",
    "patch": "breaks/g148-caption-measured-once.diff",
-   "why": "the caption is decided at the first paint and never again: after the window changes width it keeps the words chosen for the old width, cut at the narrow one and short at the wide one",
+   "why": "the caption is decided at the first paint and never again: after the window changes width, or Home's scale lands, it keeps the words chosen first - since #553 at 320x568 that is the short caption decided before the 0.85 scale, red on the long-caption pins. At kunal761 it is no longer red (both 375 and 320 now give the long words, so the width check cannot tell a re-measure from none), so it must fail at se only",
    "mustFailIn": [
-    "kunal761",
     "se 320x568"
    ]
   },
