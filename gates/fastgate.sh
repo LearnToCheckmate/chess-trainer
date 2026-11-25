@@ -2144,7 +2144,14 @@ fi
 # gates/gatelog-exceptions.tsv excuses makes that row stale - while this tier read green. Gate 81 reads committed git objects only (no
 # browser, no network, about 15 s), so this tier RUNS it when a log is added or changed, and refuses at exit 1 on any red or on a run
 # that cannot be read. Deletions are the GONE block above. Controls: gates/fastgate-drive.sh H74 (a stale-making log is refused) and H75.
-ADDLOG="$("${GIT[@]}" diff --name-only --no-renames --diff-filter=AM "$BASEFULL".."$HEAD" 2>/dev/null | grep -E '^claude/agents/gatelogs/' || true)"
+# AND GATE 219 READS BOTH claude/stories/ AND claude/agents/gatelogs/ (through git, the same way) [#553 B2; the landing pre-check's red on
+# gate 219 'READ A RECORDS-ONLY PATH']: a records commit that changes a case row's published count, or the log it cites, can turn
+# TC-R361/362 red while this tier reads green. So ONE walk of the range's added and changed paths feeds both: gate 81 when a gate log is
+# among them (as before), gate 219 when anything under either path is. Gate 219 is node only, no browser, about 2 s. Controls:
+# gates/fastgate-drive.sh H76 (a records commit that breaks a case row's count is refused naming gate 219) and H77 (a records commit
+# touching neither path does not run it).
+ADDREC="$("${GIT[@]}" diff --name-only --no-renames --diff-filter=AM "$BASEFULL".."$HEAD" 2>/dev/null | grep -E '^claude/(agents/gatelogs|stories)/' || true)"
+ADDLOG="$(printf '%s\n' "$ADDREC" | grep -E '^claude/agents/gatelogs/' || true)"
 if [ -n "$ADDLOG" ]; then
   say ""
   say "    gate logs added or changed in this range - gate 81 reads that directory, so it is run here:"
@@ -2162,6 +2169,24 @@ if [ -n "$ADDLOG" ]; then
     exit 1
   fi
   say "    gate 81 over this tree: $G81PASS"
+fi
+if [ -n "$ADDREC" ]; then
+  say ""
+  say "    case or story files, or gate logs, added or changed in this range - gate 219 reads both, so it is run here:"
+  echo "$ADDREC" | sed 's/^/        /' | tee -a "$LOG"
+  G219OUT=""; G219RC=99
+  if command -v node >/dev/null 2>&1 && [ -f "$G/regress/219-case-row-counts-match-their-log.js" ]; then
+    G219OUT="$(cd "$ROOT" && CT_APP="$ROOT/app.js" timeout 120 node "$G/regress/219-case-row-counts-match-their-log.js" 2>&1)"; G219RC=$?
+  fi
+  G219PASS="$(printf '%s\n' "$G219OUT" | grep -oE '219-case-row-counts-match-their-log: [0-9]+ pass, 0 fail' | sed -n 1p || true)"
+  if [ "$G219RC" != 0 ] || [ -z "$G219PASS" ]; then
+    say ""
+    say "FAST GATE REFUSED - a case, story or gate-log file was added or changed and gate 219 (219-case-row-counts-match-their-log.js) is not green over this tree (exit $G219RC):"
+    printf '%s\n' "$G219OUT" | grep -E '^FAIL|fail|ERROR|Error' | head -5 | sed 's/^/    /' | tee -a "$LOG"
+    say "Run FULL (gates/gates.sh), or fix the case row's published count or its log. A records-only commit may not change gate 219's verdict."
+    exit 1
+  fi
+  say "    gate 219 over this tree: $G219PASS"
 fi
 SHORTER=""
 for f in claude/stories/TEST-CASES.md claude/stories/USER-STORIES.md; do
