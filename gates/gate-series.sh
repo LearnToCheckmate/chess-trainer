@@ -10,6 +10,9 @@
 #                             [--out <tsv>] [--timeout 900] [--allow-noisy]
 #   bash gates/gate-series.sh --summary <tsv>     the SUMMARY lines of an existing TSV
 #   bash gates/gate-series.sh --selftest          its controls, as a command (fixtures and the busy loop; no browser)
+#   bash gates/gate-series.sh --check-gates "<list>"   exit 0 if every gate is a series gate with a file, else 2
+#   THE SERIES GATES are SERIES_GATES below, and --gates refuses any other: 20-review and 26-invariants (the default) and
+#   48-lesson-flow (for jobs/gates-26-and-48-are-looked-at-for-flakiness-2026-11-15; added at #553 on the lead's order).
 #   exit 0 every run green | 1 at least one run not GREEN | 2 refused (usage, not quiet, no bundle, wrong busy pid)
 #
 # WHAT EACH HALF IS
@@ -43,6 +46,16 @@
 # is one container's reading on one day - the TSV names the container (hostname, nproc) so two series can be compared.
 set -u
 G="$(cd "$(dirname "$0")" && pwd)"; ROOT="$(dirname "$G")"
+SERIES_GATES="20-review 26-invariants 48-lesson-flow"
+check_gates() {  # every named gate is a series gate AND has its file; prints why on refusal
+  local g ok=0
+  [ $# -gt 0 ] || { echo "gate-series: no gates named" >&2; return 2; }
+  for g in "$@"; do
+    case " $SERIES_GATES " in *" $g "*) ;; *) echo "gate-series: '$g' is not a series gate (series gates: $SERIES_GATES)" >&2; ok=2; continue;; esac
+    [ -f "$G/regress/$g.js" ] || { echo "gate-series: no gate gates/regress/$g.js" >&2; ok=2; }
+  done
+  return $ok
+}
 
 # One SUMMARY line per gate and mode over every row of a TSV (a TSV appended over two calls summarises both).
 # Columns used: 2 gate, 3 mode, 4 quiet, 7 seconds, 11 verdict. The quiet half counts ONLY quiet=true rows.
@@ -76,6 +89,11 @@ selftest() {
   ck S7-and-is-named-gate-series-busy "$(tr '\0' ' ' < "/proc/$BP/cmdline" 2>/dev/null | cut -d' ' -f1)" gate-series-busy
   kill "$PP"; wait "$PP" 2>/dev/null; sleep 4
   if kill -0 "$BP" 2>/dev/null; then ck S8-the-loop-dies-with-its-parent alive dead; kill "$BP"; else ck S8-the-loop-dies-with-its-parent dead dead; fi
+  # The series gates: 48-lesson-flow is accepted (its own arm, so removing it from SERIES_GATES reddens S9 alone),
+  # and a real gate that is not a series gate is refused, so the list is a list and not a pass-through.
+  check_gates 48-lesson-flow 2>/dev/null; ck S9-gate-48-lesson-flow-is-a-series-gate "$?" 0
+  check_gates 20-review 26-invariants 2>/dev/null; ck S10-and-so-are-gates-20-and-26 "$?" 0
+  check_gates 11-lesson 2>/dev/null; ck S11-a-real-gate-not-in-the-series-is-refused "$?" 2
   wait 2>/dev/null; rm -rf "$T"
   if [ $bad -eq 0 ]; then echo "gate-series selftest: OK"; else echo "gate-series selftest: FAILED"; fi
   return $bad
@@ -83,6 +101,7 @@ selftest() {
 
 case "${1:-}" in
   --selftest) selftest; exit $?;;
+  --check-gates) set -f; check_gates ${2:-}; exit $?;;
   --summary) [ -s "${2:-}" ] || { echo "gate-series: --summary needs a TSV" >&2; exit 2; }; summarise "$2"; exit 0;;
 esac
 
@@ -104,7 +123,7 @@ case "$N" in ''|*[!0-9]*|0) echo "gate-series: --n must be a positive integer" >
 [ "$MODE" = busy ] && [ $NOISY -eq 1 ] && { echo "gate-series: --allow-noisy belongs to the quiet half only" >&2; exit 2; }
 case "$BUNDLE" in /*) ;; *) BUNDLE="$PWD/$BUNDLE";; esac
 [ -s "$BUNDLE" ] || { echo "gate-series: no bundle at $BUNDLE" >&2; exit 2; }
-for g in $GATES; do [ -f "$G/regress/$g.js" ] || { echo "gate-series: no gate gates/regress/$g.js" >&2; exit 2; }; done
+check_gates $GATES || exit 2
 LOGD="$G/pairs/logs/series"; mkdir -p "$LOGD"
 STEM="$(date -u +%Y%m%dT%H%M%SZ)-$MODE"
 [ -n "$OUT" ] || OUT="$LOGD/$STEM.tsv"
