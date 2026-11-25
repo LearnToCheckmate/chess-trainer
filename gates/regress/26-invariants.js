@@ -2241,7 +2241,13 @@ L.run(async()=>{
       /* the window ends HOLD ms after the reason last changed (and not before 3.5s), and on a ply whose reason must grow, not before it has - read from the text, not from the app's mark */
       const T0=performance.now();await new Promise(res=>{const tick=()=>{const t=performance.now()-T0;const quiet=t>=Math.max(3500,(changedAt==null?0:changedAt)+hold);if(t>=cap||(quiet&&(!grow||changes>0)))res();else setTimeout(tick,50);};tick();});
       stop=true;return out;},{n,hold,cap,grow});
-    for(const g of GEOS){
+    // BAND_GEOS [#553 B1, the lead's ruling on the ply-31 pair, 25 Nov 02:4xZ]: THIS BLOCK ALONE ALSO WALKS kunal761 (his own phone, 375x761).
+    // Since FB-07 (c0d52abf, 20 Nov) the review's reason box is ONE line at 320x568 and 375x568 and the graph is not drawn in it (TC-R239e),
+    // so the pending hold has no spare lines to keep there and no break of it can show: only kunal730 was left where this block can go red.
+    // kunal761 has spare reason lines too, so the hold is exercised on two geometries again. se and short375 stay walked (must pass).
+    // CT_INV_GEOS still narrows it, as everywhere in this gate.
+    const BAND_GEOS=process.env.CT_INV_GEOS?GEOS:[...ALL_GEOS,'kunal761'];
+    for(const g of BAND_GEOS){
       const b=await L.launch({geo:g,store:R.SEED,name:'inv-band-'+g});await b.open();
       try{
         await R.states['moves-ply0'](b);

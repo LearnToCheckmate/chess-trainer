@@ -9,12 +9,13 @@
  "situations": [
   {"name": "320x568", "match": "^se TC-R239"},
   {"name": "kunal730", "match": "^kunal730 TC-R239"},
-  {"name": "short375", "match": "^short375 TC-R239"}
+  {"name": "short375", "match": "^short375 TC-R239"},
+  {"name": "kunal761", "match": "^kunal761 TC-R239"}
  ],
  "breaks": [
-  {"name": "pending-not-marked", "patch": "breaks/g26-band-pending-not-marked.diff", "why": "rev-why-txt no longer carries data-pending, so the band reads the one-line reason's ink and puts the graph into the box while the clause is coming", "mustFailIn": ["320x568", "kunal730", "short375"]},
-  {"name": "band-ignores-the-hold", "patch": "breaks/g26-band-ignores-the-hold.diff", "why": "the band's measure skips its data-pending branch, so the mark is set and nothing honours it", "mustFailIn": ["320x568", "kunal730", "short375"]},
-  {"name": "brilliant-not-flagged", "patch": "breaks/g26-band-brilliant-not-flagged.diff", "why": "reviewText's Brilliant answer while the refutation is due no longer says pending (the Great one still does), so plies 19 and 25 - both Brilliant - are not held", "mustFailIn": ["320x568", "kunal730", "short375"]}
+  {"name": "pending-not-marked", "patch": "breaks/g26-band-pending-not-marked.diff", "why": "rev-why-txt no longer carries data-pending, so the band reads the one-line reason's ink and puts the graph into the box while the clause is coming", "mustFailIn": ["320x568", "kunal730", "short375", "kunal761"]},
+  {"name": "band-ignores-the-hold", "patch": "breaks/g26-band-ignores-the-hold.diff", "why": "the band's measure skips its data-pending branch, so the mark is set and nothing honours it", "mustFailIn": ["320x568", "kunal730", "short375", "kunal761"]},
+  {"name": "brilliant-not-flagged", "patch": "breaks/g26-band-brilliant-not-flagged.diff", "why": "reviewText's Brilliant answer while the refutation is due no longer says pending (the Great one still does), so plies 19 and 25 - both Brilliant - are not held", "mustFailIn": ["320x568", "kunal730", "short375", "kunal761"]}
  ],
  "timeoutSec": 1500
 }
