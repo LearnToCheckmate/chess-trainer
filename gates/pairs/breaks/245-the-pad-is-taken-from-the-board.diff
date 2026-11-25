@@ -1,0 +1,11 @@
+diff --git a/chess.jsx b/chess.jsx
+index 6acd8b1e..6e8d092d 100644
+--- a/chess.jsx
++++ b/chess.jsx
+@@ -4671,5 +4671,5 @@ const TOP_Y=2;
+    this under themselves; the flexible row above them (the move list on Play, the explanation box on Review) gives the room, not the board.
+    0 wherever the inset is 8 or less, and under ct_safe (env() is 0 there), so every no-inset geometry is unchanged. */
+-const SAFE_B_EXTRA='max(0px, calc(env(safe-area-inset-bottom, 0px) - 8px))';
++const SAFE_B_EXTRA='calc(env(safe-area-inset-bottom, 0px) + 72px)';
+ const TOP_BTN={flex:'0 0 auto',width:TOP_SZ,height:TOP_SZ,minWidth:TOP_SZ,minHeight:TOP_SZ,boxSizing:'border-box',borderRadius:12,background:'rgba(255,255,255,.08)',border:'1px solid rgba(255,255,255,.2)',color:'rgba(255,255,255,.92)',cursor:'pointer',padding:0,display:'inline-flex',alignItems:'center',justifyContent:'center',lineHeight:1,fontSize:18,fontWeight:700};
+ const TOP_TITLE={position:'absolute',top:0,bottom:0,left:TOP_EDGE+TOP_SZ+6,right:TOP_EDGE+TOP_SZ+6,display:'block',textAlign:'center',lineHeight:TOP_SZ+'px',fontFamily:'var(--head)',fontSize:18,fontWeight:800,color:'#fff',letterSpacing:.2,whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis',pointerEvents:'none'};

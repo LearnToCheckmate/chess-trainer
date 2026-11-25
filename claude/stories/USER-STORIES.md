@@ -2997,3 +2997,10 @@ As a player with hundreds of stored games, tapping Review shows the list straigh
 As a player who reviews a game and then goes back to Home, every Mistake and Blunder the review saved to the Mistakes drill is still in the deck; only the cards chosen by the old grading are re-checked, as I asked on 12 Nov.
 - Every card my reviewed games capture is still in the deck after Home, in the session and after reopening the app. (TC-R442, TC-R443)
 - An old card where I played the best move still leaves the deck, and an old real blunder stays, re-graded. (TC-R444)
+
+### US-R256 The lowest buttons on Play and Review are clear of the home indicator
+*Added #553 B2, jobs/play-and-review-bottom-rows-sit-inside-the-home-indicator-band-2026-11-23 and jobs/landscape-review-controls-cross-the-bottom-inset-and-two-buttons-are-30-tall-2026-11-23. Amber: flags/amber-553-bottom-rows-clear-the-home-indicator.*
+As a player using the app from my Home Screen, every button in the bottom row of Play (against the computer, Pass and Play, during a game and after it) and of Review ends above the home indicator, upright and sideways, so a tap never lands on it; the board is as big as before.
+- The checks see the insets my phone reports and find each row's buttons. (TC-R445)
+- Every button in the row ends at or above the safe bottom, at 375x812 in the app and in Review sideways at 812x375. (TC-R446)
+- The board is no smaller, and Review's Back and More still take a tap over 44 of height. (TC-R447)

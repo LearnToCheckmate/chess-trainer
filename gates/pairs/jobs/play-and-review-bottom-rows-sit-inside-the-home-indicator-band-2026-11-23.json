@@ -1,0 +1,46 @@
+{
+ "job": "play-and-review-bottom-rows-sit-inside-the-home-indicator-band-2026-11-23",
+ "about": "Play's and Review's lowest button rows end at or above the safe bottom with real env() insets (CDP): his phone in the Home Screen app (375x812, 51/31) in four Play states and Review, and Review sideways at 812x375 (21 below, 59 each side; jobs/landscape-review-controls-cross-the-bottom-inset-and-two-buttons-are-30-tall-2026-11-23), with the board no smaller and Back and More keeping a 44 tap. Graded by gate 245. NOT COVERED: 320x568 (its bottom inset is 0, nothing to pad); iOS Safari itself; larger text.",
+ "gate": "gates/regress/245-bottom-rows-clear-the-home-indicator.js",
+ "checks": [
+  "^TC-R44[567] "
+ ],
+ "build": "always",
+ "situations": [
+  {
+   "name": "app375x812",
+   "match": "^TC-R44[567] app "
+  },
+  {
+   "name": "side812x375",
+   "match": "^TC-R44[567] side "
+  }
+ ],
+ "breaks": [
+  {
+   "name": "the-rows-sit-in-the-home-indicator-again",
+   "patch": "breaks/245-the-rows-sit-in-the-home-indicator-again.diff",
+   "why": "the upright Play and Review rows lose their inset padding, so their buttons end 12.5 to 19.5 inside the home-indicator band again",
+   "mustFailIn": [
+    "app375x812"
+   ]
+  },
+  {
+   "name": "the-sideways-rail-runs-into-the-band",
+   "patch": "breaks/245-the-sideways-rail-runs-into-the-band.diff",
+   "why": "the sideways player-bar rail loses its inset padding, so Review's round Analyze button ends 16 past the safe bottom",
+   "mustFailIn": [
+    "side812x375"
+   ]
+  },
+  {
+   "name": "the-pad-is-taken-from-the-board",
+   "patch": "breaks/245-the-pad-is-taken-from-the-board.diff",
+   "why": "the rows pad far more than the inset, so the room comes out of the board (Play 375 -> 340, Review 375 -> 319)",
+   "mustFailIn": [
+    "app375x812"
+   ]
+  }
+ ],
+ "timeoutSec": 900
+}
