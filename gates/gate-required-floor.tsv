@@ -159,3 +159,4 @@
 201	200	raise	2026-11-25	553	build__1795473826826	gate 245 (the Play and Review button rows clear the home-indicator band, TC-R445-447, seat B2) joins the required set	-	7771b4c11d6b
 202	201	raise	2026-11-25	553	build__1795473826826	gate 246 (US-R257, TC-R448..R450): a silent review search is asked isready before it is dropped - jobs/one-of-his-games-never-finishes-its-review-it-stalls-at-move-68-of-103-2026-11-24	-	b00abf7cd56b
 203	202	raise	2026-11-25	553	build__1795473826826	gate 243 (TC-R441): no Review board under its own size on a re-import - jobs/the-lesson-board-paints-half-width-for-its-first-half-second-on-entry-2026-11-25	-	6e886b01c2b9
+204	203	raise	2026-11-25	553	build__1795473826826	gate 247: gate 26 split (blocks b, c and d moved byte for byte; gate 26 ran 895 s of its 900) - jobs/gate-26-runs-at-846-of-its-900-seconds-make-it-finish-well-inside-its-limit-2026-11-25	-	dc914a429b8a
