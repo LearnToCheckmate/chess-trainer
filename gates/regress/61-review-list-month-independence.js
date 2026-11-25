@@ -202,14 +202,14 @@ function stub(b,state){
 // page size. The page itself is asserted where it is the subject, in A24.
 async function showAll(b){let n=0;
   for(;n<40;n++){const hit=await b.page.evaluate(()=>{const x=[...document.querySelectorAll('button')].find(e=>/^Show \d+ more games/.test((e.textContent||'').trim()));if(!x)return false;x.click();return true;});
-    if(!hit)break;await b.settle(120);await rowsSettled(b);}
+    if(!hit)break;await b.settle(120);await drawnSettled(b);}
   return n;}
 // #553 SPD-06 (amber flags/amber-553-games-list-draws-in-steps): the list DRAWS its page in steps of 40 after the first frame, so the rows a
 // player can reach are counted once the drawn count has stopped growing (two equal reads 150ms apart, at most 8 s) - the assertions below are
 // unchanged and still compare every reachable row with the rows stored.
-async function rowsSettled(b){let last=-1;for(let i=0;i<54;i++){const n=await b.page.evaluate(()=>document.querySelectorAll('[data-ct="game-row"]').length);if(n===last)return n;last=n;await b.page.waitForTimeout(150);}return last;}
+async function drawnSettled(b){let last=-1;for(let i=0;i<54;i++){const n=await b.page.evaluate(()=>document.querySelectorAll('[data-ct="game-row"]').length);if(n===last)return n;last=n;await b.page.waitForTimeout(150);}return last;}
 async function READ(b){
-  const pages=await showAll(b);await rowsSettled(b);
+  const pages=await showAll(b);await drawnSettled(b);
   const AG=await L.acctGames(b.page);
   const held={};Object.keys(AG.map).forEach(id=>{const rs=AG.map[id]||[];let old=0;rs.forEach(g=>{const d=(g&&g.date)||0;if(d>0&&(!old||d<old))old=d;});held[id]={n:rs.length,old};});
   const r=await b.page.evaluate(([NEW_LABEL,AGM,held])=>{
@@ -1657,6 +1657,8 @@ async function blockA10(){
             moreH:m?Math.round(m.getBoundingClientRect().height):0};});
         if(pg.loaded>=(capN||1)&&pg.rows>0)break;await b.settle(100);}
       const ms=Date.now()-t0;
+      // #553 SPD-06: the page is drawn in steps of 40, so the page is read once the drawn rows stop growing (first paint is measured above)
+      {const n=await drawnSettled(b);if(n!==pg.rows)pg=Object.assign({},pg,await b.page.evaluate(()=>{const m=[...document.querySelectorAll('button')].find(e=>/^Show \d+ more games/.test((e.textContent||'').trim()));return {rows:document.querySelectorAll('[data-ct="game-row"]').length,more:m?(m.textContent||'').trim():null,moreH:m?Math.round(m.getBoundingClientRect().height):0};}));}
       const blk=await b.page.evaluate(()=>new Promise(res=>{const t=performance.now();requestAnimationFrame(()=>res(Math.round(performance.now()-t)));}));
       L.note('       A27 FIRST PAINT, measured not asserted: '+pg.rows+' rows rendered of '+pg.loaded+' held, '+ms+'ms after open(), next frame '+blk+'ms; per Load-older tap '+JSON.stringify(tapMs)+'ms (includes this gate\'s own settle polls)');
       const mm=(pg.more||'').match(/^Show (\d+) more games · ([\d,]+) not shown/);
@@ -1664,7 +1666,7 @@ async function blockA10(){
       L.say(pg.loaded===capN&&pg.rows>0&&pg.rows<pg.loaded&&pg.rows<=MIN_CAP,'A27d '+tag+': a launch with '+capN+' held RENDERS ONE PAGE - '+pg.rows+' rows, no more than one walk ('+MIN_CAP+') - while the count still says all '+capN,{rows:pg.rows,loaded:pg.loaded,ms});
       L.say(!!mm&&hidN===pg.loaded-pg.rows&&shownN===Math.min(pg.rows,hidN)&&pg.moreH>=44,'A27e '+tag+': and below it a 44px control states how many more it shows and how many are not shown ('+(pg.loaded-pg.rows)+'), so nothing is cut without saying so',{button:pg.more,h:pg.moreH,expectHidden:pg.loaded-pg.rows});
       const r1rows=pg.rows;await b.page.locator('button',{hasText:/^Show \d+ more games/}).first().click({timeout:4000}).catch(()=>{});await b.settle(400);
-      const r2rows=await b.page.evaluate(()=>document.querySelectorAll('[data-ct="game-row"]').length);
+      const r2rows=await drawnSettled(b);   // #553 SPD-06: the next page is drawn in steps
       L.say(shownN!==null&&r2rows===r1rows+shownN,'A27f '+tag+': one tap shows exactly the '+shownN+' it promised, in the oldest direction ('+r1rows+' -> '+r2rows+')',{before:r1rows,after:r2rows,promised:shownN});
       const rAll=await READ(b);
       L.say(rAll.rows===capN&&rAll.pages>0,'A27g '+tag+': and tapping on reaches every held game - '+rAll.rows+' of '+capN+' after '+rAll.pages+' more tap(s)',{rows:rAll.rows,pages:rAll.pages});
