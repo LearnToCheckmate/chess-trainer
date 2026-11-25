@@ -12567,6 +12567,13 @@ function AppMain(){
            size, the headings still name the chosen colour and set, and each chip keeps its name as its title and aria-label. Taller phones
            keep every word. */
         const _lkS=!wide&&vw<360&&vp.h<620;
+        /* #553 q23 part 2a follow-up (gate 177 TC-R248c at 125% text): the 12px names ran into their chips' borders where the sheet is narrow
+           ('Stone Keep' at 390@125, 'Dragonstone' and 'Chessnut' at 430@125 - 312 and 344 CSS px wide). A row of chips takes as many
+           columns as keep the WIDEST name whole inside its chip (its width measured, plus the chip's 2+2 padding and borders), never more
+           than it had (4 colours, 5 pieces), so where they fit nothing moves; the compact name-less row keeps its 6. */
+        const _lkIn=Math.min(440,vw-20)-28;const _lkCols=(names,max,gap)=>{if(_lkS)return 6;let need=0;
+          try{const c=window.__ctLkMC||(window.__ctLkMC=document.createElement('canvas').getContext('2d'));c.font="700 12px 'Segoe UI',system-ui,sans-serif";for(const n of names)need=Math.max(need,c.measureText(n).width-0.3*n.length);}catch(e){return max;}
+          need+=4+3+2;for(let n=max;n>3;n--){if((_lkIn-gap*(n-1))/n>=need)return n;}return 3;};
         return(<div data-ct="look" onClick={()=>setLookOpen(false)} style={{position:'fixed',inset:0,zIndex:1100,background:'rgba(0,0,0,.66)',display:'flex',alignItems:'flex-start',justifyContent:'center',padding:_lkS?'max(4px,env(safe-area-inset-top,0px)) 10px max(4px,env(safe-area-inset-bottom,0px))':'max(10px,env(safe-area-inset-top,0px)) 10px max(10px,env(safe-area-inset-bottom,0px))',overflowY:'auto'}}>
         <div onClick={e=>e.stopPropagation()} className="scroll" style={{width:'100%',maxWidth:440,maxHeight:'100%',overflowY:'auto',background:'#191622',borderRadius:18,border:'1px solid rgba(255,255,255,.12)',padding:'10px 13px 8px',boxShadow:SHADOW_CARD,fontFamily:"'Segoe UI',system-ui,sans-serif",boxSizing:'border-box',...(_lkS?{padding:'6px 13px 4px'}:null)}}>
           <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:_lkS?0:2}}><span style={SHEET_TITLE}>Look and feel</span><button onClick={()=>setLookOpen(false)} aria-label="Close" className="ct-hit44" /* #550 helper test-system A, checker seat 2 on q50 (A11Y-15): the compact header at 320x568 has no gap under it, so the preview board, later in the page, covered the bottom of this 44 box. A z-index of 1 keeps the whole 44x44 its own, like every other sheet's close button; layout unchanged */ style={{...SHEET_X,zIndex:1}}>✕</button></div>
@@ -12579,14 +12586,14 @@ function AppMain(){
             </div>);}))}
           </div>
           <div style={{fontSize:'clamp(12.5px,2.1vw,12.5px)',color:'rgba(255,255,255,.58)',fontWeight:700,letterSpacing:1,textTransform:'uppercase',margin:_lkS?'2px 2px 1px':'7px 2px 4px'}}>Board colors · <span style={{color:'var(--ac2)',textTransform:'none',letterSpacing:0}}>{TH.name}</span></div>
-          <div data-ct="look-colours" data-compact={_lkS?'1':undefined} style={{display:'grid',gridTemplateColumns:_lkS?'repeat(6,1fr)':'repeat(4,1fr)',gap:4,...(_lkS?{rowGap:9}:null) /* #550 helper B, checker seat 2's GAP on q50 (A11Y-15): the name-less swatch is 35 tall, so its 44 tap (ct-hit44) needs a 44 row pitch - 35 + 9 */}}>
+          <div data-ct="look-colours" data-compact={_lkS?'1':undefined} style={{display:'grid',gridTemplateColumns:'repeat('+_lkCols(THEMES.map(t=>t.name),4,4)+',1fr)',gap:4,...(_lkS?{rowGap:9}:null) /* #550 helper B, checker seat 2's GAP on q50 (A11Y-15): the name-less swatch is 35 tall, so its 44 tap (ct-hit44) needs a 44 row pitch - 35 + 9 */}}>
             {THEMES.map((t,i)=>{const on=theme===i;return(<button key={i} data-ct={'look-th-'+i} onClick={()=>setTheme(i)} title={t.name} aria-label={_lkS?t.name:undefined} aria-pressed={on} className={_lkS?'ct-hit44':undefined} style={chip(on)}>
               <span style={{width:_lkS?26:30,height:_lkS?26:30,borderRadius:8,overflow:'hidden',display:'grid',gridTemplateColumns:'1fr 1fr',gridTemplateRows:'1fr 1fr',boxShadow:'inset 0 0 0 1px rgba(0,0,0,.35)'}}><span style={{background:t.light}}/><span style={{background:t.dark}}/><span style={{background:t.dark}}/><span style={{background:t.light}}/></span>
               {!_lkS&&<span style={lbl(on)}>{t.name}</span>}
             </button>);})}
           </div>
           <div style={{fontSize:'clamp(12.5px,2.1vw,12.5px)',color:'rgba(255,255,255,.58)',fontWeight:700,letterSpacing:1,textTransform:'uppercase',margin:_lkS?'4px 2px 1px':'7px 2px 4px' /* 4 above: the swatch row's 44 tap reaches 4.5px under it */}}>Pieces · <span style={{color:'var(--ac2)',textTransform:'none',letterSpacing:0}}>{(sets.find(s=>s[0]===pieceSet)||sets[0])[1]}</span></div>
-          <div data-ct="look-pieces" data-compact={_lkS?'1':undefined} style={{display:'grid',gridTemplateColumns:_lkS?'repeat(6,1fr)':'repeat(5,1fr)',gap:_lkS?4:7}}>
+          <div data-ct="look-pieces" data-compact={_lkS?'1':undefined} style={{display:'grid',gridTemplateColumns:'repeat('+_lkCols(sets.map(x=>x[1]),5,7)+',1fr)',gap:_lkS?4:7}}>
             {sets.map(([pv,plab])=>{const on=pieceSet===pv;const src=PIECE_SETS[pv]&&PIECE_SETS[pv].wn;return(<button key={pv} data-ct={'look-pc-'+pv} onClick={()=>setPieceSet(pv)} title={plab} aria-label={_lkS?plab:undefined} aria-pressed={on} className={_lkS?'ct-hit44':undefined} style={chip(on)}>
               <span style={{width:32,height:32,display:'flex',alignItems:'center',justifyContent:'center',borderRadius:8,background:TH.dark}}>{src?<img src={src} width={28} height={28} alt="" draggable={false} style={{display:'block'}}/>:<span style={{fontSize:26,lineHeight:1,color:'#fff',textShadow:'0 0 2px #000'}}>{'♞'}</span>}</span>
               {!_lkS&&<span style={lbl(on)}>{plab}</span>}
