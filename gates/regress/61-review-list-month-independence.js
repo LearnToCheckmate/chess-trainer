@@ -202,10 +202,14 @@ function stub(b,state){
 // page size. The page itself is asserted where it is the subject, in A24.
 async function showAll(b){let n=0;
   for(;n<40;n++){const hit=await b.page.evaluate(()=>{const x=[...document.querySelectorAll('button')].find(e=>/^Show \d+ more games/.test((e.textContent||'').trim()));if(!x)return false;x.click();return true;});
-    if(!hit)break;await b.settle(120);}
+    if(!hit)break;await b.settle(120);await rowsSettled(b);}
   return n;}
+// #553 SPD-06 (amber flags/amber-553-games-list-draws-in-steps): the list DRAWS its page in steps of 40 after the first frame, so the rows a
+// player can reach are counted once the drawn count has stopped growing (two equal reads 150ms apart, at most 8 s) - the assertions below are
+// unchanged and still compare every reachable row with the rows stored.
+async function rowsSettled(b){let last=-1;for(let i=0;i<54;i++){const n=await b.page.evaluate(()=>document.querySelectorAll('[data-ct="game-row"]').length);if(n===last)return n;last=n;await b.page.waitForTimeout(150);}return last;}
 async function READ(b){
-  const pages=await showAll(b);
+  const pages=await showAll(b);await rowsSettled(b);
   const AG=await L.acctGames(b.page);
   const held={};Object.keys(AG.map).forEach(id=>{const rs=AG.map[id]||[];let old=0;rs.forEach(g=>{const d=(g&&g.date)||0;if(d>0&&(!old||d<old))old=d;});held[id]={n:rs.length,old};});
   const r=await b.page.evaluate(([NEW_LABEL,AGM,held])=>{

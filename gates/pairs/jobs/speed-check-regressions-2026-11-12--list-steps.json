@@ -1,0 +1,34 @@
+{
+ "job": "speed-check-regressions-2026-11-12",
+ "about": "SPD-06: the Review games list draws its first 40 rows with the screen and the rest of its page in steps. Graded by gate 192 TC-R437 at kunal761 and 320x568 (CT_G192_GEOS narrows the run). NOT COVERED: 844x390 in the pairs run (the gate runs it); the list kept mounted across a tab switch (not built).",
+ "gate": "gates/regress/192-review-list-page-scrolls.js",
+ "env": {
+  "CT_G192_GEOS": "kunal761,se"
+ },
+ "checks": [
+  "TC-R437 "
+ ],
+ "build": "always",
+ "situations": [
+  {
+   "name": "kunal761",
+   "match": "^375x761 TC-R437 "
+  },
+  {
+   "name": "320x568",
+   "match": "^320x568 TC-R437 "
+  }
+ ],
+ "breaks": [
+  {
+   "name": "the-games-list-draws-200-rows-at-once",
+   "patch": "breaks/192-the-games-list-draws-200-rows-at-once.diff",
+   "why": "the list draws its whole page of 200 rows in the first frame again",
+   "mustFailIn": [
+    "kunal761",
+    "320x568"
+   ]
+  }
+ ],
+ "timeoutSec": 1500
+}

@@ -540,6 +540,7 @@ async function acctGamesSave(map,order,changed,removed){
 // iOS Safari) times out to the same fallback. [A3-R5, R18: "falls back to localStorage" is true only BEFORE the
 // migration; after it there is no localStorage copy to fall back to, and that launch is ACCT_UNREAD - see below.] A device with no IndexedDB keeps the old store: localStorage,
 // byte-bounded, ACCT_GMAX per account.
+const GLIST_FIRST=40;   // #553 SPD-06: rows drawn with the list's first frame; the rest of the page follows in steps of this size
 const GLIST_PAGE=ACCT_GMAX;   // #549 item (78): rows rendered before the player asks for more
 const ACCT_GMAX_STORE=2000, ACCT_IDB='ct', ACCT_IDB_OS='acctgames', ACCT_MIG='ct_acctgames_migrated';
 let _acctIdbP=null, ACCT_MODE='ls';
@@ -6427,6 +6428,11 @@ function AppMain(){
      once per game graded - blocked a frame for 232-300ms against 14-31ms. GLIST_PAGE is one walk's worth (ACCT_GMAX), which is
      the most one refresh can bring for an account, so one account that never asks for more sees the list it saw before (31). */
   const [gPage,setGPage]=useState(GLIST_PAGE);
+  /* #553 SPD-06 (jobs/speed-check-regressions-2026-11-12, amber flags/amber-553-games-list-draws-in-steps): the list DRAWS its page in steps. The
+     first GLIST_FIRST rows mount with the screen and the rest of the page follows GLIST_FIRST at a time, a timer tick apart, so a tap on Review
+     answers after 40 rows, not 200 (the speed check measured 0.45-0.47 s with 465 games at 4x CPU). Rows past the first 40 are below the fold on
+     every phone. gPage (what the player has asked for) is unchanged; leaving the list resets the steps. */
+  const [gRender,setGRender]=useState(GLIST_FIRST);
   const [ccProg,setCcProg]=useState('');   // #547 item (166): what the fetch is doing, while it does it
   const [review,setReview]=useState(null);
   const [reviewView,setReviewView]=useState('moves');
@@ -6913,6 +6919,8 @@ function AppMain(){
   const rootRef=useRef(null);
 
   const inReview=mode==='analyze'&&review!==null;
+  const _glistOn=mode==='analyze'&&!inReview&&!analyzing;   // the screen the games list is drawn on (the import panel below)
+  useEffect(()=>{if(!_glistOn){setGRender(GLIST_FIRST);return;}if(gRender>=gPage)return;const t=setTimeout(()=>setGRender(r=>Math.min(gPage,r+GLIST_FIRST)),16);return()=>clearTimeout(t);},[_glistOn,gRender,gPage]);   /* #553 SPD-06 */
   revNowRef.current=review;   /* #553: the open review, read by a deeper pass when it finishes */
   const inDemo=mode==='learn'&&learnPhase==='demo'&&learnLine.length>0;
   const demoSt=useMemo(()=>inDemo?demoState(learnLine,demoPly,learnFEN):null,[inDemo,learnLine,demoPly,learnFEN]);
@@ -13818,7 +13826,7 @@ function AppMain(){
                   end of row 1 and the button is 88px, as wide as 'Deepest' needs. ON A SHORT PHONE (under 700 tall, the a42 compaction the
                   Import box already has) the card's padding above and below is 8 and its rows are 4 apart, so the fixed page's games box
                   (about 120px at 320x568) still holds one whole game with the next one starting (gate 164, TC-INV-08w). */}
-              {_shown.slice(0,gPage).map((g,i)=>{const info=gameInfo(g);const _nm=!!(g.acct&&(acctMine||{})[acctId(g.src,g.acct)]===false);const bd=outcomeBadge(info.code);const _k=gkey(g);const st=gameStatsRef.current[_k];
+              {_shown.slice(0,Math.min(gPage,gRender)).map((g,i)=>{const info=gameInfo(g);const _nm=!!(g.acct&&(acctMine||{})[acctId(g.src,g.acct)]===false);const bd=outcomeBadge(info.code);const _k=gkey(g);const st=gameStatsRef.current[_k];
                 const _lvPick=revLevel(gDepth[_k]);/* #553 entry 32 [Amber: flags/amber-553-card-shows-the-depth-held]: THE CARD SHOWS THE DEPTH THE STORED GRADES WERE MADE AT (the tally's dp), never a shallower last pick: a review reuses the deepest finished pass, so Quick picked after Deep still shows Deep grades and says Deep */const _lvHeld=(st&&st.src==='review'&&st.dp!=null)?revLevel(st.dp):0;const _lv=Math.max(_lvPick,_lvHeld);const _kept=_lvHeld>_lvPick;const _nar=vp.w<360;const _tight=_nar&&(g.acct||'').length>20;   /* a 21 to 25 character account on a 320 wide phone: the opponent keeps 1.6em and its brilliant mark is left out, so the account is still whole (measured: 25 characters are about 213 of the row's 272px) */const _sht=!wide&&vp.h<700;const _dt=g.date?new Date(g.date).toLocaleDateString(undefined,{month:'short',day:'numeric'}):'';const _split=!!st&&st.best!=null&&st.grt!=null;const _mut='rgba(255,255,255,.6)';
                 const _mv=[['bril','!!','#7be9f7','34,211,238',st?(st.bril||0):null,'brilliant'],['best','★','#7fdc7f','111,214,111',_split?st.best:null,'best'],['great','!','#8fb6f2','93,147,232',_split?st.grt:null,'great'],['blun','??','#f28b80','236,92,78',st?(st.blun||0):null,'blunders']];
                 const _open=()=>pickCcGame(g);const _acct=g.acct?g.acct:(g.src==='li'?'Lichess':'Chess.com');

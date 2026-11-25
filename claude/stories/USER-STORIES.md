@@ -2979,3 +2979,8 @@ As a player, I can read the 'New here? Start here' label on Home and see where e
 *Added #553 B3, jobs/speed-check-regressions-2026-11-12 (SPD-10 of docs/speed-check-2026-11-12). Amber: flags/amber-553-roadmap-glow-stops.*
 As a player who leaves the Puzzles roadmap open, the active tier's glow pulses a few times on arrival and then rests, so the phone is not kept busy.
 - The glow repeats at most four times and has stopped 11 seconds after the roadmap opens. (TC-R436)
+
+### US-R253 Opening Review answers at once, however many games I hold
+*Added #553 B3, jobs/speed-check-regressions-2026-11-12 (SPD-06 of docs/speed-check-2026-11-12). Amber: flags/amber-553-games-list-draws-in-steps.*
+As a player with hundreds of stored games, tapping Review shows the list straight away; the rows further down are drawn a moment later, before I can scroll to them, and every row, the search, the filters and both more-games buttons stay where they were.
+- The first frame with games draws at most 50 rows and the whole first page of 200 is drawn within 3 seconds, with Show more games under it. (TC-R437)
