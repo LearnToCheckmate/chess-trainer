@@ -20,6 +20,9 @@
 //          Mistake, and the pass checked exactly those two (a review card re-checked would raise `checked`).
 // KNOW ITS LIMIT: three games; the band-edge disagreement depends on the quick search, so the count the tree before drops is a measurement
 // on this container, not a constant (TC-R443 reddens on any drop at all).
+// ON THE REAL TREE: 9 pass, 0 fail on trial 822bb7646e64 (chess.jsx 55032b5baa8e, worktree commit cee77809 on 9667c723), 25 Nov 2026,
+// about 80 s. Over the whole corpus (39 recorded games, a probe, not this gate): 126 cards captured, 126 kept; the tree before kept 96.
+// CONTROL-RECORD: 9667c723 2026-11-25 total=9 red=1 scope=trial:15636c28c017 how=#553 B2 the tree before the fix (review cards stored with no wc): TC-R443 red, 9 of 12 kept (Ba5 Blunder, h4 and Kh6 Mistakes dropped in the session); TC-R442 and TC-R444 stay green, so the drop is the only thing it sees
 const L=require('../lib');const RV=require('../drive/review');
 const fs=require('fs'),path=require('path');
 const FX=path.join(__dirname,'..','fixtures','kunal');
