@@ -565,7 +565,7 @@ L.run(async()=>{
    await marks('drill analyse',onAna?'Qxd7':null);
    await b.close();}
 
-  // CONTROL-RECORD: 97b09af2 2026-11-25 total=113 red=1 scope=trial:f16dbbaeead1 how=#553 B3 the TC-R109 main-worker line re-anchored to the engine start: a break where the eval bar posts 'go depth 11' (its main worker never posts the depth-12 go) - the MAIN WORKER IN SCOPE line red on all 5 walks (gos 0,0,0,0,0), everything else green; the same gate 113/0 on 0316f16c's app (f0c66ac8c7d7) and on HEAD's (88f922302974)
+  // CONTROL-RECORD: 6559d0b2 2026-11-25 total=113 red=1 scope=trial:f16dbbaeead1 how=#553 B3 the TC-R109 main-worker line re-anchored to the engine start: a break where the eval bar posts 'go depth 11' (its main worker never posts the depth-12 go) - the MAIN WORKER IN SCOPE line red on all 5 walks (gos 0,0,0,0,0), everything else green; the same gate 113/0 on 0316f16c's app (f0c66ac8c7d7) and on HEAD's (88f922302974)
   // CONTROL-RECORD: e7287e7 2026-11-06 total=5 red=2 scope=trial:b14a33ac6f42 how=block Q (TC-R109 handshake) run alone against the trial built from HEAD 2bea40d before the A2-R2 fix (cedb498's anaIdle): the review-worker go-before-bestmove line read 1 of 54 and the 0-PAGEERROR line read 1 (RuntimeError: unreachable, worker 1); 2 of 2 control runs red on both, 3 of 3 runs of the fixed trial 5be4259f3452 green [#549 item (26), antagonist A round 2]
   // ── BLOCK Q [#549, item (26), antagonist A round 2, A2-R2 P1 on cedb498]. TC-R109, THE HANDSHAKE HALF: NO `go` IS EVER POSTED TO A
   // STOCKFISH WORKER WHILE ANOTHER `go` ON THAT WORKER HAS NOT ANSWERED `bestmove`. cedb498's anaIdle waited for the stopped search's
