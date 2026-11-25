@@ -1,0 +1,16 @@
+--- a/chess.jsx
++++ b/chess.jsx
+@@ -5573,5 +5573,5 @@
+       <button key={k} onClick={()=>go(k)} aria-label={lab} style={{flex:1,display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',gap:2,background:'none',border:'none',cursor:'pointer',padding:'2px 1px',color:c,minWidth:0,minHeight:44}}>
+         <span style={{display:'inline-flex',width:24,height:24,alignItems:'center',justifyContent:'center'}}>{_navIcon(k,c)}</span>
+-        <span style={{fontSize:12,lineHeight:'13px' /* #553 q23 (his pick A, Desk card 95): 12px minimum; was 10.5, the line box kept at 13 so the bar does not grow */,fontWeight:on?800:600,letterSpacing:.2,whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis',maxWidth:'100%'}}>{lab}</span>
++        <span style={{fontSize:10.5,lineHeight:'13px' /* #553 q23 (his pick A, Desk card 95): 12px minimum; was 10.5, the line box kept at 13 so the bar does not grow */,fontWeight:on?800:600,letterSpacing:.2,whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis',maxWidth:'100%'}}>{lab}</span>
+       </button>);})}
+   </div>);
+@@ -5580,5 +5580,5 @@
+       <button key={k} onClick={()=>go(k)} className="ct-hit44" /* readability check A11Y-15 (Kunal's pick 12 Nov): 43 tall in a 56 bar; the tap area is 44, the bar unchanged */ style={{flex:1,display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',gap:2,background:'none',border:'none',cursor:'pointer',padding:'2px 1px',color:c,minWidth:0,minHeight:44}}>
+         <span style={{display:'inline-flex',width:24,height:24,alignItems:'center',justifyContent:'center'}}>{_navIcon(k,c)}</span>
+-        <span style={{fontSize:12,lineHeight:'13px' /* #553 q23 (his pick A, Desk card 95): 12px minimum; was 10.5, the line box kept at 13 so the bar does not grow */,fontWeight:on?800:600,letterSpacing:.2,whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis',maxWidth:'100%'}}>{lab}</span>
++        <span style={{fontSize:10.5,lineHeight:'13px' /* #553 q23 (his pick A, Desk card 95): 12px minimum; was 10.5, the line box kept at 13 so the bar does not grow */,fontWeight:on?800:600,letterSpacing:.2,whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis',maxWidth:'100%'}}>{lab}</span>
+       </button>);})}
+   </div>);

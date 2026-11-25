@@ -1,0 +1,43 @@
+{
+ "job": "readability-check-2026-11-12",
+ "about": "A11Y-19, his q23 pick A (Desk card 95): a 12px text minimum except the board letters, on the eight screens of the A11Y-19 survey at kunal761 and 320x568. Graded by gate 144 block (i), CT_G144_ONLY=i, in Classic and Playful. NOT COVERED: screens and states outside the survey (68 sub-12 font literals stay in chess.jsx at 0316f16c, most there); the other seven sources each have their own line in the block but no break here.",
+ "gate": "gates/regress/144-readable-everywhere.js",
+ "env": {
+  "CT_G144_ONLY": "i"
+ },
+ "checks": [
+  "^TC-R440 "
+ ],
+ "build": "always",
+ "situations": [
+  {
+   "name": "classic",
+   "match": "^TC-R440 classic "
+  },
+  {
+   "name": "playful",
+   "match": "^TC-R440 playful "
+  }
+ ],
+ "breaks": [
+  {
+   "name": "the-tab-labels-back-to-10-5px",
+   "patch": "breaks/a11y-tab-labels-back-to-10-5px.diff",
+   "why": "the five tab bar labels go back to 10.5px",
+   "mustFailIn": [
+    "classic",
+    "playful"
+   ]
+  },
+  {
+   "name": "the-review-skills-back-to-11-5px",
+   "patch": "breaks/a11y-review-skills-back-to-11-5px.diff",
+   "why": "the Review summary's Skills panel heads and sublines go back to 11.5px",
+   "mustFailIn": [
+    "classic",
+    "playful"
+   ]
+  }
+ ],
+ "timeoutSec": 2400
+}
