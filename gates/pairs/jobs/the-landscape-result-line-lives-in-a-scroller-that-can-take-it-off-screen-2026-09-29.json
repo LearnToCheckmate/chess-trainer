@@ -1,0 +1,47 @@
+{
+ "job": "the-landscape-result-line-lives-in-a-scroller-that-can-take-it-off-screen-2026-09-29",
+ "about": "BATCH 14 B2: a sideways game that ends vs the computer, on a REAL one-minute flag or by resigning at the same ply count, paints every text of its side rail inside the rail's clip box at first paint, the rail does not scroll, and the time ending costs no height the resign ending does not (the folded lead job a-landscape-time-loss-...-2026-10-07's 34.5px). Graded by gate 237 (TC-R415, TC-R431) at 730x375, 761x375 and 730x350. Two ways it could come undone are each caught: the time ending's chrome growing (the lead job's mechanism) and the rail's content running below the fold (the moves panel under the window). NOT COVERED: online games sideways, a phone rotated after the end, iOS Safari, his look.",
+ "gate": "gates/regress/237-landscape-gameover-clip-box.js",
+ "checks": [
+  "TC-R415 ",
+  "TC-R431 "
+ ],
+ "build": "always",
+ "situations": [
+  {
+   "name": "730x375",
+   "match": "^730x375"
+  },
+  {
+   "name": "761x375",
+   "match": "^761x375"
+  },
+  {
+   "name": "730x350",
+   "match": "^730x350"
+  }
+ ],
+ "breaks": [
+  {
+   "name": "the-time-ending-costs-36px-more",
+   "patch": "breaks/237-the-time-ending-costs-36px-more.diff",
+   "why": "the result card takes 36px more after a time loss than after a resign, so the buttons drop and the rail overflows - the lead job's mechanism",
+   "mustFailIn": [
+    "730x375",
+    "761x375",
+    "730x350"
+   ]
+  },
+  {
+   "name": "the-rail-runs-below-the-fold",
+   "patch": "breaks/237-the-rail-runs-below-the-fold.diff",
+   "why": "the rail's content runs 140px past its window, so the strength pill and the bottom player bar are below the fold at first paint",
+   "mustFailIn": [
+    "730x375",
+    "761x375",
+    "730x350"
+   ]
+  }
+ ],
+ "timeoutSec": 2400
+}
