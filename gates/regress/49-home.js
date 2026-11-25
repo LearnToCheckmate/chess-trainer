@@ -406,8 +406,23 @@ const LS=(b,k)=>b.page.evaluate((k)=>{try{return localStorage.getItem(k);}catch(
 const SEEDED=async(b)=>{await b.home();await H.scrollHome(b,'top');await b.settle(250);};
 const near=(a,c,tol)=>a!=null&&c!=null&&Math.abs(a-c)<(tol==null?0.6:tol);
 const dstr=(d)=>d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
-const TODAY=dstr(new Date());
-const YDAY=(()=>{const d=new Date();d.setDate(d.getDate()-1);return dstr(d);})();
+// ONE CLOCK READING, AND EVERY PAGE PINNED TO ITS DAY [#553 B1; jobs/gate-49-goes-red-on-hm-042-to-051-when-a-run-crosses-utc-
+// midnight-2026-11-25]. TODAY and YDAY are read ONCE, here, when the gate starts, and the seeded stores carry them; the app reads
+// its own 'today' from the page's clock. A run that started at 23:59 and launched its later pages after 00:00 therefore seeded
+// yesterday's date into a store the app read as today's, and HM-042..051 went red (seat B2, Tue 24 Nov, on a healthy bundle).
+// So every launch in this gate pins the PAGE's clock to the same day: launch() below installs, before the app's first script, a
+// Date whose time starts at NOON of TODAY (in the page's own time zone) and runs on in real time from there, so durations and
+// timers are unchanged and no page of a run can reach midnight. The assertions are not touched.
+// CT_HM_NOW=<ISO time> sets the one reading (a control: CT_HM_NOW=<yesterday>T23:59:50Z is a run whose seed was read before
+// midnight and whose pages run after it - red before this pin, green with it). Printed loudly when set.
+const NOW0=process.env.CT_HM_NOW?new Date(process.env.CT_HM_NOW):new Date();
+if(isNaN(NOW0.getTime()))throw new Error('CT_HM_NOW is not a time: '+process.env.CT_HM_NOW);
+const TODAY=dstr(NOW0);
+const YDAY=(()=>{const d=new Date(NOW0.getTime());d.setDate(d.getDate()-1);return dstr(d);})();
+const PIN_DAY=(a)=>{try{const R=Date;const off=new R(a.y,a.m-1,a.d,12,0,0,0).getTime()-R.now();
+  class D extends R{constructor(...x){if(x.length===0)super(R.now()+off);else super(...x);}static now(){return R.now()+off;}}
+  D.parse=R.parse;D.UTC=R.UTC;window.Date=D;window.__ctHmDay=a.y+'-'+a.m+'-'+a.d;}catch(e){}};
+const launch=async(o)=>{const b=await L.launch(o);const [y,m,d]=TODAY.split('-').map(Number);await b.ctx.addInitScript(PIN_DAY,{y,m,d});return b;};
 
 // ── MEASURED, #398 and #921 alike, on a FRESH store ───────────────────────────────────────────────────────
 // colW is min(vw-24, 420): the overlay's own 12px side padding (18 until formatting audit FMT-A-08, Kunal's pick 12 Nov), uncapped at every phone width in this set.
@@ -487,6 +502,7 @@ const ONLY=(process.env.CT_HM_BLOCKS||'').split(',').map(x=>x.trim()).filter(Boo
 const blk=(k)=>!ONLY.length||ONLY.indexOf(k)>=0;
 
 L.run(async()=>{
+if(process.env.CT_HM_NOW) L.note('!! CT_HM_NOW='+process.env.CT_HM_NOW+' - THE GATE\'S ONE CLOCK READING IS SET, NOT READ (the midnight control): TODAY='+TODAY+', YDAY='+YDAY+'; the pages run at the real time, pinned to '+TODAY);
 
 // =========================================================================================================
 // HM-A  The overlay, the column, and what is and is not on this screen.  TC-HM-001 … TC-HM-008.
@@ -496,7 +512,7 @@ L.run(async()=>{
 // =========================================================================================================
 if(blk('A'))for(const geo of GEOS){
   const W=M[geo],vw=L.GEOS[geo].w,vh=L.GEOS[geo].h;
-  const b=await L.launch({geo,name:'home-a-'+geo});await b.open();
+  const b=await launch({geo,name:'home-a-'+geo});await b.open();
   await H.states['home'](b);
   L.note(geo+': bundle stamp in the page = '+(await b.stamp()));
 
@@ -559,7 +575,7 @@ if(blk('A'))for(const geo of GEOS){
 // =========================================================================================================
 if(blk('B'))for(const geo of GEOS){
   const vw=L.GEOS[geo].w,vh=L.GEOS[geo].h,W=T[geo];
-  const b=await L.launch({geo,name:'home-b-'+geo});await b.open();
+  const b=await launch({geo,name:'home-b-'+geo});await b.open();
   await H.states['home'](b);
 
   const t=await TILES(b);
@@ -596,7 +612,7 @@ if(blk('B'))for(const geo of GEOS){
 // =========================================================================================================
 if(blk('C'))for(const geo of GEOS){
   const W=M[geo],vh=L.GEOS[geo].h;
-  const b=await L.launch({geo,name:'home-c-'+geo});await b.open();
+  const b=await launch({geo,name:'home-c-'+geo});await b.open();
   await H.states['home'](b);
 
   const look=await REACH(b,'[data-ct="home-look"]');
@@ -634,7 +650,7 @@ if(blk('D')){
   ];
   let n=23;
   for(const [k,re,what] of NAV){
-    const b=await L.launch({geo:'kunal730',name:'home-d-'+k});await b.open();
+    const b=await launch({geo:'kunal730',name:'home-d-'+k});await b.open();
     await H.states['home'](b);
     // CLAUDE.md, #393: a gate that throws on a missing element leaves every assertion after it unrun - a real
     // regression on a real build would stop this file at the first absence. Anything that NAVIGATES goes red on
@@ -650,7 +666,7 @@ if(blk('D')){
     await b.close();
   }
   {
-    const b=await L.launch({geo:'kunal730',name:'home-d-menu'});await b.open();await H.states['home'](b);
+    const b=await launch({geo:'kunal730',name:'home-d-menu'});await b.open();await H.states['home'](b);
     let e1=null;try{await b.tapCt('home-menu',900);}catch(e){e1=String(e).slice(0,140);}
     L.say(!e1,'375x730: [data-ct="home-menu"] could be tapped (navigation, not an assertion)',e1);
     const st=await b.page.evaluate(()=>{const s=document.querySelector('[data-ct="menu-sheet"]');if(!s)return null;
@@ -661,7 +677,7 @@ if(blk('D')){
     await b.close();
   }
   {
-    const b=await L.launch({geo:'kunal730',name:'home-d-acct'});await b.open();await H.states['home'](b);
+    const b=await launch({geo:'kunal730',name:'home-d-acct'});await b.open();await H.states['home'](b);
     const btn=await b.page.evaluate(()=>{const e=document.querySelector('button[title="Sign in"]');if(!e)return null;
       const r=e.getBoundingClientRect();return {x:r.left+r.width/2,y:r.top+r.height/2,w:Math.round(r.width),h:Math.round(r.height),t:(e.innerText||'').trim()};});
     L.say(!!btn&&btn.w===46&&btn.h===46&&btn.t==='👋',
@@ -675,7 +691,7 @@ if(blk('D')){
     await b.close();
   }
   {
-    const b=await L.launch({geo:'kunal730',name:'home-d-look'});await b.open();await H.states['home'](b);
+    const b=await launch({geo:'kunal730',name:'home-d-look'});await b.open();await H.states['home'](b);
     let e2=null;try{await H.tapCtScroll(b,'home-look',900);}catch(e){e2=String(e).slice(0,140);}
     L.say(!e2,'375x730: [data-ct="home-look"] could be scrolled to and tapped (navigation, not an assertion)',e2);
     const st=await b.page.evaluate(()=>({look:!!document.querySelector('[data-ct="look"]'),
@@ -698,7 +714,7 @@ if(blk('E'))for(const geo of ['se','kunal730']){
   // --- TC-HM-031/032/033: the empty state. #550 jobs/build-home-one-today-card: ONE card, the Today card, on every store - the 1/5 strip
   // that used to appear above it once anything was earned has left Home (it is asserted absent on the EARNED store below, where it used to be).
   {
-    const b=await L.launch({geo,name:'home-e-fresh-'+geo});await b.open();
+    const b=await launch({geo,name:'home-e-fresh-'+geo});await b.open();
     await H.states['home'](b);
     const s=await STREAK(b),d=await DAILY3(b);
     L.say(!!s&&s.present===false&&!s.words.fiveGoal&&!s.words.xp&&s.words.ofThree===1,
@@ -726,7 +742,7 @@ if(blk('E'))for(const geo of ['se','kunal730']){
   // --- TC-HM-037/038/039/040: the earned state - the store the 1/5 strip used to appear on. NEW HERE goes, and NOTHING takes its slot: the
   // streak is on the Today card, XP and the five-a-day goal are on the Puzzles roadmap header (TC-HM-047).
   {
-    const b=await L.launch({geo,name:'home-e-earned-'+geo,
+    const b=await launch({geo,name:'home-e-earned-'+geo,
       store:{ct_daily:{date:TODAY,streak:4,count:2},
              'chesstrainer.progress.v1':{solved:{g0:1,g1:1},streak:2,best:3,xp:120,online:0,onlineIds:{}}}});
     await b.open();await SEEDED(b);
@@ -752,7 +768,7 @@ if(blk('E'))for(const geo of ['se','kunal730']){
   for(const [nm,seed,gone] of [['drill-only',{ct_mymistakes:[{fen:'rnbqkbnr/pppppppp/8/8/4P3/8/PPPP1PPP/RNBQKBNR b KQkq - 0 1',uci:'e7e5',played:'a7a6',label:'Mistake'}]},true],
                           ['banked-day',{ct_learnprog:{'Italian Game':{learned:true,days:['2026-11-05']}}},true],
                           ['opened-a-lesson',{ct_lastlesson:'0'},false]]){
-    const b=await L.launch({geo,name:'home-e-used-'+nm+'-'+geo,store:seed});
+    const b=await launch({geo,name:'home-e-used-'+nm+'-'+geo,store:seed});
     await b.open();await SEEDED(b);
     const cards=await CARDS(b);
     if(gone)L.say(!!cards&&cards.some(c=>c.id==='today')&&!cards.some(c=>c.id==='newhere'),
@@ -762,14 +778,14 @@ if(blk('E'))for(const geo of ['se','kunal730']){
     await b.close();
   }
   {
-    const b=await L.launch({geo,name:'home-e-promise-'+geo,store:{}});await b.open();await SEEDED(b);
+    const b=await launch({geo,name:'home-e-promise-'+geo,store:{}});await b.open();await SEEDED(b);
     const t=await b.page.evaluate(()=>{const ov=[...document.querySelectorAll('div')].find(d=>d.style.position==='fixed'&&d.style.zIndex==='500');const el=ov?[...ov.querySelectorAll('button')].find(x=>/^NEW HERE/i.test((x.innerText||'').trim())):null;return el?(el.innerText||'').replace(/\s+/g,' ').trim():null;});
     L.say(!!t&&/bank your first day\.$/.test(t)&&!/\bwin\b/i.test(t),
       geo+': TC-HM-055 [promise; finding C, Amber: flags/amber-549-new-here-promise] on a fresh store the NEW HERE card promises what a clean practice run banks - a DAY - and no longer a "win" the walkthrough never delivers',t);
     await b.close();
   }
   {
-    const b=await L.launch({geo,name:'home-e-goal-'+geo,
+    const b=await launch({geo,name:'home-e-goal-'+geo,
       store:{ct_daily:{date:TODAY,streak:9,count:5},
              'chesstrainer.progress.v1':{solved:{g0:1},streak:1,best:1,xp:60,online:0,onlineIds:{}}}});
     await b.open();await SEEDED(b);
@@ -781,15 +797,19 @@ if(blk('E'))for(const geo of ['se','kunal730']){
 
   // --- TC-HM-042/043: the Daily 3 dots read ct_daily3, and the first one reads ct_lastlesson.
   {
-    const b=await L.launch({geo,name:'home-e-d3-'+geo,store:{ct_daily3:{date:TODAY,lesson:1,puz:1}}});
+    const b=await launch({geo,name:'home-e-d3-'+geo,store:{ct_daily3:{date:TODAY,lesson:1,puz:1}}});
     await b.open();await SEEDED(b);
+    // the page's own today IS the seed's today - read with the app's own date formula (chess.jsx dstr), so a pin that stopped
+    // installing, or a seed read on another day, is red here by name rather than as HM-042..051 going red for no stated reason
+    const pageDay=await b.page.evaluate(()=>{const t=new Date();return t.getFullYear()+'-'+String(t.getMonth()+1).padStart(2,'0')+'-'+String(t.getDate()).padStart(2,'0');});
+    L.say(pageDay===TODAY,geo+': TC-HM-042 PRECONDITION the page\'s own date is the day the seeded stores carry ('+pageDay+' vs '+TODAY+'), so a run crossing midnight still seeds "today"',{pageDay,TODAY,NOW0:NOW0.toISOString(),pinned:await b.page.evaluate(()=>window.__ctHmDay||null)});
     const d=await DAILY3(b);
     L.say(!!d&&d.marks.join('|')==='✓|✓|'&&d.count==='Today 2 of 3'&&d.next==='Next ›'&&d.sub==='bonus · any one keeps your streak',
       geo+': TC-HM-042 one lesson and one puzzle done ticks the first two dots and leaves the third, counts "Today 2 of 3", still offers "Next ›" and still says "bonus · any one keeps your streak"',d);
     await b.close();
   }
   {
-    const b=await L.launch({geo,name:'home-e-d3done-'+geo,store:{ct_daily3:{date:TODAY,lesson:1,puz:2}}});
+    const b=await launch({geo,name:'home-e-d3done-'+geo,store:{ct_daily3:{date:TODAY,lesson:1,puz:2}}});
     await b.open();await SEEDED(b);
     const d=await DAILY3(b);
     L.say(!!d&&d.marks.join('|')==='✓|✓|✓'&&d.count==='Today 3 of 3'&&d.sub==='done for today'&&d.next==='Puzzles ›',
@@ -797,7 +817,7 @@ if(blk('E'))for(const geo of ['se','kunal730']){
     await b.close();
   }
   {
-    const b=await L.launch({geo,name:'home-e-cont-'+geo,store:{ct_lastlesson:'0'}});
+    const b=await launch({geo,name:'home-e-cont-'+geo,store:{ct_lastlesson:'0'}});
     await b.open();await SEEDED(b);
     const d=await DAILY3(b);
     L.say(!!d&&d.labels[0]==='Continue: Italian Game'&&d.marks[0]==='',
@@ -807,7 +827,7 @@ if(blk('E'))for(const geo of ['se','kunal730']){
 
   // --- TC-HM-045: the at-risk wording, and the dead banner that should have carried it.
   {
-    const b=await L.launch({geo,name:'home-e-risk-'+geo,
+    const b=await launch({geo,name:'home-e-risk-'+geo,
       store:{ct_daily:{date:YDAY,streak:6,count:3},
              'chesstrainer.progress.v1':{solved:{g0:1},streak:1,best:1,xp:60,online:0,onlineIds:{}}}});
     await b.open();await SEEDED(b);
@@ -826,7 +846,7 @@ if(blk('E'))for(const geo of ['se','kunal730']){
 if(blk('F')){
   // #550 jobs/build-home-one-today-card: the strip that this tap used to be on has left Home. What it carried - XP and the five-a-day goal -
   // stays on the Puzzles roadmap header, and the Today card with its lesson done is what takes the player there.
-  const b=await L.launch({geo:'kunal730',name:'home-f-streaktap',store:{ct_daily:{date:TODAY,streak:4,count:2},ct_daily3:{date:TODAY,lesson:1,puz:0},
+  const b=await launch({geo:'kunal730',name:'home-f-streaktap',store:{ct_daily:{date:TODAY,streak:4,count:2},ct_daily3:{date:TODAY,lesson:1,puz:0},
     'chesstrainer.progress.v1':{solved:{g0:1,g1:1},streak:2,best:3,xp:120,online:0,onlineIds:{}}}});
   await b.open();await SEEDED(b);
   const tapped=await TAP(b,/^🔥 .*\bToday 1 of 3\b/,1400);
@@ -836,14 +856,14 @@ if(blk('F')){
   await b.close();
 }
 if(blk('F')){
-  const b=await L.launch({geo:'kunal730',name:'home-f-d3tap'});await b.open();await H.states['home'](b);
+  const b=await launch({geo:'kunal730',name:'home-f-d3tap'});await b.open();await H.states['home'](b);
   const tapped=await TAP(b,/^🔥 .*\bToday 0 of 3\b/,1400);
   L.say(tapped&&!await homeUp(b)&&/What do you want to learn\?/.test(await rootText(b)),
     '375x730: TC-HM-048 with no lesson in progress the Today card\'s Next goes to Discover to pick one, and Home comes down',(await rootText(b)).slice(0,80));
   await b.close();
 }
 if(blk('F')){
-  const b=await L.launch({geo:'kunal730',name:'home-f-coachtap'});await b.open();await H.states['home'](b);
+  const b=await launch({geo:'kunal730',name:'home-f-coachtap'});await b.open();await H.states['home'](b);
   await TAP(b,/^🎓/,2200);
   L.say(!await homeUp(b)&&await b.page.evaluate(()=>!!document.querySelector('[data-ct="lesson-note"]')),
     '375x730: TC-HM-049 the coach line opens the lesson it recommends and Home comes down with it - chess.jsx:4567 calls setHomeScreen(false) before selectOpening() - the cite read 4339 until #425 and had drifted, in the same block that corrected two other stale cites. Since #425 it also calls setMode(learn), which is what TC-HM-050c pins',(await rootText(b)).slice(0,80));
@@ -859,7 +879,7 @@ if(blk('F')){
 // #399 / gate-47 class - a control recipe naming line numbers that have moved - and a comment is the one place
 // nothing re-derives the number, so it is the place it rots.
 if(blk('F'))for(const geo of ['se','kunal730']){
-  const b=await L.launch({geo,name:'home-f-newhere-'+geo});await b.open();
+  const b=await launch({geo,name:'home-f-newhere-'+geo});await b.open();
   await H.states['home'](b);
   const before={ll:await LS(b,'ct_lastlesson'),home:await homeUp(b),
     lesson:await b.page.evaluate(()=>!!document.querySelector('[data-ct="lesson-note"]'))};
@@ -913,7 +933,7 @@ if(blk('F'))for(const geo of ['se','kunal730']){
   // HERE, back to Home about a second later (Got it, then Close lesson, long before the walkthrough ends), then a reload. On 4471c98's
   // bundle the card was gone both times, because selectOpening writes ct_lastlesson on the tap and that alone retired it.
   {
-    const b2=await L.launch({geo,name:'home-f-056-'+geo});await b2.open();await H.states['home'](b2);
+    const b2=await launch({geo,name:'home-f-056-'+geo});await b2.open();await H.states['home'](b2);
     const bx=await b2.page.evaluate(()=>{const ov=[...document.querySelectorAll('div')].find(d=>d.style.position==='fixed'&&d.style.zIndex==='500');
       const el=ov?[...ov.querySelectorAll('button')].find(x=>/^NEW HERE/.test((x.innerText||'').trim())):null;if(!el)return null;const r=el.getBoundingClientRect();return {x:r.left+r.width/2,y:r.top+r.height/2};});
     if(bx)await b2.page.mouse.click(bx.x,bx.y);
@@ -933,7 +953,7 @@ if(blk('F'))for(const geo of ['se','kunal730']){
 }
 // TC-HM-053b, THE OVER-APPLICATION CONTROL: a lesson opened from DISCOVER still closes to Discover - the NEW HERE route is the only one changed.
 for(const geo of ['kunal730']){
-  const D=require('../drive/lesson');const b=await L.launch({geo,name:'home-053b-'+geo,store:{}});await b.open();let ok=true;
+  const D=require('../drive/lesson');const b=await launch({geo,name:'home-053b-'+geo,store:{}});await b.open();let ok=true;
   try{await D.openLesson(b,'Openings',0);await b.settle(600);await b.page.evaluate(()=>{const g=[...document.querySelectorAll('button')].find(x=>/^Got it/.test((x.innerText||'').trim()));if(g)g.click();});await b.settle(500);}catch(e){ok=false;}
   const cl=await b.page.evaluate(()=>{const x=[...document.querySelectorAll('button[aria-label="Close lesson"]')].find(e=>{const r=e.getBoundingClientRect();return r.width>2&&r.height>2;});if(!x)return false;x.click();return true;});
   await b.settle(900);
@@ -968,7 +988,7 @@ if(blk('F'))for(const geo of ['se','kunal730']){
     {id:'Today',         seed:{ct_lastlesson:'0'}, re:/^\u{1F525} .*Today [0-3] of 3/u, src:'chess.jsx _today goNext'},   // #550: the Daily 3 card is the one Today card
   ];
   for(const card of CARDS){
-    const b=await L.launch({geo,name:'home-f-mode-'+geo+'-'+card.id.replace(/\s+/g,'')});await b.open();
+    const b=await launch({geo,name:'home-f-mode-'+geo+'-'+card.id.replace(/\s+/g,'')});await b.open();
     await H.fresh(b,card.seed);
     await b.tile('Play');await b.settle(900);
     const inPlay=await b.page.evaluate(()=>({home:!![...document.querySelectorAll('div')].find(d=>d.style.position==='fixed'&&d.style.zIndex==='500'),
@@ -1196,7 +1216,7 @@ const LANDED={lesson:(w)=>w.lesson,learn:(w)=>w.learn,puzzle:(w)=>w.puzzle,revie
 // ONE geometry: the geometry in which that whole class of fault is invisible. A recommendation in a header is not
 // a default. CT_HM_STORES is the same shape and ITS default is both shapes, for the same reason.
 if(blk('G'))for(const geo of (process.env.CT_HM_GEOS||'se,kunal730').split(',').map(x=>x.trim()).filter(Boolean)){
-  const b=await L.launch({geo,name:'home-g-class-'+geo});await b.open();
+  const b=await launch({geo,name:'home-g-class-'+geo});await b.open();
   const stores=HOME_STORES.filter(s=>(process.env.CT_HM_STORES||'fresh,earned,lessondone').split(',').map(x=>x.trim()).indexOf(s.store)>=0);
   for(const S of stores){
   const tag=geo+'/'+S.store;
@@ -1309,7 +1329,7 @@ if(blk('G'))for(const geo of (process.env.CT_HM_GEOS||'se,kunal730').split(',').
 // 2026-10-10) and the tiles do not run under the bar. MEASURED on main c7f6a1228e43: the tiles end at y 402 at every phone, a band
 // of 354px at 375x812, 272 at 375x730, 110 at 320x568.
 for(const g of [{w:375,h:812,safe:''},L.GEOS.kunal730,{w:320,h:568,safe:''}]){
-  const b=await L.launch({geo:g,name:'discover-tiles-'+g.w+'x'+g.h});await b.open();let ok=true;
+  const b=await launch({geo:g,name:'discover-tiles-'+g.w+'x'+g.h});await b.open();let ok=true;
   try{await H.states['discover'](b);await b.settle(600);}catch(e){ok=false;}
   const m=await b.page.evaluate(()=>{const btns=[...document.querySelectorAll('button')].filter(x=>(x.innerText||'').split('\n').some(l=>/^(Openings|Gambits|Endgames|Tactics( & strategy)?)$/.test(l.trim())));
     const tb=[...document.querySelectorAll('div')].filter(d=>getComputedStyle(d).position==='fixed'&&/Discover/.test(d.innerText||'')&&/Puzzles/.test(d.innerText||'')).map(d=>d.getBoundingClientRect()).sort((a,c)=>c.top-a.top)[0];
