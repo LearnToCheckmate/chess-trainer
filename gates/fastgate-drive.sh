@@ -325,7 +325,7 @@ tc(){ # <case> -> its TC id, or a loud placeholder
     H68) printf 'TC-SUITE-306' ;;
     H69) printf 'TC-SUITE-386' ;;
     H70) printf 'TC-SUITE-388' ;;  H71) printf 'TC-SUITE-389' ;;
-    H72) printf 'TC-SUITE-393' ;;  H73) printf 'TC-SUITE-394' ;;  H74) printf 'TC-SUITE-399' ;;  H75) printf 'TC-SUITE-400' ;;
+    H72) printf 'TC-SUITE-393' ;;  H73) printf 'TC-SUITE-394' ;;  H74) printf 'TC-SUITE-399' ;;  H75) printf 'TC-SUITE-400' ;;  H76) printf 'TC-SUITE-401' ;;  H77) printf 'TC-SUITE-402' ;;
     *)   printf 'TC-SUITE-UNMAPPED(%s)' "$1" ;;
   esac
 }
@@ -2776,6 +2776,45 @@ else
   else
     note "  FAIL H75 [$(tc H75)]  exit $PROBE_RC, expected 0 FAST GATE GREEN with gate 81 run over the added file"
     show_verdict "$PROBE_OUT"; BAD=$((BAD+1)); FAILED_CASES="$FAILED_CASES H75"
+  fi
+fi
+
+# H76 NEGATIVE AND H77 POSITIVE [#553 B2; the landing pre-check's red on gate 219 'READ A RECORDS-ONLY PATH']. claude/stories/ is
+#     RECORDS, and gate 219 reads it (and the gate logs it cites) through git, so a records-only commit that changes a case row's
+#     published count can turn gate 219 red while the fast tier read green. H76's register-only change (one minted row) also edits
+#     TC-INV-02a's counted cell in claude/stories/TEST-CASES.md from 45 PASS to 46, which its log does not carry. Expected: exit 1 and
+#     "gate 219". H77 is the control that the arm does not run on everything: the same register-only commit touching neither
+#     claude/stories/ nor claude/agents/gatelogs/ takes exit 0 FAST GATE GREEN, and gate 219 is NOT run ("gate 219 over this tree" absent).
+#     The control for H76 is the tree before this arm (fastgate.sh without it), where the same commit took exit 0 FAST GATE GREEN.
+reset_clone
+H76N="$(mint_in_clone)"
+if badnum "$H76N" || ! grep -q '45 PASS / 0 FAIL lines naming TC-INV-02a in ' "$C/claude/stories/TEST-CASES.md" 2>/dev/null; then
+  note "  FAIL H76 [$(tc H76)]  the fixture cannot pose (number '$H76N', or no counted TC-INV-02a cell reading 45 PASS)"
+  BAD=$((BAD+1)); FAILED_CASES="$FAILED_CASES H76"
+else
+  sed -i 's#45 PASS / 0 FAIL lines naming TC-INV-02a in #46 PASS / 0 FAIL lines naming TC-INV-02a in #' "$C/claude/stories/TEST-CASES.md"
+  commit_case "H76 register only: one minted row for #$H76N, plus TC-INV-02a's counted cell published as 46 PASS (its log carries 45)"
+  if probe 1 "gate 219"; then
+    note "  ok  H76 [$(tc H76)]  (exit 1 naming gate 219: a records commit that breaks a case row's published count is refused)"
+    OK=$((OK+1))
+  else
+    note "  FAIL H76 [$(tc H76)]  exit $PROBE_RC, expected 1 naming gate 219 - a case row's broken count must not take a fast green"
+    show_verdict "$PROBE_OUT"; BAD=$((BAD+1)); FAILED_CASES="$FAILED_CASES H76"
+  fi
+fi
+reset_clone
+H77N="$(mint_in_clone)"
+if badnum "$H77N"; then
+  note "  FAIL H77 [$(tc H77)]  could not mint a fixture number in the clone"
+  BAD=$((BAD+1)); FAILED_CASES="$FAILED_CASES H77"
+else
+  commit_case "H77 register only: one minted row for #$H77N, nothing under claude/stories or claude/agents/gatelogs"
+  if probe 0 "FAST GATE GREEN" && case "$PROBE_OUT" in *"gate 219 over this tree"*) false ;; *) true ;; esac; then
+    note "  ok  H77 [$(tc H77)]  (exit 0 FAST GATE GREEN, and gate 219 was not run: the range touched neither path)"
+    OK=$((OK+1))
+  else
+    note "  FAIL H77 [$(tc H77)]  exit $PROBE_RC, expected 0 FAST GATE GREEN with gate 219 NOT run"
+    show_verdict "$PROBE_OUT"; BAD=$((BAD+1)); FAILED_CASES="$FAILED_CASES H77"
   fi
 fi
 
