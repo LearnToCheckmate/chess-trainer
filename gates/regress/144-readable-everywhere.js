@@ -31,6 +31,7 @@
 // a global rule), field edges (A11Y-08), the Discover badge (A11Y-04), tallies (A11Y-09) and every P3 are NOT read here.
 // CONTROL-RECORD: 4baf00d 2026-11-14 total=48 red=2 scope=trial:9d44bba256e6 how=#550 helper app A, FMT-B-03 follow-up: the tree before the short-phone Review corners change (the 44x44 back and more in a 32 bar) - TC-R220f se rev-back and rev-more red (tap area 44x35, drawn from y -4); the fix's bundle 92b13a5b8746 reads 48/0
 // CONTROL-RECORD: 34a4a6d 2026-11-13 total=46 red=31 scope=trial:9812f33cea74 how=the branch tip before the change (white ink on every accent, one-colour clock inks, root-white flag alt text, colour-only graph dots, 43px tabs, 30px close): 2.07..3.40 on the accents, cream clock 3.56 / amber 1.44 / red 3.17, AT 1.17; on a11a610b8f51 46/0
+// CONTROL-RECORD: a5ddc8cc 2026-11-25 total=10 red=4 scope=env:CT_G144_ONLY=h how=#553 B3 THE SUBJECT REMOVED: the tree before (trial 98eae81eb01b, the label at 55% black and the boxes at 18% white) - TC-R425a 3.33 and TC-R425b 1.74 red at kunal761 and se; the preconditions, denominators and error lines green
 const L=require('../lib');
 /* #550 helper A, r19 audit A4 [jobs/r19-phone-geometry-audit-is-red-on-the-branch-and-a4c-reads-short-as-a-dead-geos-key-2026-11-14]:
    a geometry is asked by its ENTRY (w, h), never its key or label, so a renamed GEOS key throws here instead of silently skipping a branch. */
@@ -95,7 +96,31 @@ const ACCENT_BTNS=`(()=>{const pc=(s)=>{const m=String(s||'').match(/rgba?\\(([^
   return {ac,btns:[...document.querySelectorAll('button')].filter(x=>{const r=x.getBoundingClientRect();return r.width>1&&r.height>1&&r.top<innerHeight&&r.bottom>0&&pc(getComputedStyle(x).backgroundColor)===acr;}).map(x=>window.__ctCR(x))};})()`;
 async function themed(b,skin,theme){await b.page.evaluate(([s,t])=>{localStorage.setItem('ct_skin',String(s));localStorage.setItem('ct_theme',String(t));},[skin,theme]);
   await b.page.reload({waitUntil:'domcontentloaded'});await b.settle(1500);await b.page.evaluate(COMP);await b.tile('Review');await b.settle(700);await b.page.evaluate(COMP);return b.page.evaluate(ACCENT_BTNS);}
+/* (h), measured by itself with CT_G144_ONLY=h (controls; gates.sh never sets it) */
+async function blockH(){
+  // (h) TC-R425 [#553 B3, jobs/readability-check-2026-11-12, the batch 10 remainder read from the audit's own texts (docs/readability-check-2026-11-12)]:
+  // A11Y-14 the Home 'New here? Start here' label (12px bold, 55% black on the light blue card read 3.33) and A11Y-08 the text-box edges on the Review
+  // list (18% white read 1.74 against the card; a control edge needs 3:1, WCAG 1.4.11). Amber flags/amber-553-new-here-label-ink and
+  // flags/amber-553-text-box-edges. The edge is the border colour composited on the nearest opaque ancestor and compared with that ancestor.
+  // KNOW ITS LIMIT: Classic skin only; the other text boxes (Discover's filter, Feedback, the puzzle pin) share the one rule and are not read here.
+  for(const geo of ['kunal761','se']){const b=await L.launch({geo,name:'a11y553-'+geo});await b.open();await b.settle(1200);await b.page.evaluate(COMP);
+   const nh=await b.page.evaluate(()=>{const el=[...document.querySelectorAll('div')].find(e=>e.childNodes.length===1&&e.firstChild.nodeType===3&&/^New here\? Start here$/i.test(e.textContent.trim()));return el?window.__ctCR(el):null;});
+   L.say(!!nh,'TC-R425a '+geo+' PRECONDITION Home shows the New here card on a fresh store');
+   L.say(!!nh&&nh.ratio>=AA,'TC-R425a '+geo+' the New here label reads at least 4.5:1 on its card: '+fmt(nh));
+   await b.tile('Review');await b.settle(1200);
+   const ed=await b.page.evaluate(()=>{const pc=(s)=>{const m=String(s||'').match(/rgba?\(([^)]+)\)/);if(!m)return null;const p=m[1].split(/[ ,\/]+/).filter(Boolean).map(Number);return [p[0],p[1],p[2],p.length>3?p[3]:1];};
+     const lin=(v)=>{v/=255;return v<=0.03928?v/12.92:Math.pow((v+0.055)/1.055,2.4);};const lum=(c)=>0.2126*lin(c[0])+0.7152*lin(c[1])+0.0722*lin(c[2]);
+     const cr=(x,y)=>{const a=lum(x),b=lum(y);return (Math.max(a,b)+0.05)/(Math.min(a,b)+0.05);};
+     const over=(bot,top)=>{const a=top[3];return [top[0]*a+bot[0]*(1-a),top[1]*a+bot[1]*(1-a),top[2]*a+bot[2]*(1-a),1];};
+     const bgOf=(el)=>{for(let n=el.parentElement;n;n=n.parentElement){const c=pc(getComputedStyle(n).backgroundColor);if(c&&c[3]>0.999)return c;}return [0,0,0,1];};
+     return [...document.querySelectorAll('textarea,input,select')].filter(e=>{const r=e.getBoundingClientRect();return r.width>0&&r.height>0&&!/^(range|checkbox|radio|file|hidden)$/.test(e.type||'');}).map(e=>{const cs=getComputedStyle(e);const card=bgOf(e);
+       return {tag:e.tagName+(e.placeholder?' "'+e.placeholder.slice(0,20)+'"':''),bw:parseFloat(cs.borderTopWidth)||0,edge:cs.borderTopColor,ratio:+cr(over(card,pc(cs.borderTopColor)||[0,0,0,0]),card).toFixed(2)};});});
+   L.say(ed.length>=3,'TC-R425b '+geo+' DENOMINATOR the Review list shows its text boxes and picker ('+ed.length+': '+ed.map(x=>x.tag).join(', ')+')');
+   L.say(ed.length>0&&ed.every(x=>x.bw>=1&&x.ratio>=3),'TC-R425b '+geo+' every text box edge reads at least 3:1 against its card: '+ed.map(x=>x.tag+' '+x.ratio+' ('+x.edge+')').join('; '),ed);
+   L.say(b.errs.length===0,'TC-R425 '+geo+' zero app errors',b.errs.slice(0,3));await b.close();}
+}
 L.run(async()=>{
+  if(process.env.CT_G144_ONLY==='h'){L.note('CT_G144_ONLY=h: block (h) alone - a control or a probe, never the suite');await blockH();return;}
   L.say(THEMES.length>=12&&SKINS.indexOf('classic')>=0&&SKINS.indexOf('playful')>=0&&SKINS.indexOf('medieval')>=0,'TC-R220 PRECONDITION the bundle names '+THEMES.length+' colour themes ('+THEMES.join(', ')+') and the skins '+SKINS.join(', '),{THEMES,SKINS,PAL});
   // ── (a)(b) the accent buttons ──
   {const b=await L.launch({geo:'kunal761',name:'ac144',pro:true});await b.open();await b.settle(800);
@@ -185,6 +210,7 @@ L.run(async()=>{
    const mc=await b.page.evaluate(()=>{const c=[...document.querySelectorAll('button')].filter(x=>(x.innerText||'').trim()==='✕'&&x.getBoundingClientRect().width>0&&x.getBoundingClientRect().top<innerHeight);return c.map(x=>({name:x.getAttribute('aria-label')||'',h:window.__ctHit(x)}));});
    L.say(mo&&mc.length>=1&&mc.every(x=>x.name==='Close'&&x.h.w>=44&&x.h.h>=44),'TC-R220f '+geo+' the menu sheet\'s close button is named and has a 44px tap area: '+mc.map(x=>'"'+x.name+'" '+x.h.w+'x'+x.h.h+' (drawn '+x.h.drawn.join('x')+')').join(', '));
    L.say(b.errs.length===0,'TC-R220g '+geo+' zero app errors',b.errs.slice(0,3));await b.close();}
+  await blockH();
 },'144-readable-everywhere');
 // SELECTOR-OPENED: eval-graph-dot reading=precondition round 2: PRECONDITION dots at least 3
 // SELECTOR-OPENED: eval-graph-hit reading=precondition round 2: read inside the dots the precondition requires

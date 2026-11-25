@@ -1,0 +1,9 @@
+--- a/index.html
++++ b/index.html
+@@ -71,5 +71,5 @@
+ *:focus:not(:focus-visible){outline:none}
+ /* #553 A11Y-08 (amber flags/amber-553-text-box-edges): every text box and picker keeps its own 1px border, drawn in #7d8590 so its edge reads at least 3:1 against the card (18-20% white read 1.74); !important because the boxes set their border inline. Sliders, checks and hidden file inputs keep theirs, and a box in its error state (aria-invalid, the puzzle unlock code) keeps its own red edge. Gate 144 TC-R425b. */
+-textarea:not([aria-invalid=true]),select:not([aria-invalid=true]),input:not([type=range]):not([type=checkbox]):not([type=radio]):not([type=file]):not([type=hidden]):not([aria-invalid=true]){border-color:#7d8590!important}
++textarea:not([aria-invalid=true]),select:not([aria-invalid=true]),input:not([type=range]):not([type=checkbox]):not([type=radio]):not([type=file]):not([type=hidden]):not([aria-invalid=true]){border-color:rgba(255,255,255,.18)!important}
+ @media (prefers-reduced-motion: no-preference){@keyframes ctGlow{0%,100%{opacity:.4;transform:scale(1)}50%{opacity:.9;transform:scale(1.1)}}@keyframes ctDraw{from{stroke-dashoffset:1}to{stroke-dashoffset:0}}@keyframes ctFall{to{transform:translateY(70vh) rotate(540deg);opacity:0}}@keyframes ctPop{0%{transform:scale(.4);opacity:0}70%{transform:scale(1.18)}100%{transform:scale(1);opacity:1}}}
+ /* #550, jobs/a-51-point-strip-at-the-bottom-of-every-page-is-never-painted-on-kunals-phone-2026-11-11: THE SHELL TAKES
