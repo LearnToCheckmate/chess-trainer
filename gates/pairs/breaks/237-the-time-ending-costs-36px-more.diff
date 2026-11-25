@@ -1,0 +1,11 @@
+--- a/chess.jsx
++++ b/chess.jsx
+@@ -14308,7 +14308,7 @@
+               1x1, clipped). In the landscape rail it is still painted, unchanged. */}
+           {landPlay&&_gameOver&&gameResult&&(()=>{/* #550 a23: the result, and at its right end Back and Forward through the finished game (the card is
+               already a thumb tall, so stepping costs the rail no height) */const _n=playHist.length,_cur=pvIdx==null?_n:pvIdx;const _sb={flex:'0 0 46px',minHeight:44,borderRadius:11,display:'inline-flex',alignItems:'center',justifyContent:'center',background:'rgba(255,255,255,.07)',border:'1px solid rgba(255,255,255,.16)',color:'#fff',cursor:'pointer',padding:0};return(
+-          <div data-ct="land-result" style={{width:'100%',boxSizing:'border-box',padding:'5px 6px 5px 12px',borderRadius:14,background:'rgba(255,255,255,.06)',border:'1px solid rgba(255,255,255,.14)',flexShrink:0,display:'flex',alignItems:'center',gap:6}}>
++          <div data-ct="land-result" style={{width:'100%',boxSizing:'border-box',padding:'5px 6px 5px 12px',marginBottom:(/Time/.test(String(gameResult.head))?36:0),borderRadius:14,background:'rgba(255,255,255,.06)',border:'1px solid rgba(255,255,255,.14)',flexShrink:0,display:'flex',alignItems:'center',gap:6}}>
+             <div style={{flex:'1 1 auto',minWidth:0}}>
+               <div style={{fontSize:'clamp(20px,3.2vw,26px)',fontWeight:800,color:'#fff',lineHeight:1.1}}>{String(gameResult.head).replace(/!$/,'')}</div>
+               {gameResult.sub&&<div style={{fontSize:'clamp(13px,1.9vw,15px)',fontWeight:600,color:'rgba(255,255,255,.62)',marginTop:2}}>{gameResult.sub}</div>}

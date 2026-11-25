@@ -2181,6 +2181,12 @@ As a player opening the app, Home fills my phone's screen top to bottom with eve
 - On a 320x568 phone a returning player's Home does not scroll; a brand-new player's Home is scaled no smaller than 85 percent and its last row is reached by scrolling Home. (TC-R413)
 - On my phone (375x761), on 375x812 and on 390x844 Home does not scroll, the colours and style row is the last item and ends at the foot of the screen, no gap is smaller than it was, and where the free space allows the gaps are within 8 points of each other. (TC-R414)
 
+### US-R250 When a sideways game ends, on time or by resigning, everything in the side rail is on screen at first paint
+*Added in batch 14 (#553, builder seat B2), jobs/the-landscape-result-line-lives-in-a-scroller-that-can-take-it-off-screen-2026-09-29 and its folded lead jobs/a-landscape-time-loss-paints-the-whole-moves-panel-below-the-rails-visible-window-2026-10-07: #495 and #549 measured a time loss vs the computer at 730x375 painting the whole moves panel below the rail's window. #550's Option A (Kunal's pick on B10-Q23, US-PL-27) rebuilt the sideways game; this clause holds the rail's clip box for the endings the lead job named.*
+As a player who loses a game vs the computer with my phone sideways, I see the result, the last moves, the four buttons and the strength pill without scrolling, whether I lost on time or resigned.
+- At 730x375, 761x375 and 730x350, after a real one-minute flag and after a resign at the same ply count, every text in the side rail lies inside the rail's clip box and the rail does not scroll; at 360 tall or more the move strip shows its moves, and under 360 tall only the move strip is hidden, on purpose, as a live log. (TC-R415)
+- The time ending costs no height the resign ending does not: the result card and the four buttons sit at the same height after either. (TC-R431)
+
 ### US-R123 When a review cannot finish, it says so and lets me try again
 *Added #550 answer a32 (Kunal on build__1794388896663, 11 Nov 2026: "a short message with Try again and Back to games when a review's analysis fails, as in your mockup (550-136-k14-2)").*
 As a player whose review's engine stops answering partway, I am told the review stopped and that it was not my doing, with Try again and Back to games, instead of a progress screen that never ends or a review graded from nothing.
