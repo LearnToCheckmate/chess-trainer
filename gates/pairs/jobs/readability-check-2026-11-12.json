@@ -1,0 +1,43 @@
+{
+ "job": "readability-check-2026-11-12",
+ "about": "A11Y-14 (the Home 'New here? Start here' label, 4.5:1 on its card) and A11Y-08 (the text-box and picker edges, 3:1 against the card) of the 12 Nov readability check. Graded by gate 144 block (h), CT_G144_ONLY=h, at kunal761 and 320x568. NOT COVERED: the other skins; the text boxes off the Review list (they share the one stylesheet rule); the rest of the check's remainder.",
+ "gate": "gates/regress/144-readable-everywhere.js",
+ "env": {
+  "CT_G144_ONLY": "h"
+ },
+ "checks": [
+  "^TC-R425"
+ ],
+ "build": "always",
+ "situations": [
+  {
+   "name": "kunal761",
+   "match": "^TC-R425\\S* kunal761 "
+  },
+  {
+   "name": "320x568",
+   "match": "^TC-R425\\S* se "
+  }
+ ],
+ "breaks": [
+  {
+   "name": "the-new-here-label-back-to-55-percent-black",
+   "patch": "breaks/a11y-new-here-label-back-to-55-black.diff",
+   "why": "the label goes back to 55% black on the light blue card, 3.33:1",
+   "mustFailIn": [
+    "kunal761",
+    "320x568"
+   ]
+  },
+  {
+   "name": "the-text-box-edges-back-to-18-percent-white",
+   "patch": "breaks/a11y-text-box-edges-back-to-18-white.diff",
+   "why": "every text box edge goes back to 18% white, 1.74:1 against the card",
+   "mustFailIn": [
+    "kunal761",
+    "320x568"
+   ]
+  }
+ ],
+ "timeoutSec": 900
+}

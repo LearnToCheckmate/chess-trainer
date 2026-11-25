@@ -2962,3 +2962,9 @@ As a player reviewing my own games, every explanation is right about the move I 
 - The explanation's word for who is better agrees with the engine's number. (TC-R423)
 - Each side's grade counts add up to the moves that side played (a move with one legal choice is left out, as chess.com does). (TC-R424)
 - The check runs on his recorded games, and any game whose review cannot be made is named, not dropped. (TC-R420)
+
+### US-R247 The Home card's label and every text box's edge are readable
+*Added #553 B3, jobs/readability-check-2026-11-12 (A11Y-14 and A11Y-08 of docs/readability-check-2026-11-12, his pick 'Batch 10, serious first'). Amber: flags/amber-553-new-here-label-ink, flags/amber-553-text-box-edges.*
+As a player, I can read the 'New here? Start here' label on Home and see where every text box and picker begins and ends.
+- The 'New here? Start here' label reads at least 4.5:1 on its card. (TC-R425a)
+- Every text box and picker edge reads at least 3:1 against the card behind it, with no box changing size. (TC-R425b)
