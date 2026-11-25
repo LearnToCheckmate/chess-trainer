@@ -429,14 +429,16 @@ const YDAY=(()=>{const d=new Date();d.setDate(d.getDate()-1);return dstr(d);})()
 // stamp: at se it scales to 0.85 and still scrolls 81px, at kunal730 it scales to about 0.957 and fits, at 390 and 430 it spreads.
 // Measured on the trial 12d354e48f34 (the numbers below; the footer row's 44pt controls are drawn at 44/scale, so they stay 44); the pins before were the packed-at-the-top column (sh 761, travel 193 at se).
 const M={
-  se      :{colW:296,sh:655,travel:87,intro:{y:12,h:79.9},today:{y:91.9,h:71.9},newhere:{y:163.7,h:85.4},
-            tiles:{y:262.8,h:267.4},coach:{y:530.2,h:33.3},look:{y:573.6,h:37.4},devrow:{y:573.6},build:{y:624.4}},
-  kunal730:{colW:351,sh:730,travel:0, intro:{y:12,h:89.7},today:{y:101.7,h:79.5},newhere:{y:181.2,h:93.3},
-            tiles:{y:289.7,h:304.2},coach:{y:593.8,h:37.2},look:{y:642.4,h:44},devrow:{y:642.4},build:{y:694}},
-  '390'   :{colW:366,sh:844,travel:0,  intro:{y:12,h:94},today:{y:125.5,h:84},newhere:{y:229,h:100},
-            tiles:{y:348.5,h:321},coach:{y:689,h:39},look:{y:747.5,h:44},devrow:{y:747.5},build:{y:811}},
-  '430'   :{colW:406,sh:932,travel:0,  intro:{y:12,h:94},today:{y:138.9,h:84},newhere:{y:255.8,h:102},
-            tiles:{y:390.7,h:326.5},coach:{y:750.1,h:39},look:{y:822,h:44},devrow:{y:822},build:{y:898.9}}};
+  // RE-PINNED AGAIN [#553 B2, gate 26 TC-INV-01b's fallout; same amber]: the coach line is 44pt on a phone at every Home scale now (minHeight
+  // 44/scale; it was 39 at full size and 33.3 at se's 0.85), so everything under it moved; measured on trial 9ae5c2387332 (the scale solved with the coach line and the footer row both held at 44).
+  se      :{colW:296,sh:666,travel:98,intro:{y:12,h:79.9},today:{y:91.9,h:71.9},newhere:{y:163.7,h:85.4},
+            tiles:{y:262.8,h:267.4},coach:{y:530.2,h:44},look:{y:584.3,h:37.4},devrow:{y:584.3},build:{y:635.1}},
+  kunal730:{colW:351,sh:730,travel:0, intro:{y:12,h:88.7},today:{y:100.7,h:78.9},newhere:{y:179.6,h:92.9},
+            tiles:{y:287.6,h:301.4},coach:{y:589,h:44},look:{y:644.3,h:44},devrow:{y:644.3},build:{y:695.9}},
+  '390'   :{colW:366,sh:844,travel:0,  intro:{y:12,h:94},today:{y:124.7,h:84},newhere:{y:227.4,h:100},
+            tiles:{y:346.1,h:321},coach:{y:685.8,h:44},look:{y:748.4,h:44},devrow:{y:748.4},build:{y:811.1}},
+  '430'   :{colW:406,sh:932,travel:0,  intro:{y:12,h:94},today:{y:138.1,h:84},newhere:{y:254.2,h:102},
+            tiles:{y:388.3,h:326.5},coach:{y:746.9,h:44},look:{y:823,h:44},devrow:{y:823},build:{y:899.1}}};
 // Per-tile rects, measured before any tap. gridTemplate minmax(0,1fr) x2 (AUD-H01: '1fr 1fr' let a one-line caption's min-content widen
 // its column at 320, 135.2 against 137.2) with a 16px column gap, so the right column's x is 12 + w + 16 at every width (18 + w + 16 before FMT-A-08).
 // RE-KEYED by formatting audit FMT-A-08 (Kunal's pick 12 Nov): the 12 gutter on a page with no board (was the overlay's 18), so each tile is 6
@@ -444,16 +446,16 @@ const M={
 const T={   // RE-PINNED [#553, see M above]: scaled at se and kunal730, moved down by the spread at 390 and 430
   se      :{learn:{x:12,y:262.8,w:141.2,h:128.6},  puzzle:{x:166.8,y:262.8,w:141.2,h:128.6},
             analyze:{x:12,y:401.5,w:141.2,h:128.6},play:{x:166.8,y:401.5,w:141.2,h:128.6}},
-  kunal730:{learn:{x:12,y:289.7,w:167.9,h:146.4},puzzle:{x:195.1,y:289.7,w:167.9,h:146.4},
-            analyze:{x:12,y:447.5,w:167.9,h:146.4},play:{x:195.1,y:447.5,w:167.9,h:146.4}},
-  '390'   :{learn:{x:12,y:348.5,w:175,h:154.5},  puzzle:{x:203,y:348.5,w:175,h:154.5},
-            analyze:{x:12,y:515,w:175,h:154.5},play:{x:203,y:515,w:175,h:154.5}},
-  '430'   :{learn:{x:12,y:390.7,w:195,h:157.3},puzzle:{x:223,y:390.7,w:195,h:157.3},
-            analyze:{x:12,y:559.9,w:195,h:157.3},play:{x:223,y:559.9,w:195,h:157.3}}};
+  kunal730:{learn:{x:12,y:287.6,w:168,h:145},puzzle:{x:195,y:287.6,w:168,h:145},
+            analyze:{x:12,y:444,w:168,h:145},play:{x:195,y:444,w:168,h:145}},
+  '390'   :{learn:{x:12,y:346.1,w:175,h:154.5},  puzzle:{x:203,y:346.1,w:175,h:154.5},
+            analyze:{x:12,y:512.6,w:175,h:154.5},play:{x:203,y:512.6,w:175,h:154.5}},
+  '430'   :{learn:{x:12,y:388.3,w:195,h:157.3},puzzle:{x:223,y:388.3,w:195,h:157.3},
+            analyze:{x:12,y:557.5,w:195,h:157.3},play:{x:223,y:557.5,w:195,h:157.3}}};   // re-pinned with M (the 44pt coach line), trial 70fefd700e62
 // #553: the icon box is 80 at full size and scales with the column where Home is fitted (se 0.85, kunal730 about 0.957 with the dev row)
-const ICONBOX={se:68,kunal730:76.5,'390':80,'430':80};
+const ICONBOX={se:68,kunal730:75.8,'390':80,'430':80};   // kunal730 75.8 since the 44pt coach line (scale about 0.948)
 // #553: the Today card in the earned state (block E, se and kunal730 only): scaled at se, moved down by the spread at kunal730
-const TODAY_E={se:{y:93.2,h:73.6},kunal730:{y:127,h:84}};
+const TODAY_E={se:{y:91.9,h:71.9},kunal730:{y:126,h:84}};   // re-measured with the 44pt coach line, trial 70fefd700e62
 const LABELS=['Discover','Puzzles','Review','Play'];
 // #550 AUD-H01 (answer a18, 'Compact footer and tiles'): ONE-LINE captions on a phone (chess.jsx SUB_SHORT) - the long Discover and Review
 // captions wrapped to two lines and pushed the column down. Every geometry this gate runs is a phone.

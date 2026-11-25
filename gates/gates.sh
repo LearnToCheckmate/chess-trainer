@@ -147,11 +147,40 @@ foreign_browsers(){
 # emits the assertions, so this detects DELETION, not an assertion that was always vacuous.
 # Prints one line per breach: "FELL <label> <pinned> <now>" or "ABSENT <label> <pinned>". Defined above --selftest so
 # the selftest drives this function and not a copy.
+# #553 [jobs/a-deleted-assertion-inside-a-gate-is-invisible-in-a-green-run-2026-10-10, the checker's gap (3) of 15 Nov]: the
+# fastgate-drive unit layer's lines ("PASS fastgate-drive H1 [TC-SUITE-057] ...", written BEFORE the first gate section) are
+# counted under the label `fastgate-drive`, so a case deleted together with its tc() row - which the unit block's own
+# declared = ran = committed-table check cannot see - falls below a pin. A declared SKIP ("    fastgate-drive: SKIPPED",
+# a decline or a timeout, which the unit block already prints as neither red nor green) is not read as ABSENT: a suite
+# launched from a dirty tree, the documented path, declines it every time.
+# Amber: flags/amber-553-assertion-ratchet-unpinned-is-reported-not-refused.
 assert_falls(){ # <register.tsv> <log>
   awk -F'\t' 'FILENAME==ARGV[1]{ if($0 ~ /^[[:space:]]*#/ || NF<2) next; pin[$1]=$2+0; next }
        /^=== [^ ]+ ===/{ sec=$0; sub(/^=== /,"",sec); sub(/ ===.*/,"",sec); seen[sec]=1; next }
+       sec=="" && /^(PASS|FAIL) fastgate-drive /{ got["fastgate-drive"]++; seen["fastgate-drive"]=1; next }
+       sec=="" && /^    fastgate-drive: SKIPPED/{ fdskip=1; next }
        sec!="" && /^(PASS|FAIL) /{ got[sec]++ }
-       END{ for(k in pin){ if(!(k in seen)) printf "ABSENT %s %d\n",k,pin[k]; else if(got[k]+0<pin[k]) printf "FELL %s %d %d\n",k,pin[k],got[k]+0 } }' "$1" "$2" | sort
+       END{ for(k in pin){ if(!(k in seen)){ if(k=="fastgate-drive" && fdskip) continue; printf "ABSENT %s %d\n",k,pin[k] } else if(got[k]+0<pin[k]) printf "FELL %s %d %d\n",k,pin[k],got[k]+0 } }' "$1" "$2" | sort
+}
+# assert_rises <register.tsv> <log> [#553, the same job, the checker's gap (1)]: what assert_falls ALLOWS, said out loud -
+# "ROSE <label> <pinned> <now>" for a gate above its pin and "UNPINNED <label> <now>" for a section (or the fastgate-drive
+# layer) with no row. Printed in the footer with the record command and NOT a refusal: a pin can only be taken from a full
+# log, so refusing here would cost every build that adds a gate a second suite. Until #553 both were silent, which is how
+# 78 of 142 required gates reached 15 Nov with no pin and nothing said so.
+assert_rises(){ # <register.tsv> <log>
+  awk -F'\t' 'FILENAME==ARGV[1]{ if($0 ~ /^[[:space:]]*#/ || NF<2) next; pin[$1]=$2+0; next }
+       /^=== [^ ]+ ===/{ sec=$0; sub(/^=== /,"",sec); sub(/ ===.*/,"",sec); seen[sec]=1; next }
+       sec=="" && /^(PASS|FAIL) fastgate-drive /{ got["fastgate-drive"]++; seen["fastgate-drive"]=1; next }
+       sec!="" && /^(PASS|FAIL) /{ got[sec]++ }
+       END{ for(k in seen){ if(!(k in pin)) printf "UNPINNED %s %d\n",k,got[k]+0; else if(got[k]+0>pin[k]) printf "ROSE %s %d %d\n",k,pin[k],got[k]+0 } }' "$1" "$2" | sort
+}
+# register_rows_gone <register.tsv> <committed copy> [#553, the checker's gap (1), its last clause]: every row HEAD's committed
+# register carries must still be in the working copy - the never-delete rule gates/harness-counts.sh already applies to its own
+# register. A deleted row takes its gate off the ratchet with nothing printed, and assertcount.sh record drops the row of any
+# gate missing from the log it records from, which is how that would happen without anyone choosing it. Prints "GONE <label>".
+register_rows_gone(){ # <register.tsv> <committed copy>
+  awk -F'\t' 'FILENAME==ARGV[1]{ if($0 ~ /^[[:space:]]*#/ || NF<2) next; have[$1]=1; next }
+       { if($0 ~ /^[[:space:]]*#/ || NF<2) next; if(!($1 in have)) printf "GONE %s\n",$1 }' "$1" "$2" | sort
 }
 
 # records_door <records-gate.sh> <base-sha> <head-sha> <detail-file>: THE ONE DOOR, CALLED FROM THE FULL-SUITE PATH [#550;
@@ -1613,6 +1642,27 @@ M16PY
   : > "$ST_T/ac-empty.tsv"
   st A7-an-EMPTY-register-pins-nothing-and-does-not-read-the-log-as-pins "$(assert_falls "$ST_T/ac-empty.tsv" "$ST_T/ac2.log" | wc -l | tr -d ' ')" 0
   st A6-the-full-suite-refuses-the-green-line-on-a-fall "$(grep -c '^if \[ \$red -eq 0 \] && \[ "\${HR_V:-}" != orphaned \] && \[ -z "\${ACFALL:-}" \] && .*then echo "GATES GREEN' "$SF")" 1
+  # A8-A15 [#553; jobs/a-deleted-assertion-inside-a-gate-is-invisible-in-a-green-run-2026-10-10, the checker's gap of 15 Nov]:
+  # the fastgate-drive layer under a pin, rises and unpinned gates printed, a deleted register row refused, an absent register refused.
+  printf '# fixture\nALPHA\t5\t#1\tx\nfastgate-drive\t3\t#1\tx\n' > "$ST_T/acd.tsv"
+  acd(){ local n="$1" sk="${2:-}" i; echo "--- fastgate-drive (unit layer) ---"; for ((i=0;i<n;i++)); do echo "PASS fastgate-drive H$i [TC-SUITE-0$i]  (exit 0)"; done
+         [ -n "$sk" ] && echo "    fastgate-drive: SKIPPED - the harness DECLINED to run and asserted nothing (exit 2)."; echo "=== ALPHA ==="; for ((i=0;i<5;i++)); do echo "PASS a$i"; done; }
+  acd 3 > "$ST_T/acd1.log"
+  st A8-the-fastgate-drive-layer-at-its-pin-prints-nothing "$(assert_falls "$ST_T/acd.tsv" "$ST_T/acd1.log" | wc -l | tr -d ' ')" 0
+  acd 2 > "$ST_T/acd2.log"
+  st A9-a-fastgate-drive-case-deleted-reads-FELL "$(assert_falls "$ST_T/acd.tsv" "$ST_T/acd2.log")" "FELL fastgate-drive 3 2"
+  acd 0 skip > "$ST_T/acd3.log"
+  st A10-a-declared-fastgate-drive-SKIP-is-not-a-fall "$(assert_falls "$ST_T/acd.tsv" "$ST_T/acd3.log" | wc -l | tr -d ' ')" 0
+  acd 0 > "$ST_T/acd4.log"
+  st A11-no-fastgate-drive-lines-and-no-SKIP-reads-ABSENT "$(assert_falls "$ST_T/acd.tsv" "$ST_T/acd4.log")" "ABSENT fastgate-drive 3"
+  acd 4 > "$ST_T/acd5.log"; printf '=== GAMMA ===\nPASS g\nFAIL g2\n' >> "$ST_T/acd5.log"
+  st A12-a-rise-and-an-unpinned-gate-are-printed "$(assert_rises "$ST_T/acd.tsv" "$ST_T/acd5.log" | tr '\n' ';')" "ROSE fastgate-drive 3 4;UNPINNED GAMMA 2;"
+  st A13-at-its-pins-assert_rises-prints-nothing "$(assert_rises "$ST_T/acd.tsv" "$ST_T/acd1.log" | wc -l | tr -d ' ')" 0
+  printf '# fixture\nALPHA\t5\t#1\tx\n' > "$ST_T/acd-cut.tsv"
+  st A14-a-row-gone-from-the-committed-register-reads-GONE "$(register_rows_gone "$ST_T/acd-cut.tsv" "$ST_T/acd.tsv")" "GONE fastgate-drive"
+  st A14b-and-an-unchanged-register-prints-nothing "$(register_rows_gone "$ST_T/acd.tsv" "$ST_T/acd.tsv" | wc -l | tr -d ' ')" 0
+  st A15-an-ABSENT-register-withholds-the-green-line "$(grep -c '^  ACFALL="NOREGISTER"$' "$SF")" 1
+  st A15b-and-a-GONE-row-joins-the-falls-that-withhold-it "$(grep -c 'ACGONE="\$(register_rows_gone "\$ACREG" "\$ACCOMMIT")"; \[ -n "\$ACGONE" \] && ACFALL=' "$SF")" 1
   # RD1-RD9 DRIVE records_door [#550; jobs/build-one-door-for-every-non-gate-check-2026-10-10 part (2b)] over stub doors in a
   # scratch dir: the stub's two calls (base head, then --harnesses) take their exits from RD_E1 / RD_E2, and it prints a PASS
   # line so RD8 can show the door's output never reaches the line the caller tees into the log.
@@ -3441,14 +3491,24 @@ fi
 ACREG="$G/assertion-counts.tsv"; ACFALL=""
 if [ -f "$ACREG" ]; then
   ACFALL="$(assert_falls "$ACREG" "$ALL")"
+  # #553: a row in HEAD's committed register and gone from the working copy is a fall nobody recorded (see register_rows_gone)
+  ACCOMMIT="$(mktemp)"; if $GIT show HEAD:gates/assertion-counts.tsv > "$ACCOMMIT" 2>/dev/null; then
+    ACGONE="$(register_rows_gone "$ACREG" "$ACCOMMIT")"; [ -n "$ACGONE" ] && ACFALL="$(printf '%s\n%s' "$ACFALL" "$ACGONE" | sed '/^$/d')"; fi; rm -f "$ACCOMMIT"
   if [ -n "$ACFALL" ]; then
-    echo "ASSERTION COUNT FELL - a gate emitted fewer assertions than gates/assertion-counts.tsv pins, so this run is not a push gate. If the fall is deliberate, record it with: bash gates/assertcount.sh record <this log> '<why>'" | tee -a "$ALL"
+    echo "ASSERTION COUNT FELL - a gate emitted fewer assertions than gates/assertion-counts.tsv pins, or its row is gone from HEAD's register, so this run is not a push gate. If the fall is deliberate, record it with: bash gates/assertcount.sh record <this log> '<why>'" | tee -a "$ALL"
     printf '%s\n' "$ACFALL" | sed 's/^/    /' | tee -a "$ALL"
   else
     echo "assertion counts: no gate below its pin in gates/assertion-counts.tsv" | tee -a "$ALL"
   fi
+  ACRISE="$(assert_rises "$ACREG" "$ALL")"
+  if [ -n "$ACRISE" ]; then
+    echo "assertion counts: $(printf '%s\n' "$ACRISE" | grep -c '^ROSE') gate(s) above their pin and $(printf '%s\n' "$ACRISE" | grep -c '^UNPINNED') with no pin - allowed, not a refusal; pin them from this log with: bash gates/assertcount.sh record <this log> '<why>'" | tee -a "$ALL"
+    printf '%s\n' "$ACRISE" | sed 's/^/    /' | tee -a "$ALL"
+  fi
 else
-  echo "assertion counts: NOT CHECKED - gates/assertion-counts.tsv is absent" | tee -a "$ALL"
+  # #553: this read 'NOT CHECKED' and the run still went green - an absent register made the ratchet pass by not running
+  ACFALL="NOREGISTER"
+  echo "ASSERTION COUNT NOT CHECKED - gates/assertion-counts.tsv is absent, so this run is not a push gate (a register that could not be read is not a clearance)" | tee -a "$ALL"
 fi
 # #550, jobs/build-one-door-for-every-non-gate-check-2026-10-10 part (2b): the one door, on the full-suite path. See records_door
 # at the top of this file. Base is the merge-base with origin/main as read above, so the door judges exactly the commits this run

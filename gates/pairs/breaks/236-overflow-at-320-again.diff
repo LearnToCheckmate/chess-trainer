@@ -1,9 +1,9 @@
 --- a/chess.jsx
 +++ b/chess.jsx
-@@ -10719,7 +10719,7 @@
+@@ -10720,7 +10720,7 @@
      const cs=getComputedStyle(sc);const avail=sc.clientHeight-parseFloat(cs.paddingTop)-parseFloat(cs.paddingBottom);
      const cr=col.getBoundingClientRect();const need=cr.height;
-     if(need>avail+1){const fr=col.querySelector('[data-ct="home-footrow"]');const F=fr?fr.getBoundingClientRect().height:0;   /* the footer row keeps its 44pt controls at 44 when scaled (they are drawn at 44/z), so only the rest of the column scales */
+     if(need>avail+1){const fr=col.querySelector('[data-ct="home-footrow"]');const cl=col.querySelector('[data-fix44]');const F=(fr?fr.getBoundingClientRect().height:0)+(cl?cl.getBoundingClientRect().height:0);   /* the footer row and the coach line keep their 44pt at any scale (drawn at 44/z), so only the rest of the column scales */
 -      const z=Math.max(0.85,Math.floor((avail-F)/Math.max(1,need-F)*1000)/1000);setHomePh(f=>({...f,z,done:true}));return;}
 +      const z=Math.max(0.85,Math.floor((avail-F)/Math.max(1,need-F)*1000)/1000);setHomePh(f=>({...f,done:true}));return;}
      const free=avail-need;if(free<1||kids.length<2){setHomePh(f=>({...f,done:true}));return;}

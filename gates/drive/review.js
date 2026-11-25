@@ -104,8 +104,15 @@ async function _shareKey(b,pgn){const st=await b.page.evaluate(()=>({pool:localS
 function _shareGet(k){if(_shareMem.has(k))return _shareMem.get(k);try{const v=JSON.parse(_fs.readFileSync(_path.join(_shareDir,k+'.json'),'utf8'));if(v&&v.key&&v.entry){_shareMem.set(k,v);return v;}}catch(e){}return null;}
 function _sharePut(k,v){_shareMem.set(k,v);try{_fs.mkdirSync(_shareDir,{recursive:true});const f=_path.join(_shareDir,k+'.json');_fs.writeFileSync(f+'.'+process.pid,JSON.stringify(v));_fs.renameSync(f+'.'+process.pid,f);}catch(e){}}
 // paste a PGN and analyse it; waits for the summary (a cached game takes seconds, a fresh one 20-60 s)
+// operaBlack(name) [#553 B2, gate 26 TC-INV-04c at kunal730]: the reference game's Black name as PASTED, for a gate that needs the
+// Review player bar's name to run past its box at a width where 'DukeKarlCountIsouard99' fits. The game, its moves and its
+// 'opera' identity are unchanged; null restores the default. Only gate 26 sets it, for one geometry.
+let _operaBlack=null;
+function operaBlack(name){_operaBlack=name||null;}
 async function importPgn(b,pgn,timeout){
   await toList(b);
+  const isOpera=pgn===PGN_OPERA;
+  if(isOpera&&_operaBlack)pgn=pgn.replace('[Black "DukeKarlCountIsouard99"]','[Black "'+_operaBlack+'"]');
   let sk=null,seeded=false,before=null;
   if(_shareOn&&b.bundleMd5){sk=await _shareKey(b,pgn);const v=_shareGet(sk);
     before=await b.page.evaluate(()=>{try{return Object.keys(JSON.parse(localStorage.getItem('ct_evalcache')||'{}')||{});}catch(e){return [];}});
@@ -113,7 +120,7 @@ async function importPgn(b,pgn,timeout){
   await b.page.locator('textarea').fill(pgn);await b.settle(150);
   await b.tapText(/^⚡ Analyze [Gg]ame$/);
   await b.page.locator('[data-ct="rev-summary"]').waitFor({state:'visible',timeout:timeout||180000});
-  await b.settle(900);b._ctReview=pgn===PGN_OPERA?'opera':(pgn===PGN_CORNER?'corner':'other');
+  await b.settle(900);b._ctReview=isOpera?'opera':(pgn===PGN_CORNER?'corner':'other');
   if(sk){const r=await b.page.evaluate((was)=>{let o={};try{o=JSON.parse(localStorage.getItem('ct_evalcache')||'{}')||{};}catch(e){}const nk=Object.keys(o).filter(k=>!was.includes(k));
       const rv=window.__ctReview;return {nk,entry:nk.length===1?o[nk[0]]:null,path:rv&&rv.engine&&rv.engine.path,plies:rv&&rv.plies?rv.plies.length:-1};},before);
     b._ctShared={key:sk,seeded,path:r.path};
@@ -179,5 +186,5 @@ const states={
   'fab-corner-mid':async(b)=>{await exitAnalysis(b);await movesAt(b,6,'corner');},
   'stored-review':async(b)=>{await seed(b,SEED);await b.open();b._ctReview=null;await b.tile('Review');await b.settle(700);await b.page.locator('[data-ct="game-row"]').first().click();await b.page.locator('[data-ct="rev-summary"]').waitFor({state:'visible',timeout:180000});await b.settle(900);b._ctReview='stored';}
 };
-module.exports={shareAnalysis,navTap,engineSet,states,PGN_OPERA,PGN_CORNER,SEED,OPERA_PLIES,CORNER_PLIES,goPly,importPgn,toList,inMoves,onSummary,onList,ensureReview,startReview,closeSheet,exitAnalysis,seed,engineSet,
+module.exports={operaBlack,shareAnalysis,navTap,engineSet,states,PGN_OPERA,PGN_CORNER,SEED,OPERA_PLIES,CORNER_PLIES,goPly,importPgn,toList,inMoves,onSummary,onList,ensureReview,startReview,closeSheet,exitAnalysis,seed,engineSet,
   notes:'Home tile Review -> the list (textarea + "⚡ Analyze Game"). The summary is a fixed overlay (rev-summary) with a pinned footer (rev-summary-foot: "‹ Back to games" / "Start review ›"). The move screen: top player bar holds rev-back and rev-more, the round rev-fab sits on the board, rev-compact holds the move line, the reason (rev-why/rev-why-txt), the control row (rev-row1: ⏮ ▶ ⏭ ★) and the strip (strip-row: 26px arrows + [data-mstrip] move spans). Plies are reached by clicking the strip spans (goPly). Stored games render as "Review ›" rows from ct_accts/ct_acctgames (SEED). The eval cache (ct_evalcache) makes a repeat import instant; a first analysis of the Opera Game takes ~20-60 s with ct_pool=3. b._ctReview remembers which PGN is loaded.'};
