@@ -1,0 +1,13 @@
+diff --git a/chess.jsx b/chess.jsx
+index 24086b0d..64f467dc 100644
+--- a/chess.jsx
++++ b/chess.jsx
+@@ -11894,7 +11894,7 @@ function AppMain(){
+                   <div key={i} style={{display:'flex',alignItems:'center',gap:9,background:'rgba(0,0,0,.18)',border:'1px solid '+(learned?'rgba(108,199,138,.35)':'rgba(255,255,255,.1)'),borderRadius:10,padding:'8px 10px'}}>
+                     <span style={{flexShrink:0,fontSize:15,width:20,textAlign:'center'}}>{m?'⭐':done?'✅':learned?'✓':'▫️'}</span>
+                     <span style={{flex:1,minWidth:0}}><span style={{display:'block',fontSize:'clamp(14px,2.7vw,14px)',fontWeight:800,color:'#fff',whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis'}}>{op.name}</span><span style={{display:'block',fontSize:'clamp(12.5px,2.1vw,12.5px)',color:m?'#f0c24d':learned?'#6cc78a':'rgba(255,255,255,.5)'}}>{m?'Mastered':learned?('Learned · '+n+'/'+LEARN_GOAL+(done?' · done today':'')):(_ls.lines>1?(_ls.linesLearned+'/'+_ls.lines+' lines learned'+(done?' · done today':'')):'Not learned yet')}</span></span>
+-                    {!m&&!done&&<button onClick={()=>coachRun(i)} style={{flexShrink:0,padding:'6px 12px',borderRadius:12,background:'var(--acf)',border:'none',color:'var(--acInk,#0b0d10)',fontWeight:800,fontSize:'clamp(14px,2.4vw,14px)',cursor:'pointer'}}>Run{/* #553 card 90: no play sign */}</button>}
++                    {!m&&!done&&<button onClick={()=>coachRun(i)} style={{flexShrink:0,padding:'6px 12px',borderRadius:12,background:'var(--acf)',border:'none',color:'var(--acInk,#0b0d10)',fontWeight:800,fontSize:'clamp(14px,2.4vw,14px)',cursor:'pointer'}}>▶ Run</button>}
+                     {!learned&&<button onClick={()=>swapOut(op.name)} disabled={(coachTier.swapsLeft||0)<=0} title={(coachTier.swapsLeft||0)>0?'Swap (uses 1 swap)':('No swaps left · refills in about '+refillIn+(refillIn===1?' day':' days'))} style={{flexShrink:0,width:32,height:32,borderRadius:8,background:'rgba(255,255,255,.06)',border:'1px solid rgba(255,255,255,.16)',color:(coachTier.swapsLeft||0)>0?'rgba(255,255,255,.6)':'rgba(255,255,255,.22)',cursor:(coachTier.swapsLeft||0)>0?'pointer':'default',fontSize:12,lineHeight:1,padding:0}}>⇄</button>}
+                   </div>);})}</div>}
+                 {!slateFull&&Array.from({length:SLATE-tIdx.length}).map((_,k)=>(<div key={'e'+k} style={{display:'flex',alignItems:'center',gap:9,border:'1px dashed rgba(255,255,255,.22)',borderRadius:10,padding:'9px 10px',marginBottom:7,color:'rgba(255,255,255,.4)',fontSize:'clamp(14px,2.5vw,14px)'}}><span style={{fontSize:14}}>＋</span>Empty: pick a lesson below, or answer the questions</div>))}

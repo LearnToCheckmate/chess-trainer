@@ -1,0 +1,13 @@
+diff --git a/chess.jsx b/chess.jsx
+index 24086b0d..e4690aa1 100644
+--- a/chess.jsx
++++ b/chess.jsx
+@@ -15545,7 +15545,7 @@ function AppMain(){
+                   {/* #550 a33: when Bank it takes the row's slot, the next lesson moves here */}
+                   {bankOffer&&learnPhase==='practice'&&openStep>=learnLine.length&&learnLine.length>0&&(()=>{const _g=LIB[openIdx]?groupOf(LIB[openIdx].cat):null;let _nx=-1;if(_g)for(let i=openIdx+1;i<LIB.length;i++){if(groupOf(LIB[i].cat)===_g){_nx=i;break;}}return _nx>=0?<button data-ct="learn-sheet-next" onClick={()=>{setLessonMore(false);selectOpening(_nx);}} style={{...btn('rgba(255,255,255,.08)','1px solid rgba(255,255,255,.18)','#fff'),width:'100%',textAlign:'left'}}>{'\u203a Next lesson: '+LIB[_nx].name}</button>:null;})()}
+                   {learnPhase==='practice'&&openStep>=learnLine.length&&learnLine.length>0&&<button data-ct="learn-practice-again" onClick={()=>{setLessonMore(false);startPractice(learnLine,learnLabel);}} style={{...btn('rgba(255,255,255,.08)','1px solid rgba(255,255,255,.18)','#fff'),width:'100%',textAlign:'left'}}>↻ Practice this line again</button>}
+-                  <button onClick={()=>{setLessonMore(false);setLearnPhase('demo');setDemoPly(0);setDemoPlaying(true);setOpenMsg('');setFlip(LIB[openIdx].side==='b');setGame(LIB[openIdx].fen?fromFEN(LIB[openIdx].fen):initGame());setLastMv(null);UI.current={sel:null,tgts:[],drag:null,dragging:false};repaint();}} style={{...btn('rgba(255,255,255,.08)','1px solid rgba(255,255,255,.2)','#fff'),width:'100%'}}>Watch the demo again{/* #553 card 90: no play sign */}</button>
++                  <button onClick={()=>{setLessonMore(false);setLearnPhase('demo');setDemoPly(0);setDemoPlaying(true);setOpenMsg('');setFlip(LIB[openIdx].side==='b');setGame(LIB[openIdx].fen?fromFEN(LIB[openIdx].fen):initGame());setLastMv(null);UI.current={sel:null,tgts:[],drag:null,dragging:false};repaint();}} style={{...btn('rgba(255,255,255,.08)','1px solid rgba(255,255,255,.2)','#fff'),width:'100%'}}>▶ Watch the demo again</button>
+                   {/* #466: route (c) of the three the job counts, and the only one that does NOT go through the
+                       setup sheet - it calls fullReset directly, so the committer's guard cannot see it. Endgame
+                       lessons end in checkmate by construction, so this branch is REACHABLE rather than inert.

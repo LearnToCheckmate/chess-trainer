@@ -1,0 +1,51 @@
+{
+ "job": "one-set-of-navigation-symbols-means-one-thing-everywhere-in-the-app-2026-11-23",
+ "about": "Card 90, his pick A (run-answers orchestrator-B14-DESK-ANSWERS-Q17-Q18-Q19-Q20-Q23-2026-11-24 (a)): the last worded buttons and links lose the play sign, words kept. Gate 227's TC-R411 reaches each by its words at 375x761: 'Resume your game in progress' on Play's setup sheet after three moves of Pass and Play, 'Watch the demo again' in the lesson's practice More sheet, 'Watch in app' and the three coach links in the demo More sheet's 'Watch it explained' box (the links are links, not buttons, so they have their own check), and 'Run' in the Mastery plan READ FROM THE BUNDLE, because no player can reach that sheet on this tree (nothing renders the Home coach card; jobs/the-mastery-plan-sheet-cannot-be-opened-since-the-home-coach-card-stopped-rendering-2026-11-25). NOT COVERED: 320x568 (the named block runs at his phone only); the Run check is a string in the bundle, not a screen; the 'Watch it explained' disclosure caret is not a play sign and is not read.",
+ "gate": "gates/regress/227-nav-symbols-one-meaning.js",
+ "env": {
+  "CT_G227_ONLY": "play-resume,lesson-demo-again,lesson-video,coach-run"
+ },
+ "checks": [
+  "TC-R411 "
+ ],
+ "build": "always",
+ "situations": [
+  {
+   "name": "kunal761",
+   "match": "^TC-R411 (375x761|bundle) "
+  }
+ ],
+ "breaks": [
+  {
+   "name": "resume-keeps-the-sign",
+   "patch": "breaks/227-resume-keeps-the-sign.diff",
+   "why": "'Resume your game in progress' keeps its play sign, as before card 90",
+   "mustFailIn": ["kunal761"]
+  },
+  {
+   "name": "demo-again-keeps-the-sign",
+   "patch": "breaks/227-demo-again-keeps-the-sign.diff",
+   "why": "'Watch the demo again' keeps its play sign",
+   "mustFailIn": ["kunal761"]
+  },
+  {
+   "name": "watch-in-app-keeps-the-sign",
+   "patch": "breaks/227-watch-in-app-keeps-the-sign.diff",
+   "why": "'Watch in app' keeps its play sign",
+   "mustFailIn": ["kunal761"]
+  },
+  {
+   "name": "coach-links-keep-the-sign",
+   "patch": "breaks/227-coach-links-keep-the-sign.diff",
+   "why": "the three coach links keep their play sign",
+   "mustFailIn": ["kunal761"]
+  },
+  {
+   "name": "run-keeps-the-sign",
+   "patch": "breaks/227-run-keeps-the-sign.diff",
+   "why": "the Mastery plan's Run keeps its play sign (read from the bundle)",
+   "mustFailIn": ["kunal761"]
+  }
+ ],
+ "timeoutSec": 1500
+}
