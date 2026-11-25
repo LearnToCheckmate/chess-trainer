@@ -32,6 +32,7 @@
 // stopwatch polls the DOM from node, so it reads main's own #549 bundle (3ab724514641) at Home 1623 ms, Review list 571 ms (longest task 322)
 // and drill 516 ms on this container - the checker's 0.3-0.8 s / 0.5 s / 0.42 s on its profile. Each bar sits above main's reading here and
 // far below the regression's.
+// CONTROL-RECORD: 35511410 2026-11-25 total=4 red=1 scope=env:CT_G147_ONLY=review how=#553 SPD-07 the tree before the change (trial d093c1ac200e, 7ea1e9ef): TC-R439 red at kunal761 (107 long tasks summing 13658 ms, summary 15490 ms); with the change (trial f0c66ac8c7d7) 4/0 at 1567 ms over 10 tasks
 // CONTROL-RECORD: 9366bc3 2026-11-23 total=8 red=2 scope=trial:79e1785572ca how=#553 pairs break busy-loop-on-review-list (6e7 sqrt on every Review list render), counted at kunal761 (320x568 in the same try also 2 red): both TC-R223a lines red (Review 1182 vs 696 ms, longest 912 vs 367 at 375); the real code 8/0 at each size in the same pairs run
 // CONTROL-RECORD: 9366bc3 2026-11-23 total=8 red=1 scope=trial:53e85603be2a how=#553 pairs break busy-loop-at-home-start (8e7 sqrt once at app mount), counted at kunal761: TC-R223d red (also red at 320x568) (Home 2354 vs 1755 ms at 375, 2367 vs 1717 at 320)
 // CONTROL-RECORD: 9366bc3 2026-11-23 total=8 red=2 scope=trial:3f08597bec3e how=#553 pairs break review-renders-every-game (the games list loses its paging, 465 rows), counted at kunal761: both TC-R223a lines red; at 320x568 the Review list red and the longest task green (701 vs 402, diff 207 under the 250 floor)
