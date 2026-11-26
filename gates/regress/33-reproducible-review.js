@@ -128,9 +128,18 @@ L.run(async()=>{
   // pool site reads `<q>=Math.max(2e4,<mt>*8),<t>=setInterval(()=>{Date.now()-<last><q>&&<finish>(null,!1)},250),<D>=16` and the old
   // `setTimeout(...,Math.max(2e4,<mt>*8)),<D>=16` shape is gone. The value assertions below are unchanged; that the ceiling is reset by the
   // worker's output (silence, not wall clock) is gate 86's TC-R150, which is behavioural.
-  const m=src.match(/Math\.max\((\d+(?:e\d+)?)\s*,\s*[\w$]+\*8\)\s*,\s*[\w$]+\s*=\s*setInterval\(\(\)=>\{Date\.now\(\)-[\w$]+>[\w$]+&&[\w$]+\(null,!1\)\},\d+\)\s*,\s*[\w$]+\s*=\s*(\d+)\s*[,;]/);
-  const guard=m?Number(m[1]):null, depth=m?Number(m[2]):null;
-  L.say(!!m,'the review pool\'s search is identifiable in the bundle under test (its guard followed by its depth)',m&&m[0]);
+  // #553 B2 (jobs/one-of-his-games-never-finishes-its-review-it-stalls-at-move-68-of-103-2026-11-24): RE-KEYED TO THE SHAPE 1f873e84 GAVE IT.
+  // The stall fix (sfEvalOn asks 'isready' after 4 s of quiet) made the interval's body a block - `let <q>=Date.now()-<last>;if(<q>><c>)
+  // {<finish>(null,!1);return}if(<q>><ping>&&...){...}` - so the expression-body pattern above returned null on a bundle whose ceiling (2e4)
+  // and depth (16) are unchanged (suite 1, 3fe2e06d: these lines red at 'null ms' / 'depth null'). NEW ties the ceiling to the comparison
+  // that abandons the search: the variable Math.max is assigned to must be the one `<q>` is tested against before `<finish>(null,!1)`.
+  // OLD is kept so the CONTROL-RECORD trials above still read. Both are searched over the whole bundle and EXACTLY ONE site must match.
+  const OLD=/Math\.max\((\d+(?:e\d+)?)\s*,\s*[\w$]+\*8\)\s*,\s*[\w$]+\s*=\s*setInterval\(\(\)=>\{Date\.now\(\)-[\w$]+>[\w$]+&&[\w$]+\(null,!1\)\},\d+\)\s*,\s*[\w$]+\s*=\s*(\d+)\s*[,;]/g;
+  const NEW=/([\w$]+)=Math\.max\((\d+(?:e\d+)?),[\w$]+\*8\),[\w$]+=setInterval\(\(\)=>\{let ([\w$]+)=Date\.now\(\)-[\w$]+;if\(\3>\1\)\{[\w$]+\(null,!1\);return\}(?:[^{}]|\{[^{}]*(?:\{[^{}]*\}[^{}]*)*\})*\},\d+\),[\w$]+=(\d+)[,;]/g;
+  const sites=[...[...src.matchAll(OLD)].map(x=>({s:x[0],g:x[1],d:x[2]})),...[...src.matchAll(NEW)].map(x=>({s:x[0],g:x[2],d:x[4]}))];
+  const m=sites.length===1?sites[0]:null;
+  const guard=m?Number(m.g):null, depth=m?Number(m.d):null;
+  L.say(!!m,'the review pool\'s search is identifiable in the bundle under test (its guard followed by its depth; '+sites.length+' site(s), exactly 1 wanted)',m?m.s.slice(0,160):sites.map(x=>x.s.slice(0,80)));
   L.say(guard!==null&&guard>=20000,'the pool\'s stuck-worker timeout is at least 20 s ('+guard+' ms). At 4 s it cut real searches short and stored a shallow opinion as the answer, which is what made a move that walks into mate read as Great.',bundle);
   L.say(depth===16,'the pool searches to depth 16 ('+depth+'). At 14 the engine prefers 15...Nxd7, never sees the mate, and the famous move is mislabelled; 18 is correct but takes 36 s on this machine.',bundle);
 
@@ -155,8 +164,18 @@ L.run(async()=>{
   L.say(wired,'the same depth argument chooses "go depth" over "go movetime", so the fixed depth and the 20 s guard are one change and not two',dv);
   // #549 item (30): the single-worker calls are sfEval1(_fen(i),MT,16,<fresh>) now - the fourth argument is the table cadence - so the
   // locator reads `f(g(i),mt,16,x)`; there are three (the no-pool loop and the two retry routes), and every one must ask for 16.
-  {const _c16=src.match(/[\w$]+\([\w$]+\([\w$]+\),[\w$]+,\d+,[\w$]+\)/g)||[];const _s1=_c16.filter(x=>/,(\d+),[\w$]+\)$/.test(x)&&x.split(',').length===4);
-   L.say(_s1.length>=1&&_s1.every(x=>/,16,[\w$]+\)$/.test(x)),'the review asks the single-worker path for depth 16, the same depth the pool uses',_s1.slice(0,4));}
+  // #553 B2: RE-KEYED. The shape-only pattern `f(g(i),mt,N,x)` also caught an unrelated call that arrived after #552 - `ly(lt(n),l,1,1)`
+  // (the line-explainer's lookup in the 'Best was' sentence), present already on e5435040^'s bundle - so every() went red on a bundle whose
+  // three review calls all read 16 (suite 1, 3fe2e06d). The calls are now found by the review's OWN names: the bound retry's pool call
+  // `sfEvalOn(_sl2[0],_fen(j),MT,true,_dx)` is the one site of shape `p(q[0],F(j),M,!0,z)`, and it hands over the minified `_fen` (F) and
+  // `MT` (M); the single-worker calls are `e(F(i),M,<depth>,<x>)` with those two names (the no-pool loop, the two retry routes and the
+  // bound retry's single-worker arm). Exactly one pool site, at least one single-worker call, and every one must ask for 16.
+  {const esc2=s=>s.replace(/[$]/g,'\\$');const _ps=[...src.matchAll(/[\w$]+\([\w$]+\[0\],([\w$]+)\([\w$]+\),([\w$]+),!0,[\w$]+\)/g)];
+   const _F=_ps.length===1?_ps[0][1]:null,_M=_ps.length===1?_ps[0][2]:null;
+   L.say(_ps.length===1,'DENOMINATOR the review\'s bound-retry pool call is found, exactly once, and names the review\'s fen and movetime ('+_ps.length+' site(s): '+_ps.map(x=>x[0]).join(' ')+')',_ps.map(x=>x[0]));
+   const _s1=_F?(src.match(new RegExp('[\\w$]+\\('+esc2(_F)+'\\([\\w$]+\\),'+esc2(_M)+',\\d+,(?:[\\w$]+|!0)\\)','g'))||[]):[];
+   L.say(_s1.length>=1,'DENOMINATOR the review\'s single-worker calls are found by those names ('+_s1.length+')',_s1);
+   L.say(_s1.length>=1&&_s1.every(x=>new RegExp(','+esc2(_M)+',16,(?:[\\w$]+|!0)\\)$').test(x)),'the review asks the single-worker path for depth 16, the same depth the pool uses',_s1.slice(0,4));}
   L.say(!/trimming to keep this under/.test(src),'the review no longer tells the user it is "trimming" to hit a time target. It was printing that on the pool path, where the budget it claimed to be trimming had been inert since #375 and nothing was trimmed.');
 
   const geo='kunal730';
