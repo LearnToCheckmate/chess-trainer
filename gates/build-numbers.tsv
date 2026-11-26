@@ -612,3 +612,4 @@
 552	built	-	73249bd45e30	aaeee7dd1101	2026-11-21T10:45Z	build__1795066268355	build.sh	Bundle built and stamped #552. Recorded by gates/build.sh so the number resolves to an artefact.
 553	minted	-	-	-	2026-11-23T22:46Z	build__1795473826826	minted	batch 14 (directOpening_2026_11_23_batch14), 208 jobs, run build__1795473826826
 553	built	-	89d3b6759985	43934e545b27	2026-11-26T00:45Z	build__1795473826826	build.sh	Bundle built and stamped #553. Recorded by gates/build.sh so the number resolves to an artefact.
+553	built	-	d8dd567c060b	5e995c43aae1	2026-11-26T10:15Z	build__1795473826826	build.sh	Bundle built and stamped #553. Recorded by gates/build.sh so the number resolves to an artefact.
