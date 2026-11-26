@@ -450,10 +450,13 @@ const launch=async(o)=>{const b=await L.launch(o);const [y,m,d]=TODAY.split('-')
 const M={
   // RE-PINNED AGAIN [#553 B2, gate 26 TC-INV-01b's fallout; same amber]: the coach line is 44pt on a phone at every Home scale now (minHeight
   // 44/scale; it was 39 at full size and 33.3 at se's 0.85), so everything under it moved; measured on trial 9ae5c2387332 (the scale solved with the coach line and the footer row both held at 44).
-  se      :{colW:296,sh:665,travel:97,intro:{y:12,h:79.9},today:{y:91.9,h:71.9},newhere:{y:163.7,h:85.4},
-            tiles:{y:262.8,h:267.4},coach:{y:530.2,h:44},look:{y:584.3,h:37.4},devrow:{y:584.3},build:{y:635.1}},
-  kunal730:{colW:351,sh:730,travel:0, intro:{y:12,h:88.7},today:{y:100.7,h:78.9},newhere:{y:179.6,h:92.9},
-            tiles:{y:287.6,h:301.4},coach:{y:589,h:44},look:{y:644.3,h:44},devrow:{y:644.3},build:{y:695.9}},
+  // RE-PINNED [#553 B2, gate 141 TC-R217d: the build stamp's phone margin 7 -> 2 so his phone's Home is at scale 1 again]: se's column is
+  // 4px shorter (sh 661, travel 93; was 665/97) and its build stamp 4.9 higher (630.2; was 635.1); kunal730 scales a little less (about
+  // 0.951; was 0.944), so its cards sit 0.7-3.9px lower and up to 1.9 taller; measured on trial c3f8bb7f3750 (src 8198df6ae6ab).
+  se      :{colW:296,sh:661,travel:93,intro:{y:12,h:79.9},today:{y:91.9,h:71.9},newhere:{y:163.7,h:85.4},
+            tiles:{y:262.8,h:267.4},coach:{y:530.2,h:44},look:{y:584.3,h:37.4},devrow:{y:584.3},build:{y:630.2}},
+  kunal730:{colW:351,sh:730,travel:0, intro:{y:12,h:89.4},today:{y:101.4,h:79.7},newhere:{y:181.1,h:93.1},
+            tiles:{y:289.5,h:303.3},coach:{y:592.8,h:44},look:{y:648.2,h:44},devrow:{y:648.2},build:{y:694.1}},
   '390'   :{colW:366,sh:844,travel:0,  intro:{y:12,h:94},today:{y:124.5,h:84},newhere:{y:227,h:100},
             tiles:{y:345.5,h:321},coach:{y:685,h:44},look:{y:747.5,h:44},devrow:{y:747.5},build:{y:810}},
   '430'   :{colW:406,sh:932,travel:0,  intro:{y:12,h:94},today:{y:137.9,h:84},newhere:{y:253.8,h:102},
@@ -468,8 +471,8 @@ const M={
 const T={   // RE-PINNED [#553, see M above]: scaled at se and kunal730, moved down by the spread at 390 and 430
   se      :{learn:{x:12,y:262.8,w:141.2,h:128.6},  puzzle:{x:166.8,y:262.8,w:141.2,h:128.6},
             analyze:{x:12,y:401.5,w:141.2,h:128.6},play:{x:166.8,y:401.5,w:141.2,h:128.6}},
-  kunal730:{learn:{x:12,y:288.2,w:168,h:145.2},puzzle:{x:195,y:288.2,w:168,h:145.2},   // RE-PINNED [#553 B3, q23 his pick A, 12px minimum; Amber: flags/amber-553-text-12px-minimum]: the
-            analyze:{x:12,y:444.7,w:168,h:145.2},play:{x:195,y:444.7,w:168,h:145.2}},   // Daily 3 'bonus' line 11->12px moves Home's fitted scale; the tiles sit 0.6 lower and 0.2 taller (trial 88f922302974; was 287.6/444, h 145)
+  kunal730:{learn:{x:12,y:289.5,w:168,h:146},puzzle:{x:195,y:289.5,w:168,h:146},   // RE-PINNED [#553 B2, gate 141 TC-R217d, see M: was y 288.2 and 444.7, h 145.2]. RE-PINNED [#553 B3, q23 his pick A, 12px minimum; Amber: flags/amber-553-text-12px-minimum]: the
+            analyze:{x:12,y:446.8,w:168,h:146},play:{x:195,y:446.8,w:168,h:146}},   // Daily 3 'bonus' line 11->12px moves Home's fitted scale; the tiles sit 0.6 lower and 0.2 taller (trial 88f922302974; was 287.6/444, h 145)
   '390'   :{learn:{x:12,y:345.5,w:175,h:154.5},  puzzle:{x:203,y:345.5,w:175,h:154.5},   // RE-PINNED [#553 B3, q23, see M]: was y 346.1 and 512.6
             analyze:{x:12,y:512,w:175,h:154.5},play:{x:203,y:512,w:175,h:154.5}},
   '430'   :{learn:{x:12,y:387.7,w:195,h:157.3},puzzle:{x:223,y:387.7,w:195,h:157.3},   // RE-PINNED [#553 B3, q23, see M]: was y 388.3 and 557.5
