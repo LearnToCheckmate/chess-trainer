@@ -2,6 +2,9 @@
 // CONTROL-RECORD: f77b636 2026-11-03 total=24 red=1 scope=trial:3853c4cf2a59 how=#547 control run j102nc: a bundle carrying a double-escaped \\uXXXX string - TC-SUITE-366 red [#547 close-out, ratchet]
 // CONTROL-RECORD: 95094b0 2026-11-07 total=24 red=1 scope=trial:37813a0d7b03 how=#549 (30): the pool's silence ceiling at 4 s - the stuck-worker timeout assertion red (4000 ms); harness stopped after the source block
 // CONTROL-RECORD: 95094b0 2026-11-07 total=24 red=1 scope=trial:0dc15b092637 how=#549 (30): depth 14 in the no-pool loop - the single-worker depth-16 assertion red; harness stopped after the source block
+// CONTROL-RECORD: 66491a6e 2026-11-26 total=26 red=1 scope=trial:8d7b8a13c621 how=#553 B2, the re-keyed pool locator (block-bodied interval since 1f873e84): fba9427d's tree with the pool's silence ceiling at 4000 - the stuck-worker timeout line red (4000 ms); the tree itself (41ef17a7fd22) 26/0
+// CONTROL-RECORD: 66491a6e 2026-11-26 total=26 red=1 scope=trial:435546fb765d how=#553 B2, the re-keyed pool locator: fba9427d's tree with DCAP 14 - the pool depth-16 line red (14)
+// CONTROL-RECORD: 66491a6e 2026-11-26 total=26 red=1 scope=trial:7d7aca217ca1 how=#553 B2, the single-worker calls found by the review's own _fen and MT: fba9427d's tree with the no-pool loop at depth 14 - the single-worker depth-16 line red; 1f873e84^ (d1f33d4aa388) 26/0 where the old locator read 23/1 on explainLine's ly/hy(lt(n),l,1,1)
 // lived in a sandbox that no longer exists and was never in git.
 //
 // What it protects, in the retiring build chat's own words: the review's stuck-worker timeout was
